@@ -1,0 +1,51 @@
+function compo_dispose(compo) {
+	if (compo.dispose != null) {
+		compo.dispose();
+	}
+
+	Anchor.removeCompo(compo);
+
+	var i = 0,
+		compos = compo.components,
+		length = compos && compos.length;
+
+	if (length) {
+		for (; i < length; i++) {
+			compo_dispose(compos[i]);
+		}
+	}
+}
+
+function compo_ensureTemplate(compo) {
+	if (compo.nodes != null) {
+		return;
+	}
+
+	var template = compo.attr.template;
+
+	if (typeof template === 'string') {
+		if (template[0] === '#') {
+			var node = document.getElementById(template.substring(1));
+			if (node == null) {
+				console.error('Template holder not found by id:', template);
+				return;
+			}
+			template = node.innerHTML;
+		}
+		template = mask.compile(template);
+	}
+
+	if (typeof template !== 'undefined') {
+		compo.nodes = template;
+
+		delete compo.attr.template;
+	}
+}
+
+function compo_containerArray() {
+	var arr = [];
+	arr.appendChild = function(child) {
+		this.push(child);
+	};
+	return arr;
+}

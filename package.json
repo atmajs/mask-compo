@@ -1,0 +1,31 @@
+{
+	"name": "compo",
+	"description": "Mask Component MVC Library",
+	"version": "0.5.0",
+	"contributors":[
+	],
+	"main": "./lib/compo.js",
+	"author": "Alexander Kit <source.kit@gmail.com>",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tenbits/mask-compo.git"
+	},
+	"bugs": {
+		"url": "https://github.com/tenbits/mask-compo/issues"
+	},
+	"licenses": [
+		"MIT"
+	],
+	"dependencies": {},
+	"devDependencies": {
+		"includejs": ">0.6.8",
+		"buster": "~0.6.3"
+	},
+	"scripts" : {
+        "test" : "node_modules/.bin/buster-test -r specification"
+    },
+	"keywords": [],
+	"engines" : {
+        "node" : "~0.8.9"
+    }
+}
