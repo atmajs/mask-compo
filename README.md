@@ -1,4 +1,4 @@
-###Extends MaskJS: MVC Library for MaskJS
+Mask MVC Library
 ----
 
 ####Component
@@ -36,7 +36,7 @@ mask.registerHandler('customPanel', Compo({
 	onRenderStart: function(model, cntx, container){
 		this.model = { x : 1 }; // override model;
 	},
-	
+
 	/**
 	 * (optional) [pro usage]
 	 * This method is called by mask builder before component is rendered.
@@ -78,8 +78,8 @@ mask.registerHandler('customPanel', Compo({
 	 */
 	renderEnd: function(elements, model, cntx, container){
 		// manipulate with elements, events object and compos object
-		
-		this.base_renderEnd(arguments); 
+
+		this.base_renderEnd(arguments);
 		//or this.base_renderEnd(elements, model, cntx, container);
 
 		// this.$ is already ready to use
@@ -102,7 +102,7 @@ mask.registerHandler('customPanel', Compo({
 	// signal/slot
 
 	/**
-	 * Disable/Enable Slot - if is disabled, it will be not fired on dom events, and if no active slots are available for a signal, then 
+	 * Disable/Enable Slot - if is disabled, it will be not fired on dom events, and if no active slots are available for a signal, then
 	 * HTMLElement will be also :disabled
 	 */
 	slotState: function(slotName, isActive){},
@@ -116,7 +116,7 @@ mask.registerHandler('customPanel', Compo({
 	 * Sends signal to itself and then DOWN in the controllers tree
 	 */
 	emitIn: function(signalName, event, args /* Array */) {},
-	
+
 	/**
 	 * Sends signal to itself and then UP in the controllers tree
 	 */
@@ -124,11 +124,11 @@ mask.registerHandler('customPanel', Compo({
 }));
 ````
 
-####Signals / Slots 
+####Signals / Slots
 a signal will be emitted to all controllers up in the controllers tree, starting from a controller, which owns "currentTarget" Element.
 
 ````css
-div x-signal='click: notify; mousemove: mouseMoved'
+any > div x-signal='click: notify; mousemove: mouseMoved'
 ````
 ````javascript
 mask.registerHandler(':any', Class({
