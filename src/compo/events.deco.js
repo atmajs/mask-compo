@@ -1,7 +1,7 @@
 var EventDecos = (function() {
 
 	var hasTouch = (function() {
-		if (typeof document === 'undefined') {
+		if (document == null) {
 			return false;
 		}
 		if ('createTouch' in document) {

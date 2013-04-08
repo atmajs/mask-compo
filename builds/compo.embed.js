@@ -1,5 +1,5 @@
 
-var Compo = (function(){
+var Compo = (function(mask){
 	'use strict';
 	// import ../src/scope-vars.js
 
@@ -7,7 +7,7 @@ var Compo = (function(){
 	// import ../src/util/selector.js
 	// import ../src/util/traverse.js
 
-	
+
 	// import ../src/compo/children.js
 	// import ../src/compo/events.js
 	// import ../src/compo/events.deco.js
@@ -20,5 +20,5 @@ var Compo = (function(){
 
 
 	return Compo;
-	
-}());
+
+}(Mask));
