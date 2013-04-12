@@ -28,8 +28,9 @@ var Pipes = (function() {
 
 	}
 
-	function controller_remove(controller) {
-		var pipes = controller.pipes;
+	function controller_remove() {
+		var	controller = this,
+			pipes = controller.pipes;
 		for (var key in pipes) {
 			pipe_detach(key, controller);
 		}
@@ -49,7 +50,7 @@ var Pipes = (function() {
 			pipe_attach(key, controller);
 		}
 
-		Compo.attachDisposer(controller, controller_remove);
+		Compo.attachDisposer(controller, controller_remove.bind(controller));
 	}
 
 	function Pipe(pipeName) {
