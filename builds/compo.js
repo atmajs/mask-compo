@@ -9,6 +9,7 @@
 	// import ../src/compo/children.js
 	// import ../src/compo/events.js
 	// import ../src/compo/events.deco.js
+	// import ../src/compo/pipes.js
 
 	// import ../src/compo/anchor.js
 	// import ../src/compo/Compo.js
@@ -19,5 +20,5 @@
 
 
 	return jMask;
-	
+
 }));

@@ -49,3 +49,42 @@ function compo_containerArray() {
 	};
 	return arr;
 }
+
+function compo_attachDisposer(controller, disposer) {
+
+	if (typeof controller.dispose === 'function') {
+		var previous = controller.dispose;
+		controller.dispose = function(){
+			disposer(this);
+			previous();
+		};
+
+		return;
+	}
+
+	controller.dispose = disposer;
+}
+
+
+function compo_createConstructor(current, proto) {
+	var compos = proto.compos,
+		pipes = proto.pipes;
+	if (compos == null && pipes == null) {
+		return current;
+	}
+
+	return function CompoBase(){
+
+		if (compos != null) {
+			this.compos = obj_copy(compos);
+		}
+
+		if (pipes != null) {
+			Pipes.addController(this);
+		}
+
+		if (typeof current === 'function') {
+			current.call(this);
+		}
+	};
+}

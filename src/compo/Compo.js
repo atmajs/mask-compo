@@ -16,16 +16,18 @@ var Compo = (function() {
 			klass = controller.constructor;
 		}
 
-		if (controller.hasOwnProperty('compos') === true) {
-			var constructor = klass,
-				compos = controller.compos;
-			klass = function CompoBase(){
-				this.compos = obj_copy(compos);
-				if (typeof constructor === 'function') {
-					constructor.call(this);
-				}
-			};
-		}
+		//if (controller.hasOwnProperty('compos') === true) {
+		//	var constructor = klass,
+		//		compos = controller.compos;
+		//	klass = function CompoBase(){
+		//		this.compos = obj_copy(compos);
+		//		if (typeof constructor === 'function') {
+		//			constructor.call(this);
+		//		}
+		//	};
+		//}
+
+		klass = compo_createConstructor(klass, controller);
 
 		if (klass == null){
 			klass = function CompoBase(){};
@@ -37,7 +39,6 @@ var Compo = (function() {
 			}
 			controller['base_' + key] = Proto[key];
 		}
-
 
 		klass.prototype = controller;
 
@@ -55,6 +56,8 @@ var Compo = (function() {
 		compoName: null,
 		nodes: null,
 		attr: null,
+		slots: null,
+		pipes: null,
 		onRenderStart: null,
 		onRenderEnd: null,
 		render: null,

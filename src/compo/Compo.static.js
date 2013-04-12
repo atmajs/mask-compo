@@ -119,6 +119,7 @@ obj_extend(Compo, {
 	},
 
 	ensureTemplate: compo_ensureTemplate,
+	attachDisposer: compo_attachDisposer,
 
 	config: {
 		selectors: {
@@ -171,5 +172,10 @@ obj_extend(Compo, {
 				return;
 			}
 		}
-	}
+
+	},
+
+	//pipes: Pipes,
+	pipe: Pipes.pipe
 });
+
