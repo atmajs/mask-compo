@@ -1,4 +1,4 @@
-function util_extend(target, source){
+function obj_extend(target, source){
 	if (target == null){
 		target = {};
 	}
@@ -11,4 +11,14 @@ function util_extend(target, source){
 	}
 
 	return target;
+}
+
+function obj_copy(object) {
+	var copy = {};
+
+	for (var key in object) {
+		copy[key] = object[key];
+	}
+
+	return copy;
 }

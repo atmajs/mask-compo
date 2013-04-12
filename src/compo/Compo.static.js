@@ -1,4 +1,4 @@
-util_extend(Compo, {
+obj_extend(Compo, {
 	create: function(controller){
 		var klass;
 

@@ -217,7 +217,7 @@
 
 
 
-	util_extend(Compo, {
+	obj_extend(Compo, {
 		signal: {
 			toggle: _toggle_all,
 

@@ -16,6 +16,17 @@ var Compo = (function() {
 			klass = controller.constructor;
 		}
 
+		if (controller.hasOwnProperty('compos') === true) {
+			var constructor = klass,
+				compos = controller.compos;
+			klass = function CompoBase(){
+				this.compos = obj_copy(compos);
+				if (typeof constructor === 'function') {
+					constructor.call(this);
+				}
+			};
+		}
+
 		if (klass == null){
 			klass = function CompoBase(){};
 		}
@@ -30,6 +41,7 @@ var Compo = (function() {
 
 		klass.prototype = controller;
 
+		controller = null;
 
 		return klass;
 	}
