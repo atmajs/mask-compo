@@ -5,6 +5,7 @@
 	// import ../src/util/object.js
 	// import ../src/util/selector.js
 	// import ../src/util/traverse.js
+	// import ../src/util/dom.js
 
 	// import ../src/compo/children.js
 	// import ../src/compo/events.js

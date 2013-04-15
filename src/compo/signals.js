@@ -14,10 +14,10 @@
 			if (x === '') {
 				continue;
 			}
-			
+
 			var event = x.substring(0, x.indexOf(':')),
 				handler = x.substring(x.indexOf(':') + 1).trim(),
-				Handler = _createListener(controller, handler); //getHandler(controller, handler);
+				Handler = _createListener(controller, handler);
 
 
 			// if DEBUG
@@ -31,7 +31,7 @@
 				}
 
 				signals += ',' + handler + ',';
-				_addEventListener(element, event, Handler);
+				dom_addEventListener(element, event, Handler);
 			}
 
 			// if DEBUG
@@ -131,22 +131,6 @@
 			_fire(controller, slot, event, null, -1);
 		};
 	}
-
-	function _addEventListener(element, event, listener) {
-		if (typeof domLib === 'function') {
-			domLib(element).on(event, listener);
-			return;
-		}
-		if (element.addEventListener != null) {
-			element.addEventListener(event, listener, false);
-			return;
-		}
-		if (element.attachEvent) {
-			element.attachEvent("on" + event, listener);
-		}
-	}
-
-
 
 	function __toggle_slotState(controller, slot, isActive) {
 		var slots = controller.slots;

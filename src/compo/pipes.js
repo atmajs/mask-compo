@@ -1,5 +1,51 @@
 var Pipes = (function() {
 
+
+	mask.registerAttrHandler('x-pipe-signal', function(node, attrValue, model, cntx, element, controller) {
+
+		var arr = attrValue.split(';');
+		for (var i = 0, x, length = arr.length; i < length; i++) {
+			x = arr[i].trim();
+			if (x === '') {
+				continue;
+			}
+
+			var event = x.substring(0, x.indexOf(':')),
+				handler = x.substring(x.indexOf(':') + 1).trim(),
+				dot = handler.indexOf('.'),
+				pipe, signal;
+
+			if (dot === -1) {
+				console.error('define pipeName "click: pipeName.pipeSignal"');
+				return;
+			}
+
+			pipe = handler.substring(0, dot);
+			signal = handler.substring(++dot);
+
+			var Handler = _handler(pipe, signal);
+
+
+			// if DEBUG
+			!event && console.error('Signal: event type is not set', attrValue);
+			// endif
+
+
+			if (EventDecorator != null) {
+				event = EventDecorator(event);
+			}
+
+			dom_addEventListener(element, event, Handler);
+
+		}
+	});
+
+	function _handler(pipe, signal) {
+		return function(){
+			new Pipe(pipe).emit(signal);
+		};
+	}
+
 	var Collection = {};
 
 
