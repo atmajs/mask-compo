@@ -173,3 +173,9 @@ mask.registerHandler(':footerUserInfo', Compo({
 	}
 }));
 ```
+
+Piped signals could be also triggered on dom events, such as normal signals.
+```css
+button x-pipe-signal='click: user.logout' > 'Logout'
+```
+
