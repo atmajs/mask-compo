@@ -59,7 +59,8 @@ function selector_match(node, selector, type) {
 			return true;
 		}
 	} else {
-		if (obj[selector.key] === selector.selector) {
+		// == - to match int and string
+		if (obj[selector.key] == selector.selector) {
 			return true;
 		}
 	}
