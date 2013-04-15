@@ -95,6 +95,9 @@ var Pipes = (function() {
 		}
 	};
 
+	Pipe.addController = controller_add;
+	Pipe.removeController = controller_remove;
+
 	return {
 		addController: controller_add,
 		removeController: controller_remove,

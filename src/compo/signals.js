@@ -10,7 +10,11 @@
 		var arr = attrValue.split(';'),
 			signals = '';
 		for (var i = 0, x, length = arr.length; i < length; i++) {
-			x = arr[i];
+			x = arr[i].trim();
+			if (x === '') {
+				continue;
+			}
+			
 			var event = x.substring(0, x.indexOf(':')),
 				handler = x.substring(x.indexOf(':') + 1).trim(),
 				Handler = _createListener(controller, handler); //getHandler(controller, handler);
@@ -88,7 +92,7 @@
 
 		if (slots != null && slots[slot] != null) {
 			if (typeof slots[slot] === 'string') {
-				slots[slot] = controller[slot];
+				slots[slot] = controller[slots[slot]];
 			}
 
 			if (typeof slots[slot] === 'function') {

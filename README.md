@@ -131,7 +131,7 @@ a signal will be emitted to all controllers up in the controllers tree, starting
 any > div x-signal='click: notify; mousemove: mouseMoved'
 ````
 ````javascript
-mask.registerHandler(':any', Class({
+mask.registerHandler(':any', Compo({
 	name: 'Any',
 	slots: {
 		notify: function(event){
@@ -144,3 +144,32 @@ mask.registerHandler(':any', Class({
 	}
 })
 ````
+
+#### Pipes
+as generic slot-signals traverse the controllers tree upwards and downwards,
+so to join two controllers that are not with signal/slot richable, you can use signals in a pipe. Controllers will be joined with a pipe,
+and the signal will traversed in that pipe *always* starting with the last child in a pipe and goes up to the first child. Pipe is a one dimensional array,
+in compare to generic controllers tree. Signal bindings are also declarative, and are defined in ```pipes``` Object of a Compo defenition.
+```javascript
+mask.registerHandler(':any', Compo({
+	slots: {
+		logout: function(){
+			Compo.pipe('user').emit('logout');
+		}
+	}
+}));
+
+
+mask.registerHandler(':footerUserInfo', Compo({
+	pipes: {
+		// pipe name
+		user: {
+			logout: function(){
+				this.$.hide();
+			}
+			// ...
+			// other pipe signals
+		}
+	}
+}));
+```
