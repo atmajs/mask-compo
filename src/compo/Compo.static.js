@@ -78,7 +78,7 @@ obj_extend(Compo, {
 		}
 
 		if (parent == null){
-			parent = {};
+			parent = new Dom.Component();
 		}
 
 		var dom = mask.render(node, model, cntx, null, parent),
