@@ -1,5 +1,5 @@
 
-var Compo = (function(mask){
+var Compo = exports.Compo = (function(mask){
 	'use strict';
 	// import ../src/scope-vars.js
 
