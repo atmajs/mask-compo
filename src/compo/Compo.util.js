@@ -21,6 +21,11 @@ function compo_ensureTemplate(compo) {
 		return;
 	}
 
+	if (compo.template) {
+		compo.nodes = mask.parse(compo.template);
+		return;
+	}
+
 	var template = compo.attr.template;
 
 	if (typeof template === 'string') {
@@ -32,7 +37,7 @@ function compo_ensureTemplate(compo) {
 			}
 			template = node.innerHTML;
 		}
-		template = mask.compile(template);
+		template = mask.parse(template);
 	}
 
 	if (typeof template !== 'undefined') {
