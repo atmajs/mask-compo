@@ -124,18 +124,10 @@ obj_extend(Compo, {
 	config: {
 		selectors: {
 			'$': function(compo, selector) {
-				var r = compo.$.find(selector);
-				if (r.length > 0) {
-					return r;
-				}
-				r = compo.$.filter(selector);
-
-				// if debug
-				if (r.length === 0) {
-					console.error('Compo Selector - element not found -', selector, compo);
-				}
+				var r = domLib_find(compo.$, selector)
+				// if DEBUG
+				r.length === 0 && console.error('Compo Selector - element not found -', selector, compo);
 				// endif
-
 				return r;
 			},
 			'compo': function(compo, selector) {
