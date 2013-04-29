@@ -19,8 +19,10 @@
 
 	// import ../src/jcompo/jCompo.js
 
+	// import ../src/handler/xslot.js
 
 
-	return jMask;
+
+	return Compo;
 
 }));

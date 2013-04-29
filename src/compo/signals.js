@@ -210,12 +210,12 @@
 			toggle: _toggle_all,
 
 			// to parent
-			emitOut: function(controller, slot, event, args) {
-				_fire(controller, slot, event, args, -1);
+			emitOut: function(controller, slot, sender, args) {
+				_fire(controller, slot, sender, args, -1);
 			},
 			// to children
-			emitIn: function(controller, slot, event, args) {
-				_fire(controller, slot, event, args, 1);
+			emitIn: function(controller, slot, sender, args) {
+				_fire(controller, slot, sender, args, 1);
 			},
 
 			enable: function(controller, slot) {

@@ -1,5 +1,6 @@
 var domLib = global.jQuery || global.Zepto || global.$,
-	Dom = mask.Dom;
+	Dom = mask.Dom,
+	__array_slice = Array.prototype.slice;
 
 if (!domLib){
 	console.warn('jQuery / Zepto etc. was not loaded before compo.js, please use Compo.config.setDOMLibrary to define dom engine');

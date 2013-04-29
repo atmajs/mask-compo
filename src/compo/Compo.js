@@ -214,12 +214,12 @@ var Compo = (function() {
 			Compo.signal.toggle(this, signalName, isActive);
 		},
 
-		emitOut: function(signalName, event, args){
-			Compo.signal.emitOut(this, signalName, event, args);
+		emitOut: function(signalName /* args */){
+			Compo.signal.emitOut(this, signalName, this, arguments.length > 1 ? __array_slice.call(arguments, 1) : null);
 		},
 
-		emitIn: function(signalName, event, args){
-			Compo.signal.emitIn(this, signalName, event, args);
+		emitIn: function(signalName /* args */){
+			Compo.signal.emitIn(this, signalName, this, arguments.length > 1 ? __array_slice.call(arguments, 1) : null);
 		}
 	};
 
