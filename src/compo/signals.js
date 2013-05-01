@@ -45,19 +45,11 @@
 
 	});
 
-
-	function _fire(controller, slot, event, args, direction) {
+	// @param sender - event if sent from DOM Event or CONTROLLER instance
+	function _fire(controller, slot, sender, args, direction) {
 
 		if (controller == null) {
 			return;
-		}
-
-		if (args != null) {
-			if (typeof args.unshift === 'function') {
-				args = [event, args];
-			} else {
-				args.unshift(event);
-			}
 		}
 
 		if (controller.slots != null && typeof controller.slots[slot] === 'function') {
@@ -65,7 +57,9 @@
 				isDisabled = controller.slots.__disabled != null && controller.slots.__disabled[slot];
 
 			if (isDisabled !== true) {
-				var result = args == null ? fn.call(controller, event) : fn.apply(controller, args);
+
+				var result = args == null ? fn.call(controller, sender) : fn.apply(controller, [sender].concat(args));
+
 				if (result === false) {
 					return;
 				}
@@ -73,12 +67,12 @@
 		}
 
 		if (direction === -1 && controller.parent != null) {
-			_fire(controller.parent, slot, event, args, direction);
+			_fire(controller.parent, slot, sender, args, direction);
 		}
 
 		if (direction === 1 && controller.components != null) {
 			for (var i = 0, length = controller.components.length; i < length; i++) {
-				_fire(controller.components[i], slot, event, args, direction);
+				_fire(controller.components[i], slot, sender, args, direction);
 			}
 		}
 	}
