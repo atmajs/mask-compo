@@ -20,6 +20,8 @@ var Compo = exports.Compo = (function(mask){
 
 	// import ../src/jcompo/jCompo.js
 
+	// import ../src/handler/slot.js
+
 
 	return Compo;
 

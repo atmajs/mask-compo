@@ -19,7 +19,7 @@
 
 	// import ../src/jcompo/jCompo.js
 
-	// import ../src/handler/xslot.js
+	// import ../src/handler/slot.js
 
 
 
