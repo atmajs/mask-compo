@@ -20,13 +20,19 @@ function compo_ensureTemplate(compo) {
 	if (compo.nodes != null) {
 		return;
 	}
-
-	if (compo.template) {
-		compo.nodes = mask.parse(compo.template);
+	
+	if (compo.attr.template != null) {
+		compo.template = compo.attr.template;
+		
+		delete compo.attr.template;
+	}
+	
+	var template = compo.template;
+	
+	if (typeof template == null) {
 		return;
 	}
-
-	var template = compo.attr.template;
+	
 
 	if (typeof template === 'string') {
 		if (template[0] === '#') {
@@ -40,10 +46,8 @@ function compo_ensureTemplate(compo) {
 		template = mask.parse(template);
 	}
 
-	if (typeof template !== 'undefined') {
+	if (typeof template === 'object') {
 		compo.nodes = template;
-
-		delete compo.attr.template;
 	}
 }
 
