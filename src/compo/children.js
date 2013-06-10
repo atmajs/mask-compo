@@ -49,9 +49,10 @@ var Children_ = {
 			var element = component.compos[name];
 
 			if (events != null) {
-				if (element instanceof Compo) {
+				if (element.$ != null) {
 					element = element.$;
 				}
+				
 				Events_.on(component, events, element);
 			}
 		}
