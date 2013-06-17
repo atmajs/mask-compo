@@ -47,12 +47,16 @@
 
 	// @param sender - event if sent from DOM Event or CONTROLLER instance
 	function _fire(controller, slot, sender, args, direction) {
-
+		
 		if (controller == null) {
-			return;
+			return false;
 		}
+		
+		var found = false;
 
 		if (controller.slots != null && typeof controller.slots[slot] === 'function') {
+			found = true;
+			
 			var fn = controller.slots[slot],
 				isDisabled = controller.slots.__disabled != null && controller.slots.__disabled[slot];
 
@@ -61,20 +65,28 @@
 				var result = args == null ? fn.call(controller, sender) : fn.apply(controller, [sender].concat(args));
 
 				if (result === false) {
-					return;
+					return true;
 				}
 			}
 		}
 
 		if (direction === -1 && controller.parent != null) {
-			_fire(controller.parent, slot, sender, args, direction);
+			return _fire(controller.parent, slot, sender, args, direction);
 		}
 
 		if (direction === 1 && controller.components != null) {
-			for (var i = 0, length = controller.components.length; i < length; i++) {
-				_fire(controller.components[i], slot, sender, args, direction);
+			var compos = controller.components,
+				imax = compos.length,
+				i = 0,
+				r;
+			for (; i < imax; i++) {
+				r = _fire(compos[i], slot, sender, args, direction);
+				
+				!found && (found = r);
 			}
 		}
+		
+		return found;
 	}
 
 	function _hasSlot(controller, slot, direction, isActive) {
@@ -205,7 +217,12 @@
 
 			// to parent
 			emitOut: function(controller, slot, sender, args) {
-				_fire(controller, slot, sender, args, -1);
+				var captured = _fire(controller, slot, sender, args, -1);
+				
+				// if DEBUG
+				!captured && console.warn('Signal %c%s','font-weight:bold;', slot, 'was not captured');
+				// endif
+				
 			},
 			// to children
 			emitIn: function(controller, slot, sender, args) {
