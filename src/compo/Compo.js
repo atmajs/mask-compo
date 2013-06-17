@@ -186,6 +186,25 @@ var Compo = (function() {
 		remove: function() {
 			if (this.$ != null){
 				this.$.remove();
+				
+				var parents = this.parent && this.parent.elements;
+				if (parents != null) {
+					for (var i = 0, x, imax = parents.length; i < imax; i++){
+						x = parents[i];
+						
+						for (var j = 0, jmax = this.$.length; j < jmax; j++){
+							if (x === this.$[j]){
+								parents.splice(i, 1);
+								
+								i--;
+								imax--;
+							}
+							
+						}
+						
+					}
+				}
+	
 				this.$ = null;
 			}
 
@@ -202,7 +221,7 @@ var Compo = (function() {
 
 				components.splice(i, 1);
 			}
-
+			
 			return this;
 		},
 
