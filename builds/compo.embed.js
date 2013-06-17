@@ -4,6 +4,7 @@ var Compo = exports.Compo = (function(mask){
 	// import ../src/scope-vars.js
 
 	// import ../src/util/object.js
+	// import ../src/util/function.js
 	// import ../src/util/selector.js
 	// import ../src/util/traverse.js
 	// import ../src/util/dom.js

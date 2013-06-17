@@ -39,7 +39,7 @@ var Events_ = {
 					type = EventDecorator(type);
 				}
 
-				domLib_on($element, type, selector, fn.bind(component));
+				domLib_on($element, type, selector, fn_proxy(fn, component));
 			}
 		}
 	}
