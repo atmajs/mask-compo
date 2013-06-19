@@ -62,10 +62,16 @@
 
 			if (isDisabled !== true) {
 
-				var result = args == null ? fn.call(controller, sender) : fn.apply(controller, [sender].concat(args));
+				var result = args == null
+						? fn.call(controller, sender)
+						: fn.apply(controller, [sender].concat(args));
 
 				if (result === false) {
 					return true;
+				}
+				
+				if (result != null && typeof result === 'object' && result.length != null) {
+					args = result;
 				}
 			}
 		}
