@@ -1,4 +1,11 @@
 function dom_addEventListener(element, event, listener) {
+	
+	// allows custom events - in x-signal, for example
+	if (domLib != null) {
+		domLib(element).on(event, listener);
+		return;
+	}
+	
 	if (element.addEventListener != null) {
 		element.addEventListener(event, listener, false);
 		return;
