@@ -144,7 +144,9 @@
 		}
 
 		return function(event) {
-			_fire(controller, slot, event, null, -1);
+			var args = arguments.length > 1 ? __array_slice.call(arguments, 1) : null;
+			
+			_fire(controller, slot, event, args, -1);
 		};
 	}
 
