@@ -12,20 +12,18 @@ var Compo = (function() {
 			controller = {};
 		}
 
+		if (controller.attr != null) {
+			
+			for (var key in controller.attr) {
+				controller.attr[key] = _mask_ensureTmplFn(controller.attr[key]);
+			}
+			
+		}
+		
 		if (controller.hasOwnProperty('constructor')){
 			klass = controller.constructor;
 		}
 
-		//if (controller.hasOwnProperty('compos') === true) {
-		//	var constructor = klass,
-		//		compos = controller.compos;
-		//	klass = function CompoBase(){
-		//		this.compos = obj_copy(compos);
-		//		if (typeof constructor === 'function') {
-		//			constructor.call(this);
-		//		}
-		//	};
-		//}
 
 		klass = compo_createConstructor(klass, controller);
 

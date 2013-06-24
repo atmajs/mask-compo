@@ -75,11 +75,13 @@ function compo_attachDisposer(controller, disposer) {
 }
 
 
-function compo_createConstructor(current, proto) {
+function compo_createConstructor(ctor, proto) {
 	var compos = proto.compos,
-		pipes = proto.pipes;
-	if (compos == null && pipes == null) {
-		return current;
+		pipes = proto.pipes,
+		attr = proto.attr;
+		
+	if (compos == null && pipes == null && proto.attr == null) {
+		return ctor;
 	}
 
 	return function CompoBase(){
@@ -91,9 +93,13 @@ function compo_createConstructor(current, proto) {
 		if (pipes != null) {
 			Pipes.addController(this);
 		}
+		
+		if (attr != null) {
+			this.attr = obj_copy(attr);
+		}
 
-		if (typeof current === 'function') {
-			current.call(this);
+		if (typeof ctor === 'function') {
+			ctor.call(this);
 		}
 	};
 }
