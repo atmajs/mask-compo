@@ -50,6 +50,8 @@ obj_extend(Compo, {
 	},
 
 	initialize: function(compo, model, cntx, container, parent) {
+		
+		var compoName;
 
 		if (container == null){
 			if (cntx && cntx.nodeType != null){
@@ -62,7 +64,9 @@ obj_extend(Compo, {
 		}
 
 		if (typeof compo === 'string'){
-			compo = mask.getHandler(compo);
+			compoName = compo;
+			
+			compo = mask.getHandler(compoName);
 			if (!compo){
 				console.error('Compo not found:', compo);
 			}
@@ -70,7 +74,8 @@ obj_extend(Compo, {
 
 		var node = {
 			controller: compo,
-			type: Dom.COMPONENT
+			type: Dom.COMPONENT,
+			tagName: compoName
 		};
 
 		if (parent == null && container != null){
@@ -87,7 +92,6 @@ obj_extend(Compo, {
 		if (container != null){
 			container.appendChild(dom);
 
-			//- Compo.shots.emit(instance, 'DOMInsert');
 			Compo.signal.emitIn(instance, 'domInsert');
 		}
 

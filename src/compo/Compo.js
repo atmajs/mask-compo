@@ -20,6 +20,18 @@ var Compo = (function() {
 			
 		}
 		
+		var slots = controller.slots;
+		if (slots != null) {
+			for (var key in slots) {
+				if (typeof slots[key] === 'string'){
+					//if DEBUG
+					typeof controller[slots[key]] !== 'function' && console.error('Not a Function @Slot.',slots[key]);
+					// endif
+					slots[key] = controller[slots[key]];
+				}
+			}
+		}
+		
 		if (controller.hasOwnProperty('constructor')){
 			klass = controller.constructor;
 		}
@@ -50,12 +62,18 @@ var Compo = (function() {
 
 	var Proto = {
 		type: Dom.CONTROLLER,
+		
 		tagName: null,
 		compoName: null,
 		nodes: null,
 		attr: null,
+		
 		slots: null,
 		pipes: null,
+		
+		compos: null,
+		events: null,
+		
 		onRenderStart: null,
 		onRenderEnd: null,
 		render: null,
@@ -106,13 +124,9 @@ var Compo = (function() {
 			}
 		},
 		appendTo: function(x) {
-			var element;
-
-			if (typeof x === 'string') {
-				element = document.querySelector(x);
-			} else {
-				element = x;
-			}
+			
+			var element = typeof x === 'string' ? document.querySelector(x) : x;
+			
 
 			if (element == null) {
 				console.warn('Compo.appendTo: parent is undefined. Args:', arguments);
@@ -124,7 +138,6 @@ var Compo = (function() {
 			}
 
 			this.emitIn('domInsert');
-			//- Shots.emit(this, 'DOMInsert');
 			return this;
 		},
 		append: function(template, model, selector) {
