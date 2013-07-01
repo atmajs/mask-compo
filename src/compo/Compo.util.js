@@ -84,10 +84,15 @@ function compo_createConstructor(ctor, proto) {
 		return ctor;
 	}
 
+	/* extend compos / attr to keep
+	 * original prototyped values untouched
+	 */
 	return function CompoBase(){
 
 		if (compos != null) {
-			this.compos = obj_copy(compos);
+			// use this.compos instead of compos from upper scope
+			// : in case compos from proto was extended after
+			this.compos = obj_copy(this.compos);
 		}
 
 		if (pipes != null) {
@@ -95,7 +100,7 @@ function compo_createConstructor(ctor, proto) {
 		}
 		
 		if (attr != null) {
-			this.attr = obj_copy(attr);
+			this.attr = obj_copy(this.attr);
 		}
 
 		if (typeof ctor === 'function') {
