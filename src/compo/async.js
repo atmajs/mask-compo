@@ -9,7 +9,7 @@
 		return cntx;
 	}
 	
-	function _call(cntx, type) {
+	function _call(cntx, type, _arguments) {
 		var cbs = cntx[type];
 		if (cbs == null) 
 			return;
@@ -21,7 +21,12 @@
 			
 			cbs[i] = null;
 			
-			x();
+			if (_arguments == null) {
+				x();
+				continue;
+			}
+			
+			x.apply(this, _arguments);
 		}
 	}
 	
@@ -37,11 +42,11 @@
 			return _on(this, '_cbs_always', callback);
 		},
 		resolve: function(){
-			_call(this, '_cbs_done');
-			_call(this, '_cbs_always');
+			_call(this, '_cbs_done', arguments);
+			_call(this, '_cbs_always', arguments);
 		},
-		reject: function(error){
-			_call(this, '_cbs_fail', error);
+		reject: function(){
+			_call(this, '_cbs_fail', arguments);
 			_call(this, '_cbs_always');
 		}
 	};
