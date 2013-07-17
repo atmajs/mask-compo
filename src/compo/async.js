@@ -19,8 +19,9 @@
 			if (x == null)
 				continue;
 			
-			x();
 			cbs[i] = null;
+			
+			x();
 		}
 	}
 	
