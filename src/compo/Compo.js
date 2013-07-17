@@ -59,6 +59,7 @@ var Compo = (function() {
 
 	// import Compo.util.js
 	// import Compo.static.js
+	// import async.js
 
 	var Proto = {
 		type: Dom.CONTROLLER,
