@@ -42,10 +42,12 @@
 			return _on(this, '_cbs_always', callback);
 		},
 		resolve: function(){
+			this.async = false;
 			_call(this, '_cbs_done', arguments);
 			_call(this, '_cbs_always', arguments);
 		},
 		reject: function(){
+			this.async = false;
 			_call(this, '_cbs_fail', arguments);
 			_call(this, '_cbs_always');
 		}
@@ -82,12 +84,11 @@
 	
 	Compo.resume = function(compo, cntx){
 		
-		if (compo.resume) {
+		// fn can be null when calling resume synced after pause
+		if (compo.resume) 
 			compo.resume();
-		} else{
-			console.error('There is no callbacks awaiting', compo.compoName);
-		}
 		
+		compo.async = false;
 		
 		var busy = false;
 		for (var i = 0, x, imax = cntx.defers.length; i < imax; i++){
@@ -95,6 +96,7 @@
 			
 			if (x === compo) {
 				cntx.defers[i] = null;
+				continue;
 			}
 			
 			if (busy === false) {
