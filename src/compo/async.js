@@ -1,10 +1,10 @@
 (function(){
 	
 	function _on(cntx, type, callback) {
-		if (this[type] == null)
-			this[type] = [];
+		if (cntx[type] == null)
+			cntx[type] = [];
 		
-		this[type].push(callback);
+		cntx[type].push(callback);
 		
 		return cntx;
 	}
@@ -82,7 +82,12 @@
 	
 	Compo.resume = function(compo, cntx){
 		
-		compo.resume();
+		if (compo.resume) {
+			compo.resume();
+		} else{
+			console.error('There is no callbacks awaiting', compo.compoName);
+		}
+		
 		
 		var busy = false;
 		for (var i = 0, x, imax = cntx.defers.length; i < imax; i++){
