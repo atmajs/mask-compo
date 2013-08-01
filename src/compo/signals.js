@@ -5,7 +5,7 @@
 	 *	Bind Closest Controller Handler Function to dom event(s)
 	 */
 
-	mask.registerAttrHandler('x-signal', function(node, attrValue, model, cntx, element, controller) {
+	mask.registerAttrHandler('x-signal', 'client', function(node, attrValue, model, cntx, element, controller) {
 
 		var arr = attrValue.split(';'),
 			signals = '';
