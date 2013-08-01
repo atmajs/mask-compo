@@ -172,6 +172,20 @@ obj_extend(Compo, {
 	},
 
 	//pipes: Pipes,
-	pipe: Pipes.pipe
+	pipe: Pipes.pipe,
+	
+	resource: function(compo){
+		var owner = compo;
+		
+		while (owner != null) {
+			
+			if (owner.resource) 
+				return owner.resource;
+			
+			owner = owner.parent;
+		}
+		
+		return include.instance();
+	}
 });
 

@@ -91,9 +91,10 @@ var Compo = (function() {
 				this.onRenderStart(model, cntx, container);
 			}
 
-			if (this.model == null){
-				this.model = model;
-			}
+			// - do not override with same model
+			//if (this.model == null){
+			//	this.model = model;
+			//}
 
 			if (this.nodes == null){
 				compo_ensureTemplate(this);
