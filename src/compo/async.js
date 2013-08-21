@@ -63,7 +63,6 @@
 	Compo.pause = function(compo, cntx){
 		
 		if (cntx.async == null) {
-			cntx.async = true;
 			cntx.defers = [];
 			
 			cntx._cbs_done = null;
@@ -74,6 +73,8 @@
 				cntx[key] = DeferProto[key];
 			}
 		}
+		
+		cntx.async = true;
 		
 		for (var key in CompoProto) {
 			compo[key] = CompoProto[key];
