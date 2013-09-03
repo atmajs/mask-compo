@@ -86,11 +86,6 @@ var Compo = (function() {
 				container = arguments[0][2];
 			}
 
-
-			if (typeof this.onRenderStart === 'function'){
-				this.onRenderStart(model, cntx, container);
-			}
-
 			// - do not override with same model
 			//if (this.model == null){
 			//	this.model = model;
@@ -98,6 +93,10 @@ var Compo = (function() {
 
 			if (this.nodes == null){
 				compo_ensureTemplate(this);
+			}
+			
+			if (typeof this.onRenderStart === 'function'){
+				this.onRenderStart(model, cntx, container);
 			}
 
 		},
