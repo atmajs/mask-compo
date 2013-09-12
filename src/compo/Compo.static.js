@@ -186,6 +186,10 @@ obj_extend(Compo, {
 		}
 		
 		return include.instance();
+	},
+	
+	Dom: {
+		addEventListener: dom_addEventListener
 	}
 });
 

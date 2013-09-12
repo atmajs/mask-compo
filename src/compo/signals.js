@@ -26,10 +26,6 @@
 
 			if (Handler) {
 
-				if (EventDecorator != null) {
-					event = EventDecorator(event);
-				}
-
 				signals += ',' + handler + ',';
 				dom_addEventListener(element, event, Handler);
 			}

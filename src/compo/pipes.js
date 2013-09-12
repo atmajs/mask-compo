@@ -31,10 +31,6 @@ var Pipes = (function() {
 			// endif
 
 
-			if (EventDecorator != null) {
-				event = EventDecorator(event);
-			}
-
 			dom_addEventListener(element, event, Handler);
 
 		}
