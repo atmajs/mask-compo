@@ -5,3 +5,7 @@ function fn_proxy(fn, context) {
 	};
 	
 }
+
+function fn_isFunction(fn){
+	return typeof fn === 'function';
+}

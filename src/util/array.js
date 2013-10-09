@@ -1,4 +1,4 @@
-
+	
 function arr_each(array, fn){
 	for(var i = 0, length = array.length; i < length; i++){
 		fn(array[i], i);
@@ -19,4 +19,12 @@ function arr_remove(array, child){
 	}
 
 	array.splice(index, 1);
+}
+
+function arr_isArray(arr){
+	return arr != null
+		&& typeof arr === 'object'
+		&& typeof arr.length === 'number'
+		&& typeof arr.splice === 'function'
+		;
 }

@@ -2,6 +2,7 @@
 
 	// import ../src/scope-vars.js
 
+	// import ../src/util/polyfill.js
 	// import ../src/util/object.js
 	// import ../src/util/function.js
 	// import ../src/util/selector.js
