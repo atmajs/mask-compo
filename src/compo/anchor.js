@@ -64,6 +64,9 @@ var Anchor = (function(){
 				return;
 			}
 			delete _cache[compo.ID];
+		},
+		getByID: function(id){
+			return _cache[id];
 		}
 	};
 

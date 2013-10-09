@@ -8,6 +8,7 @@
 	// import ../src/util/function.js
 	// import ../src/util/selector.js
 	// import ../src/util/traverse.js
+	// import ../src/util/manipulate.js
 	// import ../src/util/dom.js
 	// import ../src/util/domLib.js
 

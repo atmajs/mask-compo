@@ -66,12 +66,40 @@
 				
 				var fragment = mask.render(template, model, ctx, null, controller);
 				
-				this[jQ_Methods[index]](fragment);
+				return this[jQ_Methods[index]](fragment);
 			};
 			
 		});
 	}());
 	
 	
+	// remove
+	(function(){
+		var jq_remove = domLib.fn.remove,
+			jq_empty = domLib.fn.empty
+			;
+		
+		domLib.fn.removeAndDispose = function(){
+			this.each(each_tryDispose);
+			
+			return jq_remove.call(this);
+		};
+		
+		domLib.fn.emptyAndDispose = function(){
+			this.each(each_tryDisposeChildren);
+			
+			return jq_empty.call(this);
+		}
+		
+		
+		function each_tryDispose(index, node){
+			node_tryDispose(node);
+		}
+		
+		function each_tryDisposeChildren(index, node){
+			node_tryDisposeChildren(node);
+		}
+		
+	}());
 
 }());
