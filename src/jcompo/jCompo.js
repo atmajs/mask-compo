@@ -30,5 +30,48 @@
 		}
 		return model;
 	};
+	
+	
+	(function(){
+		
+		var jQ_Methods = [
+			'append',
+			'prepend',
+			'insertAfter',
+			'insertBefore'
+		];
+		
+		arr_each([
+			'appendMask',
+			'prependMask',
+			'insertMaskBefore',
+			'insertMaskAfter'
+		], function(method, index){
+			
+			domLib.fn[method] = function(template, model, controller, ctx){
+				
+				if (controller == null) {
+					
+					controller = index < 2
+						? this.compo()
+						: this.parent().compo()
+						;
+				}
+				
+				// if DEBUG
+				controller == null && console.warn(
+					'$.***Mask - controller not found, this can lead to memory leaks if template contains compos'
+				);
+				// endif
+				
+				var fragment = mask.render(template, model, ctx, null, controller);
+				
+				this[jQ_Methods[index]](fragment);
+			};
+			
+		});
+	}());
+	
+	
 
 }());

@@ -5,6 +5,7 @@ var Compo = exports.Compo = (function(mask){
 
 	// import ../src/util/polyfill.js
 	// import ../src/util/object.js
+	// import ../src/util/array.js
 	// import ../src/util/function.js
 	// import ../src/util/selector.js
 	// import ../src/util/traverse.js
