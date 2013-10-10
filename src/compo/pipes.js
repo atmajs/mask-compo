@@ -105,14 +105,31 @@ var Pipes = (function() {
 	}
 	Pipe.prototype = {
 		constructor: Pipe,
-		emit: function(signal, args){
+		emit: function(signal){
 			var controllers = Collection[this.pipeName],
-				pipeName = this.pipeName;
+				pipeName = this.pipeName,
+				args;
+			
 			if (controllers == null) {
-				console.warn('Pipe.emit: No signals were bound to a Pipe', pipeName);
+				//if DEBUG
+				console.warn('Pipe.emit: No signals were bound to:', pipeName);
+				//endif
 				return;
 			}
-
+			
+			/**
+			 * @TODO - for backward comp. support
+			 * to pass array of arguments as an Array in second args
+			 *
+			 * - switch to use plain arguments
+			 */
+			
+			if (arguments.length === 2 && arr_isArray(arguments[1])) {
+				args = arguments[1];
+			} else if (arguments.length > 1) {
+				args = __array_slice.call(arguments, 1);
+			}
+			
 			var i = controllers.length,
 				controller, slots, slot, called;
 
@@ -144,9 +161,9 @@ var Pipes = (function() {
 		addController: controller_add,
 		removeController: controller_remove,
 
-		emit: function(pipeName, signal, args) {
-			Pipe(pipeName).emit(signal, args);
-		},
+		////emit: function(pipeName, signal, args) {
+		////	Pipe(pipeName).emit(signal, args);
+		////},
 		pipe: Pipe
 	};
 

@@ -1,13 +1,13 @@
 obj_extend(Compo, {
-	create: function(controller){
+	create: function(proto){
 		var klass;
 
-		if (controller == null){
-			controller = {};
+		if (proto == null){
+			proto = {};
 		}
 
-		if (controller.hasOwnProperty('constructor')){
-			klass = controller.constructor;
+		if (proto.hasOwnProperty('constructor')){
+			klass = proto.constructor;
 		}
 
 		if (klass == null){
@@ -15,17 +15,59 @@ obj_extend(Compo, {
 		}
 
 		for(var key in Proto){
-			if (controller[key] == null){
-				controller[key] = Proto[key];
+			if (proto[key] == null){
+				proto[key] = Proto[key];
 			}
-			controller['base_' + key] = Proto[key];
 		}
 
 
-		klass.prototype = controller;
+		klass.prototype = proto;
 
 
 		return klass;
+	},
+	
+	createClass: function(classProto){
+		if (classProto.attr != null) {
+			
+			for (var key in classProto.attr) {
+				classProto.attr[key] = _mask_ensureTmplFn(classProto.attr[key]);
+			}
+		}
+		
+		var slots = classProto.slots;
+		if (slots != null) {
+			for (var key in slots) {
+				if (typeof slots[key] === 'string'){
+					//if DEBUG
+					typeof classProto[slots[key]] !== 'function' && console.error('Not a Function @Slot.',slots[key]);
+					// endif
+					slots[key] = classProto[slots[key]];
+				}
+			}
+		}
+		
+		var ctor;
+		
+		if (classProto.hasOwnProperty('constructor'))
+			ctor = classProto.constructor;
+		
+		if (ctor == null)
+			ctor = classProto.Construct;
+		
+		classProto.Construct = compo_createConstructor(ctor, classProto);
+		
+		
+		var Ext = classProto.Extends;
+		if (Ext == null) {
+			classProto.Extends = Proto
+		} else if (arr_isArray(Ext)) {
+			Ext.unshift(Proto)
+		} else {
+			classProto.Extends = [Proto, Ext];
+		}
+		
+		return __Class(classProto);
 	},
 
 	/* obsolete */
