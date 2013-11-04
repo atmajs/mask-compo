@@ -37,8 +37,8 @@ var Pipes = (function() {
 	});
 
 	function _handler(pipe, signal) {
-		return function(){
-			new Pipe(pipe).emit(signal);
+		return function(event){
+			new Pipe(pipe).emit(signal, event);
 		};
 	}
 
