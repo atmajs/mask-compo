@@ -12,7 +12,7 @@ function _mask_ensureTmplFn(value) {
 	return _mask_ensureTmplFnOrig(value);
 }
 
-if (document != null && domLib == null){
+if (document != null && domLib == null) {
 	console.warn('jQuery / Zepto etc. was not loaded before compo.js, please use Compo.config.setDOMLibrary to define dom engine');
 }
 

@@ -76,6 +76,8 @@ var Compo = (function() {
 		compos: null,
 		events: null,
 		
+		async: false,
+		
 		onRenderStart: null,
 		onRenderEnd: null,
 		render: null,
@@ -253,10 +255,12 @@ var Compo = (function() {
 
 		slotState: function(slotName, isActive){
 			Compo.slot.toggle(this, slotName, isActive);
+			return this;
 		},
 
 		signalState: function(signalName, isActive){
 			Compo.signal.toggle(this, signalName, isActive);
+			return this;
 		},
 
 		emitOut: function(signalName /* args */){
@@ -268,6 +272,7 @@ var Compo = (function() {
 					? __array_slice.call(arguments, 1)
 					: null
 			);
+			return this;
 		},
 
 		emitIn: function(signalName /* args */){
@@ -279,6 +284,7 @@ var Compo = (function() {
 					? __array_slice.call(arguments, 1)
 					: null
 			);
+			return this;
 		}
 	};
 
