@@ -34,8 +34,8 @@
 		var jQ_Methods = [
 			'append',
 			'prepend',
-			'insertAfter',
-			'insertBefore'
+			'insertBefore',
+			'insertAfter'
 		];
 		
 		arr_each([
