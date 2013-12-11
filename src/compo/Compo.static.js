@@ -67,7 +67,7 @@ obj_extend(Compo, {
 			classProto.Extends = [Proto, Ext];
 		}
 		
-		return __Class(classProto);
+		return _Class(classProto);
 	},
 
 	/* obsolete */
@@ -140,22 +140,7 @@ obj_extend(Compo, {
 		return instance;
 	},
 
-	dispose: function(compo) {
-		if (typeof compo.dispose === 'function') {
-			compo.dispose();
-		}
-
-
-		var i = 0,
-			compos = compo.components,
-			length = compos && compos.length;
-
-		if (length) {
-			for (; i < length; i++) {
-				Compo.dispose(compos[i]);
-			}
-		}
-	},
+	dispose: compo_dispose,
 
 	find: function(compo, selector){
 		return find_findSingle(compo, selector_parse(selector, Dom.CONTROLLER, 'down'));
@@ -228,6 +213,10 @@ obj_extend(Compo, {
 		}
 		
 		return include.instance();
+	},
+	
+	plugin: function(source){
+		eval(source);
 	},
 	
 	Dom: {

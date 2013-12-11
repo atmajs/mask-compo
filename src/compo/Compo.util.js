@@ -1,18 +1,60 @@
 function compo_dispose(compo) {
-	if (compo.dispose != null) {
+	
+	if (compo.dispose != null) 
 		compo.dispose();
-	}
-
+	
 	Anchor.removeCompo(compo);
 
-	var i = 0,
-		compos = compo.components,
-		length = compos && compos.length;
+	var compos = compo.components,
+		i = (compos && compos.length) || 0;
 
-	if (length) {
-		for (; i < length; i++) {
-			compo_dispose(compos[i]);
+	while ( --i > -1 ) {
+		compo_dispose(compos[i]);
+	}
+}
+
+function compo_detachChild(childCompo){
+	
+	var parent = childCompo.parent;
+	if (parent == null) 
+		return;
+	
+	var arr = childCompo.$,
+		elements = parent.$ || parent.elements,
+		i;
+		
+	if (elements && arr) {
+		var jmax = arr.length,
+			el, j;
+		
+		i = elements.length;
+		while( --i > -1){
+			el = elements[i];
+			j = jmax;
+			
+			while(--j > -1){
+				if (el === arr[j]) {
+					
+					elements.splice(i, 1);
+					break;
+				}
+			}
 		}
+	}
+	
+	var compos = parent.components;
+	if (compos != null) {
+		
+		i = compos.length;
+		while(--i > -1){
+			if (compos[i] === childCompo) {
+				compos.splice(i, 1);
+				break;
+			}
+		}
+
+		if (i === -1)
+			console.warn('Compo::remove - parent doesnt contains me', childCompo);
 	}
 }
 

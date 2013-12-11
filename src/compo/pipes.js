@@ -1,5 +1,6 @@
 var Pipes = (function() {
-
+	
+	var _collection = {};
 
 	mask.registerAttrHandler('x-pipe-signal', 'client', function(node, attrValue, model, cntx, element, controller) {
 
@@ -42,8 +43,6 @@ var Pipes = (function() {
 		};
 	}
 
-	var Collection = {};
-
 
 	function pipe_attach(pipeName, controller) {
 		if (controller.pipes[pipeName] == null) {
@@ -51,21 +50,19 @@ var Pipes = (function() {
 			return;
 		}
 
-		if (Collection[pipeName] == null) {
-			Collection[pipeName] = [];
+		if (_collection[pipeName] == null) {
+			_collection[pipeName] = [];
 		}
-		Collection[pipeName].push(controller);
+		_collection[pipeName].push(controller);
 	}
 
 	function pipe_detach(pipeName, controller) {
-		var pipe = Collection[pipeName],
+		var pipe = _collection[pipeName],
 			i = pipe.length;
 
-		while (--i) {
-			if (pipe[i] === controller) {
+		while (--i > -1) {
+			if (pipe[i] === controller) 
 				pipe.splice(i, 1);
-				i++;
-			}
 		}
 
 	}
@@ -106,7 +103,7 @@ var Pipes = (function() {
 	Pipe.prototype = {
 		constructor: Pipe,
 		emit: function(signal){
-			var controllers = Collection[this.pipeName],
+			var controllers = _collection[this.pipeName],
 				pipeName = this.pipeName,
 				args;
 			
@@ -127,7 +124,7 @@ var Pipes = (function() {
 			if (arguments.length === 2 && arr_isArray(arguments[1])) {
 				args = arguments[1];
 			} else if (arguments.length > 1) {
-				args = __array_slice.call(arguments, 1);
+				args = _array_slice.call(arguments, 1);
 			}
 			
 			var i = controllers.length,
@@ -161,9 +158,6 @@ var Pipes = (function() {
 		addController: controller_add,
 		removeController: controller_remove,
 
-		////emit: function(pipeName, signal, args) {
-		////	Pipe(pipeName).emit(signal, args);
-		////},
 		pipe: Pipe
 	};
 

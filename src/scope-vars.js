@@ -1,27 +1,24 @@
 var domLib = global.jQuery || global.Zepto || global.$,
 	Dom = mask.Dom,
-	__array_slice = Array.prototype.slice,
+	_array_slice = Array.prototype.slice,
 	
 	_mask_ensureTmplFnOrig = mask.Utils.ensureTmplFn,
-	__Class;
+	_Class
+	
+	;
 
 function _mask_ensureTmplFn(value) {
-	if (typeof value !== 'string') {
-		return value;
-	}
-	return _mask_ensureTmplFnOrig(value);
+	return typeof value !== 'string'
+		? value
+		: _mask_ensureTmplFnOrig(value)
+		;
 }
 
 if (document != null && domLib == null) {
-	console.warn('jQuery / Zepto etc. was not loaded before compo.js, please use Compo.config.setDOMLibrary to define dom engine');
+	console.warn('jQuery-Zepto-Kimbo etc. was not loaded before compo.js, please use Compo.config.setDOMLibrary to define dom engine');
 }
 
-__Class = global.Class;
+_Class = global.Class;
 
-if (__Class == null) {
-	
-	if (typeof exports !== 'undefined') {
-		__Class = exports.Class;
-	}
-	
-}
+if (_Class == null && typeof exports !== 'undefined') 
+	_Class = exports.Class;

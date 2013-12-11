@@ -197,7 +197,7 @@ var Compo = (function() {
 			return find_findSingle(this, selector_parse(selector, Dom.CONTROLLER, 'up'));
 		},
 		on: function() {
-			var x = __array_slice.call(arguments);
+			var x = _array_slice.call(arguments);
 			if (arguments.length < 3) {
 				console.error('Invalid Arguments Exception @use .on(type,selector,fn)');
 				return this;
@@ -218,44 +218,13 @@ var Compo = (function() {
 			return this;
 		},
 		remove: function() {
-			if (this.$ != null){
+			if (this.$ != null)
 				this.$.remove();
-				
-				var parents = this.parent && this.parent.elements;
-				if (parents != null) {
-					for (var i = 0, x, imax = parents.length; i < imax; i++){
-						x = parents[i];
-						
-						for (var j = 0, jmax = this.$.length; j < jmax; j++){
-							if (x === this.$[j]){
-								parents.splice(i, 1);
-								
-								i--;
-								imax--;
-							}
-							
-						}
-						
-					}
-				}
-	
-				this.$ = null;
-			}
-
+			
+			compo_detachChild(this);
 			compo_dispose(this);
 
-			var components = this.parent && this.parent.components;
-			if (components != null) {
-				var i = components.indexOf(this);
-
-				if (i === -1){
-					console.warn('Compo::remove - parent doesnt contains me', this);
-					return this;
-				}
-
-				components.splice(i, 1);
-			}
-			
+			this.$ = null;
 			return this;
 		},
 
@@ -275,7 +244,7 @@ var Compo = (function() {
 				signalName,
 				this,
 				arguments.length > 1
-					? __array_slice.call(arguments, 1)
+					? _array_slice.call(arguments, 1)
 					: null
 			);
 			return this;
@@ -287,7 +256,7 @@ var Compo = (function() {
 				signalName,
 				this,
 				arguments.length > 1
-					? __array_slice.call(arguments, 1)
+					? _array_slice.call(arguments, 1)
 					: null
 			);
 			return this;

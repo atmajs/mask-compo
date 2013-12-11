@@ -44,17 +44,15 @@
 	// @param sender - event if sent from DOM Event or CONTROLLER instance
 	function _fire(controller, slot, sender, args, direction) {
 		
-		if (controller == null) {
+		if (controller == null) 
 			return false;
-		}
 		
 		var found = false,
 			fn = controller.slots != null && controller.slots[slot];
 			
-		if (typeof fn === 'string') {
+		if (typeof fn === 'string') 
 			fn = controller[fn];
-		}
-
+		
 		if (typeof fn === 'function') {
 			found = true;
 			
@@ -140,7 +138,7 @@
 		}
 
 		return function(event) {
-			var args = arguments.length > 1 ? __array_slice.call(arguments, 1) : null;
+			var args = arguments.length > 1 ? _array_slice.call(arguments, 1) : null;
 			
 			_fire(controller, slot, event, args, -1);
 		};
@@ -175,16 +173,16 @@
 			return;
 		}
 
-		domLib() //
-		.add(controller.$.filter('[data-signals]')) //
-		.add(controller.$.find('[data-signals]')) //
-		.each(function(index, node) {
-			var signals = node.getAttribute('data-signals');
-
-			if (signals != null && signals.indexOf(slot) !== -1) {
-				node[isActive === true ? 'removeAttribute' : 'setAttribute']('disabled', 'disabled');
-			}
-		});
+		domLib() 
+			.add(controller.$.filter('[data-signals]')) 
+			.add(controller.$.find('[data-signals]')) 
+			.each(function(index, node) {
+				var signals = node.getAttribute('data-signals');
+	
+				if (signals != null && signals.indexOf(slot) !== -1) {
+					node[isActive === true ? 'removeAttribute' : 'setAttribute']('disabled', 'disabled');
+				}
+			});
 	}
 
 	function _toggle_all(controller, slot, isActive) {

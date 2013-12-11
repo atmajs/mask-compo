@@ -5,8 +5,10 @@ function node_tryDispose(node){
 			compo = Anchor.getByID(id)
 			;
 		
-		if (compo) 
+		if (compo) {
 			compo_dispose(compo);
+			compo_detachChild(compo);
+		}
 		return;
 	}
 	
