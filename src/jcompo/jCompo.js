@@ -34,15 +34,15 @@
 		var jQ_Methods = [
 			'append',
 			'prepend',
-			'insertBefore',
-			'insertAfter'
+			'before',
+			'after'
 		];
 		
 		arr_each([
 			'appendMask',
 			'prependMask',
-			'insertMaskBefore',
-			'insertMaskAfter'
+			'beforeMask',
+			'afterMask'
 		], function(method, index){
 			
 			domLib.fn[method] = function(template, model, controller, ctx){
