@@ -4,16 +4,20 @@ var Pipes = (function() {
 
 	mask.registerAttrHandler('x-pipe-signal', 'client', function(node, attrValue, model, cntx, element, controller) {
 
-		var arr = attrValue.split(';');
-		for (var i = 0, x, length = arr.length; i < length; i++) {
+		var arr = attrValue.split(';'),
+			imax = arr.length,
+			i = -1,
+			x;
+		while ( ++i < imax ) {
 			x = arr[i].trim();
-			if (x === '') {
+			if (x === '') 
 				continue;
-			}
-
-			var event = x.substring(0, x.indexOf(':')),
-				handler = x.substring(x.indexOf(':') + 1).trim(),
+			
+			var i_colon = x.indexOf(':'),
+				event = x.substring(0, i_colon),
+				handler = x.substring(i_colon + 1).trim(),
 				dot = handler.indexOf('.'),
+				
 				pipe, signal;
 
 			if (dot === -1) {
@@ -121,11 +125,12 @@ var Pipes = (function() {
 			 * - switch to use plain arguments
 			 */
 			
-			if (arguments.length === 2 && is_Array(arguments[1])) {
+			if (arguments.length === 2 && is_Array(arguments[1])) 
 				args = arguments[1];
-			} else if (arguments.length > 1) {
+				
+			else if (arguments.length > 1) 
 				args = _array_slice.call(arguments, 1);
-			}
+			
 			
 			var i = controllers.length,
 				controller, slots, slot, called;
@@ -134,19 +139,19 @@ var Pipes = (function() {
 				controller = controllers[i];
 				slots = controller.pipes[pipeName];
 
-				if (slots == null) {
+				if (slots == null) 
 					continue;
-				}
-
+				
 				slot = slots[signal];
-				if (typeof slot === 'function') {
+				if (is_Function(slot)) {
 					slot.apply(controller, args);
 					called = true;
 				}
 			}
 
 			// if DEBUG
-			called !== true && console.warn('No piped slot found for a signal', signal, pipeName);
+			if (!called)
+				console.warn('Pipe `%s` has not slots for `%s`', pipeName, signal);
 			// endif
 		}
 	};

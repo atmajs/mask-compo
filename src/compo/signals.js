@@ -8,17 +8,22 @@
 	mask.registerAttrHandler('x-signal', 'client', function(node, attrValue, model, cntx, element, controller) {
 
 		var arr = attrValue.split(';'),
-			signals = '';
-		for (var i = 0, x, length = arr.length; i < length; i++) {
+			signals = '',
+			imax = arr.length,
+			i = -1,
+			x;
+		
+		while ( ++i < imax ) {
 			x = arr[i].trim();
-			if (x === '') {
+			if (x === '') 
 				continue;
-			}
+			
 
-			var event = x.substring(0, x.indexOf(':')),
-				handler = x.substring(x.indexOf(':') + 1).trim(),
-				Handler = _createListener(controller, handler);
-
+			var i_colon = x.indexOf(':'),
+				event = x.substring(0, i_colon),
+				handler = x.substring(i_colon + 1).trim(),
+				Handler = _createListener(controller, handler)
+				;
 
 			// if DEBUG
 			!event && console.error('Signal: event type is not set', attrValue);
@@ -35,9 +40,8 @@
 			// endif
 		}
 
-		if (signals !== '') {
+		if (signals !== '') 
 			element.setAttribute('data-signals', signals);
-		}
 
 	});
 
@@ -238,6 +242,7 @@
 			enable: function(controller, slot) {
 				_toggle_all(controller, slot, true);
 			},
+			
 			disable: function(controller, slot) {
 				_toggle_all(controller, slot, false);
 			}
