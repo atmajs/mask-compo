@@ -2,17 +2,28 @@
  *	Combine .filter + .find
  */
 
-function domLib_find($set, selector) {
-	return $set.filter(selector).add($set.find(selector));
-}
+var domLib_find,
+	domLib_on
+	;
 
-function domLib_on($set, type, selector, fn) {
+(function(){
+		
+	domLib_find = function($set, selector) {
+		return $set.filter(selector).add($set.find(selector));
+	};
+	
+	domLib_on = function($set, type, selector, fn) {
+	
+		if (selector == null) 
+			return $set.on(type, fn);
+		
+		$set
+			.on(type, selector, fn)
+			.filter(selector)
+			.on(type, fn);
+			
+		return $set;
+	};
+	
+}());
 
-	if (selector == null) {
-		return $set.on(type, fn);
-	}
-
-	$set.on(type, selector, fn);
-	$set.filter(selector).on(type, fn);
-	return $set;
-}

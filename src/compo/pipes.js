@@ -121,7 +121,7 @@ var Pipes = (function() {
 			 * - switch to use plain arguments
 			 */
 			
-			if (arguments.length === 2 && arr_isArray(arguments[1])) {
+			if (arguments.length === 2 && is_Array(arguments[1])) {
 				args = arguments[1];
 			} else if (arguments.length > 1) {
 				args = _array_slice.call(arguments, 1);

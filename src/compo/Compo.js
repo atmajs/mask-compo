@@ -1,6 +1,9 @@
 var Compo = (function() {
 
-	var include = global.include || (global.atma && global.atma.include);
+	var hasInclude = !!(global.include
+		|| (typeof global.atma !== 'undefined' && global.atma.include)
+		|| (typeof exports !== 'undefined' && exports.include))
+		;
 
 	function Compo(controller) {
 		if (this instanceof Compo){
@@ -14,8 +17,8 @@ var Compo = (function() {
 			controller = {};
 		}
 		
-		if (include != null) 
-			controller.__resource = include.url;
+		if (hasInclude && global.include) 
+			controller.__resource = global.include.url;
 		
 
 		if (controller.attr != null) {
@@ -100,7 +103,7 @@ var Compo = (function() {
 				compo_ensureTemplate(this);
 			}
 			
-			if (fn_isFunction(this.onRenderStart)){
+			if (is_Function(this.onRenderStart)){
 				this.onRenderStart(model, ctx, container);
 			}
 
@@ -126,7 +129,7 @@ var Compo = (function() {
 				Children_.select(this, this.compos);
 			}
 
-			if (fn_isFunction(this.onRenderEnd)){
+			if (is_Function(this.onRenderEnd)){
 				this.onRenderEnd(elements, model, ctx, container);
 			}
 		},
@@ -210,7 +213,7 @@ var Compo = (function() {
 
 			if (this.events == null) {
 				this.events = [x];
-			} else if (arr_isArray(this.events)) {
+			} else if (is_Array(this.events)) {
 				this.events.push(x);
 			} else {
 				this.events = [x, this.events];

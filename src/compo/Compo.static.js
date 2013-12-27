@@ -28,12 +28,16 @@ obj_extend(Compo, {
 	},
 	
 	createClass: function(classProto){
+		
 		if (classProto.attr != null) {
 			
 			for (var key in classProto.attr) {
 				classProto.attr[key] = _mask_ensureTmplFn(classProto.attr[key]);
 			}
 		}
+		
+		if (hasInclude && global.include) 
+			classProto.__resource = global.include.url;
 		
 		var slots = classProto.slots;
 		if (slots != null) {
@@ -61,7 +65,7 @@ obj_extend(Compo, {
 		var Ext = classProto.Extends;
 		if (Ext == null) {
 			classProto.Extends = Proto
-		} else if (arr_isArray(Ext)) {
+		} else if (is_Array(Ext)) {
 			Ext.unshift(Proto)
 		} else {
 			classProto.Extends = [Proto, Ext];

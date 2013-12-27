@@ -2,13 +2,13 @@
 
 	// import ../src/scope-vars.js
 
+	// import ../src/util/is.js
 	// import ../src/util/polyfill.js
 	// import ../src/util/array.js
 	// import ../src/util/object.js
 	// import ../src/util/function.js
 	// import ../src/util/selector.js
 	// import ../src/util/traverse.js
-	// import ../src/util/manipulate.js
 	// import ../src/util/dom.js
 	// import ../src/util/domLib.js
 

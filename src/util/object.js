@@ -1,24 +1,33 @@
-function obj_extend(target, source){
-	if (target == null){
-		target = {};
-	}
-	if (source == null){
+var obj_extend,
+	obj_copy
+	;
+(function(){
+	
+	
+	obj_extend = function(target, source){
+		if (target == null)
+			target = {};
+		
+		if (source == null)
+			return target;
+		
+		for(var key in source){
+			target[key] = source[key];
+		}
+	
 		return target;
-	}
-
-	for(var key in source){
-		target[key] = source[key];
-	}
-
-	return target;
-}
-
-function obj_copy(object) {
-	var copy = {};
-
-	for (var key in object) {
-		copy[key] = object[key];
-	}
-
-	return copy;
-}
+	};
+	
+	obj_copy = function(object) {
+		var copy = {},
+			key;
+	
+		for (key in object) {
+			copy[key] = object[key];
+		}
+	
+		return copy;
+	};
+	
+	
+}());

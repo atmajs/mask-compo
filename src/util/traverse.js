@@ -1,17 +1,32 @@
-function find_findSingle(node, matcher) {
-	if (node instanceof Array) {
-		for (var i = 0, x, length = node.length; i < length; i++) {
-			x = node[i];
-			var r = find_findSingle(x, matcher);
-			if (r != null) {
-				return r;
-			}
-		}
-		return null;
-	}
+var find_findSingle;
 
-	if (selector_match(node, matcher) === true) {
-		return node;
+(function(){
+
+	
+	find_findSingle = function(node, matcher) {
+		
+		if (is_Array(node)) {
+			
+			var imax = node.length,
+				i = -1,
+				result;
+			
+			while( ++i < imax ){
+				
+				result = find_findSingle(node[i], matcher);
+				
+				if (result != null) 
+					return result;
+			}
+			
+			return null;
+		}
+	
+		return selector_match(node, matcher) === true
+			? node
+			: ((node = node[matcher.nextKey]) && find_findSingle(node, matcher))
+			;
 	}
-	return (node = node[matcher.nextKey]) && find_findSingle(node, matcher);
-}
+	
+	
+}());
