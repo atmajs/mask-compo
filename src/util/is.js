@@ -7,7 +7,7 @@ function is_Object(x) {
 		&& typeof x === 'object';
 }
 
-function is_Array(x) {
+function is_Array(arr) {
 	return arr != null
 		&& typeof arr === 'object'
 		&& typeof arr.length === 'number'

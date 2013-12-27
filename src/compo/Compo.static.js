@@ -159,8 +159,6 @@ obj_extend(Compo, {
 
 	dispose: compo_dispose,
 	
-	attachDisposer: compo_attachDisposer,
-
 	ensureTemplate: compo_ensureTemplate,
 	
 	attachDisposer: compo_attachDisposer,

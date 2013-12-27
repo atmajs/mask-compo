@@ -22,9 +22,14 @@ var find_findSingle;
 			return null;
 		}
 	
-		return selector_match(node, matcher) === true
-			? node
-			: ((node = node[matcher.nextKey]) && find_findSingle(node, matcher))
+		if (selector_match(node, matcher))
+			return node;
+		
+		node = node[matcher.nextKey];
+		
+		return node == null
+			? null
+			: find_findSingle(node, matcher)
 			;
 	}
 	

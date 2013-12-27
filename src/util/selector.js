@@ -68,7 +68,7 @@ var selector_parse,
 			return selector.selector.test(obj[selector.key]);
 		
 		//! == - to match int and string
-		return obj[selector.key] == selector.selecto;
+		return obj[selector.key] == selector.selector;
 	}
 	
 	// PRIVATE
