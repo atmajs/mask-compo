@@ -75,34 +75,40 @@ obj_extend(Compo, {
 	},
 
 	/* obsolete */
-	render: function(compo, model, cntx, container) {
+	render: function(compo, model, ctx, container) {
 
 		compo_ensureTemplate(compo);
 
 		var elements = [];
 
-		mask.render(compo.tagName == null ? compo.nodes : compo, model, cntx, container, compo, elements);
+		mask.render(
+			compo.tagName == null ? compo.nodes : compo,
+			model,
+			ctx,
+			container,
+			compo,
+			elements
+		);
 
 		compo.$ = domLib(elements);
 
-		if (compo.events != null) {
+		if (compo.events != null) 
 			Events_.on(compo, compo.events);
-		}
-		if (compo.compos != null) {
+		
+		if (compo.compos != null) 
 			Children_.select(compo, compo.compos);
-		}
-
+		
 		return compo;
 	},
 
-	initialize: function(compo, model, cntx, container, parent) {
+	initialize: function(compo, model, ctx, container, parent) {
 		
 		var compoName;
 
 		if (container == null){
-			if (cntx && cntx.nodeType != null){
-				container = cntx;
-				cntx = null;
+			if (ctx && ctx.nodeType != null){
+				container = ctx;
+				ctx = null;
 			}else if (model && model.nodeType != null){
 				container = model;
 				model = null;
@@ -124,15 +130,14 @@ obj_extend(Compo, {
 			tagName: compoName
 		};
 
-		if (parent == null && container != null){
+		if (parent == null && container != null)
 			parent = Anchor.resolveCompo(container);
-		}
-
-		if (parent == null){
+		
+		if (parent == null)
 			parent = new Dom.Component();
-		}
+		
 
-		var dom = mask.render(node, model, cntx, null, parent),
+		var dom = mask.render(node, model, ctx, null, parent),
 			instance = parent.components[parent.components.length - 1];
 
 		if (container != null){
@@ -144,8 +149,7 @@ obj_extend(Compo, {
 		return instance;
 	},
 
-	dispose: compo_dispose,
-
+	
 	find: function(compo, selector){
 		return find_findSingle(compo, selector_parse(selector, Dom.CONTROLLER, 'down'));
 	},
@@ -153,7 +157,12 @@ obj_extend(Compo, {
 		return find_findSingle(compo, selector_parse(selector, Dom.CONTROLLER, 'up'));
 	},
 
+	dispose: compo_dispose,
+	
+	attachDisposer: compo_attachDisposer,
+
 	ensureTemplate: compo_ensureTemplate,
+	
 	attachDisposer: compo_attachDisposer,
 
 	config: {
@@ -161,15 +170,17 @@ obj_extend(Compo, {
 			'$': function(compo, selector) {
 				var r = domLib_find(compo.$, selector)
 				// if DEBUG
-				r.length === 0 && console.error('Compo Selector - element not found -', selector, compo);
+				if (r.length === 0) 
+					console.error('<compo-selector> - element not found -', selector, compo);
 				// endif
 				return r;
 			},
 			'compo': function(compo, selector) {
 				var r = Compo.find(compo, selector);
-				if (r == null) {
-					console.error('Compo Selector - component not found -', selector, compo);
-				}
+				// if DEBUG
+				if (r == null) 
+					console.error('<compo-selector> - component not found -', selector, compo);
+				// endif
 				return r;
 			}
 		},
