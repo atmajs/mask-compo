@@ -15,7 +15,10 @@ global.config = {
 	},
 	'import': {
 		files: 'builds/**',
-		output: 'lib/'
+		output: 'lib/',
+		defines: {
+			DEBUG: true
+		}
 	},
 	'jshint': {
 		files: ['lib/compo.embed.js'],

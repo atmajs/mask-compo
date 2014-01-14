@@ -71,7 +71,7 @@ obj_extend(Compo, {
 			classProto.Extends = [Proto, Ext];
 		}
 		
-		return _Class(classProto);
+		return Class(classProto);
 	},
 
 	/* obsolete */
