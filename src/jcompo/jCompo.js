@@ -1,4 +1,7 @@
-(function(){
+// try to initialize the dom lib, or is then called from setDOMLibrary
+domLib_initialize();
+
+function domLib_initialize(){
 
 	if (domLib == null || domLib.fn == null)
 		return;
@@ -129,4 +132,4 @@
 		
 	}());
 
-}());
+};

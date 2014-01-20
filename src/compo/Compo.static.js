@@ -191,6 +191,8 @@ obj_extend(Compo, {
 		 */
 		setDOMLibrary: function(lib) {
 			domLib = lib;
+			
+			domLib_initialize();
 		},
 
 
