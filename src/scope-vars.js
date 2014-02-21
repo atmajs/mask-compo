@@ -1,6 +1,9 @@
 var Dom = mask.Dom,
 
 	_array_slice = Array.prototype.slice,
+	_Array_splice = Array.prototype.splice,
+	_Array_indexOf = Array.prototype.indexOf,
+	
 	_mask_ensureTmplFnOrig = mask.Utils.ensureTmplFn,
 	
 	domLib,

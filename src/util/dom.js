@@ -32,10 +32,17 @@ var dom_addEventListener,
 				;
 			
 			if (compo) {
-				compo_dispose(compo);
-				compo_detachChild(compo);
+				
+				if (compo.$ == null || compo.$.length === 1) {
+					compo_dispose(compo);
+					compo_detachChild(compo);
+					return;
+				}
+				
+				var i = _Array_indexOf.call(compo.$, node);
+				if (i !== -1) 
+					_Array_splice.call(compo.$, i, 1);
 			}
-			return;
 		}
 		
 		node_tryDisposeChildren(node);

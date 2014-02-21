@@ -190,8 +190,10 @@ obj_extend(Compo, {
 		 *	}
 		 */
 		setDOMLibrary: function(lib) {
-			domLib = lib;
+			if (domLib === lib) 
+				return;
 			
+			domLib = lib;
 			domLib_initialize();
 		},
 
