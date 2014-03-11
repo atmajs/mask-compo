@@ -221,9 +221,7 @@ var Compo = (function() {
 			return this;
 		},
 		remove: function() {
-			if (this.$ != null)
-				this.$.remove();
-			
+			compo_removeElements(this);
 			compo_detachChild(this);
 			compo_dispose(this);
 

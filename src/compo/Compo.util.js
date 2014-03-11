@@ -2,7 +2,8 @@ var compo_dispose,
 	compo_detachChild,
 	compo_ensureTemplate,
 	compo_attachDisposer,
-	compo_createConstructor
+	compo_createConstructor,
+	compo_removeElements
 	;
 
 (function(){
@@ -152,6 +153,33 @@ var compo_dispose,
 				Ctor.call(this);
 		};
 	};
+	
+	compo_removeElements = function(compo) {
+		if (compo.$) {
+			compo.$.remove();
+			return;
+		}
+		
+		var els = compo.elements;
+		if (els) {
+			var i = -1,
+				imax = els.length;
+			while ( ++i < imax ) {
+				if (els[i].parentNode) 
+					els[i].parentNode.removeChild(els[i]);
+			}
+			return;
+		}
+		
+		var compos = compo.components;
+		if (compos) {
+			var i = -1,
+				imax = compos.length;
+			while ( ++i < imax ){
+				compo_removeDeep(compos[i]);
+			}
+		}
+	}
 
 	
 }());
