@@ -66,7 +66,6 @@ var Compo = (function() {
 		return klass;
 	}
 
-	// import Compo.util.js
 	// import Compo.static.js
 	// import async.js
 

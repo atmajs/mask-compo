@@ -40,7 +40,7 @@ var Dom = mask.Dom,
 }());
 
 // if DEBUG
-if (document != null && domLib == null) {
+if (global.document != null && domLib == null) {
 	
 	console.warn('jQuery-Zepto-Kimbo etc. was not loaded before MaskJS:Compo, please use Compo.config.setDOMLibrary to define dom engine');
 }

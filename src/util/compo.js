@@ -176,7 +176,7 @@ var compo_dispose,
 			var i = -1,
 				imax = compos.length;
 			while ( ++i < imax ){
-				compo_removeDeep(compos[i]);
+				compo_removeElements(compos[i]);
 			}
 		}
 	}
