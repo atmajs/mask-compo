@@ -50,7 +50,10 @@
 			this.async = false;
 			_call(this, '_cbs_fail', arguments);
 			_call(this, '_cbs_always');
-		}
+		},
+		_cbs_done: null,
+		_cbs_fail: null,
+		_cbs_always: null
 	};
 	
 	var CompoProto = {
@@ -58,34 +61,23 @@
 		await: function(resume){
 			this.resume = resume;
 		}
-	}
+	};
 	
 	Compo.pause = function(compo, ctx){
-		
 		if (ctx.async == null) {
 			ctx.defers = [];
-			
-			ctx._cbs_done = null;
-			ctx._cbs_fail = null;
-			ctx._cbs_always = null;
-			
-			for (var key in DeferProto) {
-				ctx[key] = DeferProto[key];
-			}
+			obj_extend(ctx, DeferProto);
 		}
 		
 		ctx.async = true;
-		
-		for (var key in CompoProto) {
-			compo[key] = CompoProto[key];
-		}
-		
 		ctx.defers.push(compo);
+		
+		obj_extend(compo, CompoProto);
 		
 		return function(){
 			Compo.resume(compo, ctx);
 		};
-	}
+	};
 	
 	Compo.resume = function(compo, ctx){
 		
@@ -95,23 +87,22 @@
 		
 		compo.async = false;
 		
-		var busy = false;
-		for (var i = 0, x, imax = ctx.defers.length; i < imax; i++){
-			x = ctx.defers[i];
+		var busy = false,
+			dfrs = ctx.defers,
+			imax = dfrs.length,
+			i = -1,
+			x;
+		while ( ++i < imax ){
+			x = dfrs[i];
 			
 			if (x === compo) {
-				ctx.defers[i] = null;
+				dfrs[i] = null;
 				continue;
 			}
-			
-			if (busy === false) {
-				busy = x != null;
-			}
+			busy = busy || x != null;
 		}
-		
-		if (busy === false) {
+		if (busy === false) 
 			ctx.resolve();
-		}
 	};
 	
 }());

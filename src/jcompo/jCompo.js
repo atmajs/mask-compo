@@ -1,12 +1,10 @@
-// try to initialize the dom lib, or is then called from setDOMLibrary
+// try to initialize the dom lib, or is then called from `setDOMLibrary`
 domLib_initialize();
 
 function domLib_initialize(){
-
 	if (domLib == null || domLib.fn == null)
 		return;
 	
-
 	domLib.fn.compo = function(selector){
 		if (this.length === 0)
 			return null;
@@ -31,16 +29,14 @@ function domLib_initialize(){
 		return model;
 	};
 	
-	
+	// insert
 	(function(){
-		
 		var jQ_Methods = [
 			'append',
 			'prepend',
 			'before',
 			'after'
 		];
-		
 		arr_each([
 			'appendMask',
 			'prependMask',
@@ -52,19 +48,18 @@ function domLib_initialize(){
 				
 				if (this.length === 0) {
 					// if DEBUG
-					console.warn('<jcompo> $.', method, '- no element was selected(found)');
+					log_warn('<jcompo> $.', method, '- no element was selected(found)');
 					// endif
 					return this;
 				}
 				
 				if (this.length > 1) {
 					// if DEBUG
-					console.warn('<jcompo> $.', method, ' can insert only to one element. Fix is comming ...');
+					log_warn('<jcompo> $.', method, ' can insert only to one element. Fix is comming ...');
 					// endif
 				}
 				
 				if (controller == null) {
-					
 					controller = index < 2
 						? this.compo()
 						: this.parent().compo()
@@ -74,7 +69,7 @@ function domLib_initialize(){
 				if (controller == null) {
 					controller = {};
 					// if DEBUG
-					console.warn(
+					log_warn(
 						'$.***Mask - controller not found, this can lead to memory leaks if template contains compos'
 					);
 					// endif
@@ -85,15 +80,15 @@ function domLib_initialize(){
 					controller.components = [];
 				}
 				
-				var components = controller.components,
-					i = components.length,
+				var compos = controller.components,
+					i = compos.length,
 					fragment = mask.render(template, model, ctx, null, controller);
 				
 				var self = this[jQ_Methods[index]](fragment),
-					imax = components.length;
+					imax = compos.length;
 				
 				for (; i < imax; i++) {
-					Compo.signal.emitIn(components[i], 'domInsert');
+					Compo.signal.emitIn(compos[i], 'domInsert');
 				}
 				
 				return self;
@@ -131,5 +126,4 @@ function domLib_initialize(){
 		}
 		
 	}());
-
-};
+}

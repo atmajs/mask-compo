@@ -26,7 +26,7 @@
 				;
 
 			// if DEBUG
-			!event && console.error('Signal: event type is not set', attrValue);
+			!event && log_error('Signal: event type is not set', attrValue);
 			// endif
 
 			if (Handler) {
@@ -36,7 +36,7 @@
 			}
 
 			// if DEBUG
-			!Handler && console.warn('No slot found for signal', handler, controller);
+			!Handler && log_warn('No slot found for signal', handler, controller);
 			// endif
 		}
 
@@ -173,7 +173,7 @@
 
 	function __toggle_elementsState(controller, slot, isActive) {
 		if (controller.$ == null) {
-			console.warn('Controller has no elements to toggle state');
+			log_warn('Controller has no elements to toggle state');
 			return;
 		}
 
@@ -230,7 +230,7 @@
 				var captured = _fire(controller, slot, sender, args, -1);
 				
 				// if DEBUG
-				!captured && console.warn('Signal %c%s','font-weight:bold;', slot, 'was not captured');
+				!captured && log_warn('Signal %c%s','font-weight:bold;', slot, 'was not captured');
 				// endif
 				
 			},
@@ -258,7 +258,7 @@
 			invoke: function(controller, slot, event, args) {
 				var slots = controller.slots;
 				if (slots == null || typeof slots[slot] !== 'function') {
-					console.error('Slot not found', slot, controller);
+					log_error('Slot not found', slot, controller);
 					return null;
 				}
 

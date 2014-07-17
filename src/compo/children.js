@@ -29,8 +29,8 @@ var Children_ = {
 				selector = data;
 			}
 			if (data == null || selector == null) {
-				console.error('Unknown component child', name, compos[name]);
-				console.warn('Is this object shared within multiple compo classes? Define it in constructor!');
+				log_error('Unknown component child', name, compos[name]);
+				log_warn('Is this object shared within multiple compo classes? Define it in constructor!');
 				return;
 			}
 

@@ -10,7 +10,7 @@ var Anchor = (function(){
 	return {
 		create: function(compo){
 			if (compo.ID == null){
-				console.warn('Component should have an ID');
+				log_warn('Component should have an ID');
 				return;
 			}
 
@@ -55,7 +55,7 @@ var Anchor = (function(){
 
 
 			// if DEBUG
-			findID && console.warn('No controller for ID', findID);
+			findID && log_warn('No controller for ID', findID);
 			// endif
 			return null;
 		},

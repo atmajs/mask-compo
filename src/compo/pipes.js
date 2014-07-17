@@ -21,7 +21,7 @@ var Pipes = (function() {
 				pipe, signal;
 
 			if (dot === -1) {
-				console.error('define pipeName "click: pipeName.pipeSignal"');
+				log_error('define pipeName "click: pipeName.pipeSignal"');
 				return;
 			}
 
@@ -32,7 +32,7 @@ var Pipes = (function() {
 
 
 			// if DEBUG
-			!event && console.error('Signal: event type is not set', attrValue);
+			!event && log_error('Signal: event type is not set', attrValue);
 			// endif
 
 
@@ -50,7 +50,7 @@ var Pipes = (function() {
 
 	function pipe_attach(pipeName, controller) {
 		if (controller.pipes[pipeName] == null) {
-			console.error('Controller has no pipes to be added to collection', pipeName, controller);
+			log_error('Controller has no pipes to be added to collection', pipeName, controller);
 			return;
 		}
 
@@ -84,7 +84,7 @@ var Pipes = (function() {
 
 		// if DEBUG
 		if (pipes == null) {
-			console.error('Controller has no pipes', controller);
+			log_error('Controller has no pipes', controller);
 			return;
 		}
 		// endif
@@ -113,7 +113,7 @@ var Pipes = (function() {
 			
 			if (controllers == null) {
 				//if DEBUG
-				console.warn('Pipe.emit: No signals were bound to:', pipeName);
+				log_warn('Pipe.emit: No signals were bound to:', pipeName);
 				//endif
 				return;
 			}
@@ -151,7 +151,7 @@ var Pipes = (function() {
 
 			// if DEBUG
 			if (!called)
-				console.warn('Pipe `%s` has not slots for `%s`', pipeName, signal);
+				log_warn('Pipe `%s` has not slots for `%s`', pipeName, signal);
 			// endif
 		}
 	};

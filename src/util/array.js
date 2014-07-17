@@ -15,17 +15,14 @@ var arr_each,
 	
 	arr_remove = function(array, child){
 		if (array == null){
-			console.error('Can not remove myself from parent', child);
+			log_error('Can not remove myself from parent', child);
 			return;
 		}
-	
 		var index = array.indexOf(child);
-	
 		if (index === -1){
-			console.error('Can not remove myself from parent', child, index);
+			log_error('Can not remove myself from parent', child);
 			return;
 		}
-	
 		array.splice(index, 1);
 	};
 	

@@ -1,0 +1,62 @@
+UTest({
+	'should parse number': function(done){
+		var Foo = Compo({
+			meta: {
+				attributes: {
+					'x-foo': 'number',
+					'?x-no-expect': 'boolean'
+				}
+			},
+			onRenderStart: function(){
+				is_(this.xFoo, 'Number')
+				eq_(this.xFoo, 5);
+				done();
+			}
+		});
+		assert('xFoo' in (new Foo), 'Should have xFoo in prototype');
+		assert('meta' in (new Foo), 'Should have meta in prototype');
+		has_(new Foo, { meta: { attributes: null } });
+		mask.registerHandler(':foo',  Foo);
+		mask.render(':foo x-foo=5');
+	},
+	'should handle boolean and model extraction': function(){
+		var Foo = Compo({
+			meta: {
+				attributes: {
+					'x-foo': 'boolean',
+					'x-model-value': function(name){
+						return this.model[name];
+					}
+				}
+			},
+			onRenderStart: function(){
+				is_(this.xFoo, 'Boolean')
+				eq_(this.xFoo, true);
+				eq_(this.xModelValue, 'myValue');
+			}
+		});
+		assert('xFoo' in (new Foo), 'Should have xFoo in prototype');
+		mask.registerHandler(':foo',  Foo);
+		mask.render(':foo x-foo=true x-model-value=myProp', {
+			myProp: 'myValue'
+		});
+	},
+	'should render errored compo': function(){
+		var Foo = Compo({
+			meta: {
+				attributes: {
+					'x-foo': /^(one|two)$/
+				}
+			},
+			onRenderStart: assert.avoid('onrenderstart was called'),
+			onRenderEnd: assert.avoid('onrenderend was called')
+		});
+		
+		mask.registerHandler(':foo',  Foo);
+		
+		var dom = mask.render(':foo x-foo=true');
+		var div = dom.querySelector('.-mask-compo-errored');
+		notEq_(div, null);
+		has_(div.textContent, 'RegExp');
+	}
+})

@@ -6,7 +6,7 @@ var selector_parse,
 	
 	selector_parse = function(selector, type, direction) {
 		if (selector == null)
-			console.error('<compo>selector is undefined', type);
+			log_error('<compo>selector is undefined', type);
 		
 		if (typeof selector === 'object')
 			return selector;

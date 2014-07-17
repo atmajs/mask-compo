@@ -1,18 +1,17 @@
 var fn_proxy,
-	fn_apply
+	fn_apply,
+	fn_doNothing
 	;
 
 (function(){
 
 	fn_proxy = function(fn, ctx) {
-	
 		return function() {
 			return fn_apply(fn, ctx, arguments);
 		};
 	};
 	
 	fn_apply = function(fn, ctx, arguments_){
-		
 		switch (arguments_.length) {
 			case 0:
 				return fn.call(ctx);
@@ -33,9 +32,11 @@ var fn_proxy,
 					arguments_[1],
 					arguments_[2],
 					arguments_[3]);
-		};
-		
+		}
 		return fn.apply(ctx, arguments_);
 	};
 	
+	fn_doNothing = function(){
+		return false;
+	};
 }());

@@ -1,9 +1,15 @@
 var compo_dispose,
 	compo_detachChild,
 	compo_ensureTemplate,
+	compo_ensureAttributes,
 	compo_attachDisposer,
 	compo_createConstructor,
-	compo_removeElements
+	compo_removeElements,
+	compo_prepairAsync,
+	compo_errored,
+	
+	compo_meta_prepairAttributeHandler,
+	compo_meta_executeAttributeHandler
 	;
 
 (function(){
@@ -64,7 +70,7 @@ var compo_dispose,
 			}
 	
 			if (i === -1)
-				console.warn('<compo:remove> - i`m not in parents collection', childCompo);
+				log_warn('<compo:remove> - i`m not in parents collection', childCompo);
 		}
 	};
 	
@@ -90,7 +96,7 @@ var compo_dispose,
 				// #
 				var node = document.getElementById(template.substring(1));
 				if (node == null) {
-					console.error('<compo> Template holder not found by id:', template);
+					log_error('<compo> Template holder not found by id:', template);
 					return;
 				}
 				template = node.innerHTML;
@@ -126,8 +132,8 @@ var compo_dispose,
 			attr = proto.attr;
 			
 		if (compos == null
-				&& pipes == null
-				&& proto.attr == null) {
+			&& pipes == null
+			&& proto.attr == null) {
 			
 			return Ctor;
 		}
@@ -149,8 +155,8 @@ var compo_dispose,
 			if (attr != null) 
 				this.attr = obj_copy(this.attr);
 			
-			if (is_Function(Ctor)) 
-				Ctor.call(this);
+			
+			Ctor.call(this);
 		};
 	};
 	
@@ -179,7 +185,136 @@ var compo_dispose,
 				compo_removeElements(compos[i]);
 			}
 		}
-	}
+	};
 
+	compo_prepairAsync = function(dfr, compo, ctx){
+		var resume = Compo.pause(compo, ctx)
+		dfr.then(resume, function(error){
+			compo_errored(compo, error);
+			resume();
+		});
+	};
+	
+	compo_errored = function(compo, error){
+		compo.nodes = mask.parse('.-mask-compo-errored > "~[.]"');
+		compo.model = error.message || String(error);
+		compo.renderEnd = fn_doNothing;
+	};
+	
+	// == Meta Attribute Handler
+	(function(){
+		
+		compo_meta_prepairAttributeHandler = function(Proto){
+			if (Proto.meta == null) 
+				Proto.meta = {};
+			
+			var metas = Proto.meta.attributes,
+				fn = null;
+			if (metas) {
+				var hash = {};
+				for(var key in metas) {
+					_handleProperty_Delegate(Proto, key, metas[key], hash);
+				}
+				fn = _handleAll_Delegate(hash);
+			}
+			Proto.meta.handleAttributes = fn;
+		};
+		compo_meta_executeAttributeHandler = function(compo){
+			var fn = compo.meta && compo.meta.handleAttributes;
+			return fn == null ? true : fn(compo);
+		};
+		
+		function _handleAll_Delegate(hash){
+			return function(compo){
+				var attr = compo.attr,
+					key, fn, val, error;
+				for(key in hash){
+					fn    = hash[key];
+					val   = attr[key];
+					error = fn(compo, val);
+					
+					if (error == null)
+						continue;
+					
+					_errored(compo, error, key, val)
+					return false;
+				}
+				return true;
+			};
+		}
+		function _handleProperty_Delegate(Proto, metaKey, metaVal, hash) {
+			var optional = metaKey.charCodeAt(0) === 63, // ?
+				attrName = optional
+					? metaKey.substring(1)
+					: metaKey;
+			
+			var property = attrName.replace(/-(\w)/g, _toCamelCase_Replacer),
+				fn = metaVal;
+			
+			if (typeof metaVal === 'string') 
+				fn = _ensureFns[metaVal];
+				
+			else if (metaVal instanceof RegExp) 
+				fn = _ensureFns_Delegate.regexp(metaVal);
+			
+			else if (typeof metaVal === 'function') 
+				fn = metaVal;
+			
+			else if (metaVal == null) 
+				fn = _ensureFns_Delegate.any();
+			
+			if (fn == null) {
+				log_error('Function expected for the attr. handler', metaKey);
+				return;
+			}
+			
+			Proto[property] = null;
+			Proto = null;
+			hash [attrName] = function(compo, attrVal){
+				if (attrVal == null) 
+					return optional ? null : Error('Expected');
+				
+				var val = fn.call(compo, attrVal, compo);
+				if (val instanceof Error) 
+					return val;
+				
+				compo[property] = val;
+				return null;
+			};
+		}
+		
+		function _toCamelCase_Replacer(full, char_){
+			return char_.toUpperCase();
+		}
+		function _errored(compo, error, key, val) {
+			error.message = compo.compoName + ' - attribute `' + key + '`: ' + error.message;
+			compo_errored(compo, error);
+			log_error(error.message, '. Current: ', val);
+		}
+		var _ensureFns = {
+			'string': function(x) {
+				return typeof x === 'string' ? x : Error('String');
+			},
+			'number': function(x){
+				var num = Number(x);
+				return num === num ? num : Error('Number');
+			},
+			'boolean': function(x){
+				if (x === 'true'  || x === '1') return true;
+				if (x === 'false' || x === '0') return false;
+				return Error('Boolean');
+			}
+		};
+		var _ensureFns_Delegate = {
+			regexp: function(rgx){
+				return function(x){
+					return rgx.test(x) ? x : Error('RegExp');
+				};
+			},
+			any: function(){
+				return function(x){ return x; };
+			}
+		};
+	}());
 	
 }());

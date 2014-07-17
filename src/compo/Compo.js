@@ -1,75 +1,66 @@
-var Compo = (function() {
+var Compo;
+(function() {
 
 	var hasInclude = !!(global.include
 		|| (typeof global.atma !== 'undefined' && global.atma.include)
 		|| (typeof exports !== 'undefined' && exports.include))
 		;
 
-	function Compo(controller) {
+	Compo = function(Proto) {
 		if (this instanceof Compo){
 			// used in Class({Base: Compo})
 			return null;
 		}
 
-		var klass;
+		var klass, key;
 
-		if (controller == null){
-			controller = {};
-		}
+		if (Proto == null)
+			Proto = {};
 		
 		if (hasInclude && global.include) 
-			controller.__resource = global.include.url;
+			Proto.__resource = global.include.url;
 		
-
-		if (controller.attr != null) {
-			
-			for (var key in controller.attr) {
-				controller.attr[key] = _mask_ensureTmplFn(controller.attr[key]);
+		if (Proto.attr != null) {
+			for (key in Proto.attr) {
+				Proto.attr[key] = _mask_ensureTmplFn(Proto.attr[key]);
 			}
-			
 		}
 		
-		var slots = controller.slots;
+		var slots = Proto.slots;
 		if (slots != null) {
-			for (var key in slots) {
+			for (key in slots) {
 				if (typeof slots[key] === 'string'){
 					//if DEBUG
-					typeof controller[slots[key]] !== 'function' && console.error('Not a Function @Slot.',slots[key]);
+					if (is_Function(Proto[slots[key]]) === false)
+						log_error('Not a Function @Slot.',slots[key]);
 					// endif
-					slots[key] = controller[slots[key]];
+					slots[key] = Proto[slots[key]];
 				}
 			}
 		}
+		compo_meta_prepairAttributeHandler(Proto);
 		
-		if (controller.hasOwnProperty('constructor')){
-			klass = controller.constructor;
+		klass = Proto.hasOwnProperty('constructor')
+			? Proto.constructor
+			: function CompoBase() {}
+			;
+		
+		klass = compo_createConstructor(klass, Proto);
+
+		for(key in CompoProto){
+			if (Proto[key] == null)
+				Proto[key] = CompoProto[key];
 		}
 
-
-		klass = compo_createConstructor(klass, controller);
-
-		if (klass == null){
-			klass = function CompoBase(){};
-		}
-
-		for(var key in Proto){
-			if (controller[key] == null){
-				controller[key] = Proto[key];
-			}
-			//- controller['base_' + key] = Proto[key];
-		}
-
-		klass.prototype = controller;
-
-		controller = null;
-
+		klass.prototype = Proto;
+		Proto = null;
 		return klass;
-	}
+	};
 
 	// import Compo.static.js
 	// import async.js
 
-	var Proto = {
+	var CompoProto = {
 		type: Dom.CONTROLLER,
 		
 		tagName: null,
@@ -85,27 +76,44 @@ var Compo = (function() {
 		events: null,
 		
 		async: false,
+		await: null,
+		
+		meta: {
+			/* render modes, relevant for mask-node */
+			mode: null,
+			modelMode: null,
+			attributes: null,
+		},
 		
 		onRenderStart: null,
 		onRenderEnd: null,
 		render: null,
 		renderStart: function(model, ctx, container){
 
-			if (arguments.length === 1 && model != null && model instanceof Array === false && model[0] != null){
+			if (arguments.length === 1
+				&& model != null
+				&& model instanceof Array === false
+				&& model[0] != null){
+				
 				var args = arguments[0];
 				model = args[0];
 				ctx = args[1];
 				container = args[2];
 			}
 
-			if (this.nodes == null){
+			if (this.nodes == null)
 				compo_ensureTemplate(this);
+			
+			if (compo_meta_executeAttributeHandler(this) === false) {
+				// errored
+				return;
 			}
 			
 			if (is_Function(this.onRenderStart)){
-				this.onRenderStart(model, ctx, container);
+				var x = this.onRenderStart(model, ctx, container);
+				if (x !== void 0 && dfr_isBusy(x)) 
+					compo_prepairAsync(x, this, ctx);
 			}
-
 		},
 		renderEnd: function(elements, model, ctx, container){
 			if (arguments.length === 1 && elements instanceof Array === false){
@@ -120,17 +128,14 @@ var Compo = (function() {
 
 			this.$ = domLib(elements);
 
-			if (this.events != null) {
+			if (this.events != null)
 				Events_.on(this, this.events);
-			}
-
-			if (this.compos != null) {
+			
+			if (this.compos != null) 
 				Children_.select(this, this.compos);
-			}
-
-			if (is_Function(this.onRenderEnd)){
+			
+			if (is_Function(this.onRenderEnd))
 				this.onRenderEnd(elements, model, ctx, container);
-			}
 		},
 		appendTo: function(mix) {
 			
@@ -139,9 +144,8 @@ var Compo = (function() {
 				: mix
 				;
 			
-
 			if (element == null) {
-				console.warn('Compo.appendTo: parent is undefined. Args:', arguments);
+				log_warn('Compo.appendTo: parent is undefined. Args:', arguments);
 				return this;
 			}
 
@@ -201,15 +205,13 @@ var Compo = (function() {
 		on: function() {
 			var x = _array_slice.call(arguments);
 			if (arguments.length < 3) {
-				console.error('Invalid Arguments Exception @use .on(type,selector,fn)');
+				log_error('Invalid Arguments Exception @use .on(type,selector,fn)');
 				return this;
 			}
 
-			if (this.$ != null) {
+			if (this.$ != null) 
 				Events_.on(this, [x]);
-			}
-
-
+			
 			if (this.events == null) {
 				this.events = [x];
 			} else if (is_Array(this.events)) {
@@ -263,8 +265,5 @@ var Compo = (function() {
 		}
 	};
 
-	Compo.prototype = Proto;
-
-
-	return Compo;
+	Compo.prototype = CompoProto;
 }());

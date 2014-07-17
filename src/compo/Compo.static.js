@@ -14,9 +14,9 @@ obj_extend(Compo, {
 			klass = function CompoBase(){};
 		}
 
-		for(var key in Proto){
+		for(var key in CompoProto){
 			if (proto[key] == null){
-				proto[key] = Proto[key];
+				proto[key] = CompoProto[key];
 			}
 		}
 
@@ -44,7 +44,8 @@ obj_extend(Compo, {
 			for (var key in slots) {
 				if (typeof slots[key] === 'string'){
 					//if DEBUG
-					typeof classProto[slots[key]] !== 'function' && console.error('Not a Function @Slot.',slots[key]);
+					if (is_Function(classProto[slots[key]]) === false)
+						log_error('Not a Function @Slot.',slots[key]);
 					// endif
 					slots[key] = classProto[slots[key]];
 				}
@@ -64,11 +65,11 @@ obj_extend(Compo, {
 		
 		var Ext = classProto.Extends;
 		if (Ext == null) {
-			classProto.Extends = Proto
+			classProto.Extends = CompoProto
 		} else if (is_Array(Ext)) {
-			Ext.unshift(Proto)
+			Ext.unshift(CompoProto)
 		} else {
-			classProto.Extends = [Proto, Ext];
+			classProto.Extends = [CompoProto, Ext];
 		}
 		
 		return Class(classProto);
@@ -120,7 +121,7 @@ obj_extend(Compo, {
 			
 			compo = mask.getHandler(compoName);
 			if (!compo){
-				console.error('Compo not found:', compo);
+				log_error('Compo not found:', compo);
 			}
 		}
 
@@ -169,7 +170,7 @@ obj_extend(Compo, {
 				var r = domLib_find(compo.$, selector)
 				// if DEBUG
 				if (r.length === 0) 
-					console.error('<compo-selector> - element not found -', selector, compo);
+					log_error('<compo-selector> - element not found -', selector, compo);
 				// endif
 				return r;
 			},
@@ -177,7 +178,7 @@ obj_extend(Compo, {
 				var r = Compo.find(compo, selector);
 				// if DEBUG
 				if (r == null) 
-					console.error('<compo-selector> - component not found -', selector, compo);
+					log_error('<compo-selector> - component not found -', selector, compo);
 				// endif
 				return r;
 			}
