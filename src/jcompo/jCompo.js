@@ -66,13 +66,10 @@ function domLib_initialize(){
 						;
 				}
 				
+				var isUnsafe = false;
 				if (controller == null) {
 					controller = {};
-					// if DEBUG
-					log_warn(
-						'$.***Mask - controller not found, this can lead to memory leaks if template contains compos'
-					);
-					// endif
+					isUnsafe = true;
 				}
 				
 				
@@ -89,6 +86,22 @@ function domLib_initialize(){
 				
 				for (; i < imax; i++) {
 					Compo.signal.emitIn(compos[i], 'domInsert');
+				}
+				
+				if (isUnsafe && imax !== 0) {
+					// if DEBUG
+					log_warn(
+						'$.'
+						, method
+						, '- parent controller was not found in Elements DOM.'
+						, 'This can lead to memory leaks.'
+					);
+					log_warn(
+						'Specify the controller directly, via $.'
+						, method
+						, '(template[, model, controller, ctx])'
+					);
+					// endif
 				}
 				
 				return self;
