@@ -399,15 +399,19 @@ Mask Component Library
 	Removes elements from the DOM and calls `dispose` function on itself and all children
 
 - **`Instance::slotState(slotName, isActive)`** <a name='prop-slotstate'>#</a>
+	
 	Disable/Enable single slot - if is disabled, it will be not fired on dom events, and if no active slots are available for a signal, then all HTMLElements with this signal get `disabled` property set to `true`
 
 - **`Instance::signalState(signalName, isActive)`** <a name='prop-signalstate'>#</a>
+	
 	Disables/Enables the signal - **all slots** in all controllers up in the tree will be also `enabled/disabled`
 
 - **`Instance::emitIn(signalName [, ...arguments])`** <a name='prop-emitin'>#</a>
+	
 	Sends signal to itself and then DOWN in the controllers tree
 
 - **`Instance::emitOut(signalName [, ...arguments])`** <a name='prop-emitout'>#</a>
+	
 	Sends signal to itself and then UP in the controllers tree
 
 
