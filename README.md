@@ -41,13 +41,38 @@ Mask Component Library
 
 #### Api
 
+- [Component Definition](#componentsproto)
+	- [tagName](#tagname)
+	- [template](#template)
+	- [slots](#slots)
+	- [pipes](#pipes)
+	- [events](#events)
+	- [compos](#compos)
+	- [attr](#attr)
+	- [onRenderStart](#onrenderstart)
+	- [onRenderEnd](#onrenderend)
+	- [render](#render)
+	- [dispose](#dispose)
+	- [meta](#meta)
+		- [attributes](#meta-attributes)
+- [Instance](#instance)
+	- [$](#prop-domlib)
+	- [find](#prop-find)
+	- [closest](#prop-closest)
+	- [remove](#prop-remove)
+	- [slotState](#prop-slotstate)
+	- [signalState](#prop-signalstate)
+	- [emitIn](#prop-emitin)
+	- [emitOut](#prop-emitout)
+	
+
 ##### Constructor
 `mask.Compo(ComponentProto: Object)`
 ###### ComponentsProto
 
 > All properties are optional, any amount of custom properties and functions are allowed.
 
-- **`tagName : String`** [#](#tagname)
+- **`tagName : String`** <a name='tagname'>#</a>
 
 	_(optional)_ Component renders its template only, but when `tagName` is defined, then it will also creates appropriete _wrapper_ element, and renders the template _(if any)_ into the element.
 	
@@ -61,7 +86,7 @@ Mask Component Library
 		})
 	```
 
-- **`template : String`** [#](#template)
+- **`template : String`** <a name='template'>#</a>
 	
 	There are **many** ways to define the template for a component:
 	
@@ -134,7 +159,7 @@ Mask Component Library
 		
 	> You see, there are too many ways to define the template. It is up to you to decide which one is the most appropriate in some particular situation. We prefer to store the templates for each component in external files, as from example with `IncludeJS`.
 	
-- **`slots : Object`** [#](#slots)
+- **`slots : Object`** <a name='slots'>#</a>
 	
 	Defines list of `slots`, which are called, when the signal is emitted and riches the controllers `slotName:Function`.
 	_slotName ~ signalName are equivalent_
@@ -184,7 +209,7 @@ Mask Component Library
 				}
 			}
 		```
-- **`pipes : Object`** [#](#pipes)
+- **`pipes : Object`** <a name='pipes'>#</a>
 
 	Generic `signal-slots` signals  traverse the controllers tree upwards and downwards. `Pipped` signals are used to  join(_couple_) two or more controllers via `pipes`. Now anyone can emit a signal in a pipe, and that signal will traverse the pipe *always* starting with the last child in a pipe and goes up to the first child. _Pipe is a one dimensional array of the components bound to the pipe_. Signal bindings are also declarative, and are defined in ```pipes``` Object of a Compo definition.
 	```javascript
@@ -212,7 +237,7 @@ Mask Component Library
 	button x-pipe-signal='click: user.logout' > 'Logout'
 	```
 
-- **`events : Object`** [#](#events)
+- **`events : Object`** <a name='events'>#</a>
 
 	Defines list of delegated events captured by the component
 	```javascript
@@ -227,7 +252,7 @@ Mask Component Library
 	}
 	```
 	
-- **`compos : Object`** [#](#compos)
+- **`compos : Object`** <a name='compos'>#</a>
 
 	Defines list of Component, jQuery or DOM Element object, which should be queried when the component is rendered.
 	
@@ -260,7 +285,7 @@ Mask Component Library
 	}))
 	```
 
-- **`attr : Object`** [#](#attributes)
+- **`attr : Object`** <a name='attr'>#</a>
 
 	Add additional attributes to the component. This object will also store the attributes defined from the template.
 	```scss
@@ -279,7 +304,7 @@ Mask Component Library
 	}));
 	// result: <input name='fooName' id='MyID' />
 	```
-- **`onRenderStart : function(model, ctx, container:DOMElement): void | Deferred`** [#](#onrenderstart)
+- **`onRenderStart : function(model, ctx, container:DOMElement): void | Deferred`** <a name='onrenderstart'>#</a>
 
 	Is called before the component is rendered. In this function for example `this.nodes` and `this.model` can be overridden. Sometimes you have to fetch model data before proceeding, and from here this component rendering can be paused:
 	```javascript
@@ -297,26 +322,26 @@ Mask Component Library
 	```
 	> **Note** Only this component is paused, if there are more async components, then awaiting and rendering occurs parallel
 	
-- **`render : function(model, ctx, container)`** [#](#render)
+- **`render : function(model, ctx, container)`** <a name='render'>#</a>
 
 	_(rare used. Usually for some exotic rendering)._ When this function is defined, then the component should render itself and all children on its own, and the `onRenderStart` and `onRenderEnd` are not called.
 
-- **`onRenderEnd : function(elements:Array<DOMElement>, model, ctx, container)`** [#](#onrenderend)
+- **`onRenderEnd : function(elements:Array<DOMElement>, model, ctx, container)`** <a name='onrenderend'>#</a>
 
 	Is called after the component and all children are rendered.
 	`this.$`, the DomLibrary(_jQuery, Zepto_) wrapper over the elements is now accessible.
 	
 	> **Note** DOMElements are created in the `DocumentFragment`, and not the live dom. Refer to `domInsert` if you need, for example, to calculate the elements dimensions.
 
-- **`dispose : function()`** [#](#dispose)
+- **`dispose : function()`** <a name='dispose'>#</a>
 
 	Is called when the component is removed.
 
-- **`meta : Object`** [#](#meta)
+- **`meta : Object`** <a name='meta'>#</a>
 
 	Stores some additional information for the component for some validations and transforms
 	
-	- **`attributes`** [#](#meta-attributes)
+	- **`attributes`** <a name='meta-attributes'>#</a>
 	There is a convention for the custom attributes: `x-attribute-name`. Attributes, which are declared here, are then bound directly the instance in `camelCase` manner. When some attribute values are not valid, the component is not rendered, and instead the error message is rendered.
 	```javascript
 	// :foo x-foo='5' x-quux='some value';
@@ -347,37 +372,43 @@ Mask Component Library
 	}));
 	```
 
-#### `Instance::$` [#](#prop-domlib)
-DOM Library wrapper of the elements (jQuery/Zepto/Kimbo).
+#### Instance
 
-#### `Instance::find(selector:String)` [#](#prop-find)
-Find the child component. Selector:
-```javascript
-// compo name
-this.find(':spinner')
-// id
-this.find('#mySpinner');
-// class
-this.find('.mySpinner');
-```
-#### `Instance::closest(selector:String)` [#](#prop-closest)
-Find the first parent matched by selector. 
+- **`Instance::$`** <a name='prop-domlib'>#</a>
+	
+	DOM Library wrapper of the elements (jQuery/Zepto/Kimbo).
 
-#### `Instance::remove()` [#](#prop-remove)
-Removes elements from the DOM and calls `dispose` function on itself and all children
+- **`Instance::find(selector:String)`** <a name='prop-find'>#</a>
+	
+	Find the child component. Selector:
+	```javascript
+	// compo name
+	this.find(':spinner')
+	// id
+	this.find('#mySpinner');
+	// class
+	this.find('.mySpinner');
+	```
+	
+- **`Instance::closest(selector:String)`** <a name='prop-closest'>#</a>
 
-#### `Instance::slotState(slotName, isActive)`
-Disable/Enable single slot - if is disabled, it will be not fired on dom events, and if no active slots are available for a signal, then all HTMLElements with this signal get `disabled` property set to `true`
+	Find the first parent matched by selector. 
 
-#### `Instance::signalState(signalName, isActive)`
-Disables/Enables the signal - **all slots** in all controllers up in the tree will be also `enabled/disabled`
+- **`Instance::remove()`** <a name='prop-remove'>#</a>
+	
+	Removes elements from the DOM and calls `dispose` function on itself and all children
 
-#### `Instance::emitIn(signalName [, ...arguments])`
-Sends signal to itself and then DOWN in the controllers tree
+- **`Instance::slotState(slotName, isActive)`** <a name='prop-slotstate'>#</a>
+	Disable/Enable single slot - if is disabled, it will be not fired on dom events, and if no active slots are available for a signal, then all HTMLElements with this signal get `disabled` property set to `true`
 
-#### `Instance::emitOut(signalName [, ...arguments])`
-Sends signal to itself and then UP in the controllers tree
+- **`Instance::signalState(signalName, isActive)`** <a name='prop-signalstate'>#</a>
+	Disables/Enables the signal - **all slots** in all controllers up in the tree will be also `enabled/disabled`
 
+- **`Instance::emitIn(signalName [, ...arguments])`** <a name='prop-emitin'>#</a>
+	Sends signal to itself and then DOWN in the controllers tree
+
+- **`Instance::emitOut(signalName [, ...arguments])`** <a name='prop-emitout'>#</a>
+	Sends signal to itself and then UP in the controllers tree
 
 
 ----
