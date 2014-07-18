@@ -47,8 +47,9 @@ Mask Component Library
 
 > All properties are optional, any amount of custom properties and functions are allowed.
 
-- **`tagName:String`**
-	_(Optionally)_ Component renders its template only, but when `tagName` is defined, then it will also creates appropriete _wrapper_ element, and renders the template _(if any)_ into the element.
+- **`tagName : String`** [#](#tagname)
+
+	_(optional)_ Component renders its template only, but when `tagName` is defined, then it will also creates appropriete _wrapper_ element, and renders the template _(if any)_ into the element.
 	
 	```javascript
 		mask.registerHandler(':foo', mask.Compo({
@@ -60,11 +61,11 @@ Mask Component Library
 		})
 	```
 
-- **`template:String`** [#](#template)
+- **`template : String`** [#](#template)
 	
-	There are **many** ways to define a template for a component:
+	There are **many** ways to define the template for a component:
 	
-	- via the parent mask template
+	- in-line the template of the component directly into the parents template
 	
 		```scss
 		h4 > 'Hello'
@@ -77,7 +78,7 @@ Mask Component Library
 			}
 		}
 		```
-	- via the `template` property. This approach is much better, as it leads to the separation of concerns. Each component loads and defines its own templates. Direct **inline** template was schown in the `tagName` sample, but writing some bigger template in javascript files is not the good idea. Better preload the template with `IncludeJS` for example. **Note:** The Application can be built for production. All the templates are then embedded into single `html` file. Style and Javascript files are also combined into single files.
+	- via the `template` property. This approach is much better, as it leads to the separation of concerns. Each component loads and defines its own templates. Direct **inline** template was shown in the `tagName` sample, but to write some the templates in javascript files is not always a good idea. Better to preload the template with `IncludeJS` for example. **Note:** The Application can be built for production. All the templates are then embedded into single `html` file. Style and Javascript files are also combined into single files.
 	
 		```scss
 		// myComponent.mask
@@ -95,7 +96,7 @@ Mask Component Library
 				});
 			})
 		```
-		So now, the component is a standalone unit, which can be easily tested, seperatly developed and moved to the next project, just load the controller: `include.js('/scripts/myComponent/myComponent.js')`
+		So now, the component is a standalone unit, which can be easily tested, separately developed, embedded(_defined in the templates_) anywhere else in the project, or moved to the next project. Just load the controller: `include.js('/scripts/myComponent/myComponent.js')` and the component is ready to use.
 
 	- more deeper way is setting the parsed template directly to `nodes` property:
 	
@@ -133,10 +134,11 @@ Mask Component Library
 		
 	> You see, there are too many ways to define the template. It is up to you to decide which one is the most appropriate in some particular situation. We prefer to store the templates for each component in external files, as from example with `IncludeJS`.
 	
-- **`slots:Object`** [#](#slots)
+- **`slots : Object`** [#](#slots)
 	
-	Defines list of `slots`, which are called, when the signal is emitted and riched the controller `slotName:Function`.
+	Defines list of `slots`, which are called, when the signal is emitted and riches the controllers `slotName:Function`.
 	_slotName ~ signalName are equivalent_
+	
 	Signal can be sent in several ways:
 	
 	- from the template itself, when `x-signal` attribute is defined for the element:
@@ -155,7 +157,7 @@ Mask Component Library
 		this.emitOut('signalName', arg1, arg2);
 		```
 		
-	**Slot Handler**. _Can terminate signal, or change arguments._
+	**Slot Handler**. _Can terminate the signal, or override the arguments._
 	```javascript
 	slots: {
 		/*
@@ -172,32 +174,25 @@ Mask Component Library
 		}
 	}
 	```
-	** Predefined signals **
+	**Predefined signals**
 	- `domInsert` - is sent to all components, when they are inserted into the **live** DOM
 	
 		```javascript
 			slots: {
 				domInsert: function(){
-					this.$.innerWidth() // is already calculatable
+					this.$.innerWidth() // is already calculable
 				}
 			}
 		```
-- **`pipes:Object`** [#](#pipes)
+- **`pipes : Object`** [#](#pipes)
 
-	As generic slot-signals traverse the controllers tree upwards and downwards,
-	so to join two controllers that are not with signal/slot richable, you can use signals in a pipe. Controllers will be joined with a pipe,
-	and the signal will traversed in that pipe *always* starting with the last child in a pipe and goes up to the first child. Pipe is a one dimensional array,
-	in compare to generic controllers tree. Signal bindings are also declarative, and are defined in ```pipes``` Object of a Compo defenition.
+	Generic `signal-slots` signals  traverse the controllers tree upwards and downwards. `Pipped` signals are used to  join(_couple_) two or more controllers via `pipes`. Now anyone can emit a signal in a pipe, and that signal will traverse the pipe *always* starting with the last child in a pipe and goes up to the first child. _Pipe is a one dimensional array of the components bound to the pipe_. Signal bindings are also declarative, and are defined in ```pipes``` Object of a Compo definition.
 	```javascript
 	mask.registerHandler(':any', Compo({
-		slots: {
-			logout: function(){
-				Compo.pipe('user').emit('logout');
-			}
+		logoutUser: function(){
+			Compo.pipe('user').emit('logout');
 		}
 	}));
-	
-	
 	mask.registerHandler(':footerUserInfo', Compo({
 		pipes: {
 			// pipe name
@@ -217,7 +212,7 @@ Mask Component Library
 	button x-pipe-signal='click: user.logout' > 'Logout'
 	```
 
-- **`events: Object`** [#](#events)
+- **`events : Object`** [#](#events)
 
 	Defines list of delegated events captured by the component
 	```javascript
@@ -232,13 +227,13 @@ Mask Component Library
 	}
 	```
 	
-- **`compos`** [#](#compos)
+- **`compos : Object`** [#](#compos)
 
 	Defines list of Component, jQuery or DOM Element object, which should be queried when the component is rendered.
 	
 	> It is also possible to find needed nodes later with `this.$.find('domSelector')` or `this.find(componentSelect)`. But with `compos` object there is always the overview off all dom referenced nodes, and the performance is also better, as the nodes are queried once.
 	
-	For better debugging warning message is rised, when it fails to match the elements.
+	For better debugging warning message is raised, when it fails to match the elements.
 	
 	**Syntax**: ` 'compoName': 'selectorEngine: selector', `. Selector Engine:
 	
@@ -265,7 +260,7 @@ Mask Component Library
 	}))
 	```
 
-- **`attr:Object`** [#](#attributes)
+- **`attr : Object`** [#](#attributes)
 
 	Add additional attributes to the component. This object will also store the attributes defined from the template.
 	```scss
@@ -284,9 +279,9 @@ Mask Component Library
 	}));
 	// result: <input name='fooName' id='MyID' />
 	```
-- **`onRenderStart:function(model, ctx, container:DOMElement): void | Deferred`** [#](#onrenderstart)
+- **`onRenderStart : function(model, ctx, container:DOMElement): void | Deferred`** [#](#onrenderstart)
 
-	Is called before the component is rendered. In this function for example `this.nodes` and `this.model` can be overriden. Sometimes you have to fetch model data before proceeding, and from here this component rendering can be paused:
+	Is called before the component is rendered. In this function for example `this.nodes` and `this.model` can be overridden. Sometimes you have to fetch model data before proceeding, and from here this component rendering can be paused:
 	```javascript
 	onRenderStart: function(model, ctx, container){
 		var resume = Compo.pause(this, ctx);
@@ -300,19 +295,76 @@ Mask Component Library
 			.done(array => this.model = array);
 	}
 	```
-	> **Note** Only this component is paused, if there are more async components, then awaiting and rendering occures parallel
+	> **Note** Only this component is paused, if there are more async components, then awaiting and rendering occurs parallel
 	
-- **`render: function(model, ctx, container)`**
+- **`render : function(model, ctx, container)`** [#](#render)
 
 	_(rare used. Usually for some exotic rendering)._ When this function is defined, then the component should render itself and all children on its own, and the `onRenderStart` and `onRenderEnd` are not called.
 
-- **`onRenderEnd: function(elements:Array<DOMElement>, model, ctx, container)`**
+- **`onRenderEnd : function(elements:Array<DOMElement>, model, ctx, container)`** [#](#onrenderend)
 
 	Is called after the component and all children are rendered.
-	`this.$`, the DomLibrary(_jQuery, Zepto_) wrapper over the elements is now accessable.
+	`this.$`, the DomLibrary(_jQuery, Zepto_) wrapper over the elements is now accessible.
 	
 	> **Note** DOMElements are created in the `DocumentFragment`, and not the live dom. Refer to `domInsert` if you need, for example, to calculate the elements dimensions.
 
+- **`dispose : function()`** [#](#dispose)
+
+	Is called when the component is removed.
+
+- **`meta : Object`** [#](#meta)
+
+	Stores some additional information for the component for some validations and transforms
+	
+	- **`attributes`** [#](#meta-attributes)
+	There is a convention for the custom attributes: `x-attribute-name`. Attributes, which are declared here, are then bound directly the instance in `camelCase` manner. When some attribute values are not valid, the component is not rendered, and instead the error message is rendered.
+	```javascript
+	// :foo x-foo='5' x-quux='some value';
+	
+	mask.registerHandler(':foo', mask.Compo({
+		meta: {
+			attributes: {
+				// required custom attribute, value is parsed to number
+				'x-foo': 'number',
+				// optional custom attribute, value is parsed to boolean
+				'?x-baz': 'boolean',
+				
+				// required
+				'x-quux': function(value){
+					// perform some custom check
+					if (check(value) === false)
+						return Error('Attributes value is not valid');
+						
+					// optionally perform some object transformations/parsing
+					return transform(value);
+				}
+			}
+		},
+		onRenderStart: function(){
+			this.xFoo === 5
+			this.xQuux 
+		}
+	}));
+	```
+
+#### `Instance::$` [#](#prop-domlib)
+DOM Library wrapper of the elements (jQuery/Zepto/Kimbo).
+
+#### `Instance::find(selector:String)` [#](#prop-find)
+Find the child component. Selector:
+```javascript
+// compo name
+this.find(':spinner')
+// id
+this.find('#mySpinner');
+// class
+this.find('.mySpinner');
+```
+#### `Instance::closest(selector:String)` [#](#prop-closest)
+Find the first parent matched by selector. 
+
+#### `Instance::remove()` [#](#prop-remove)
+Removes elements from the DOM and calls `dispose` function on itself and all children
 
 #### `Instance::slotState(slotName, isActive)`
 Disable/Enable single slot - if is disabled, it will be not fired on dom events, and if no active slots are available for a signal, then all HTMLElements with this signal get `disabled` property set to `true`
