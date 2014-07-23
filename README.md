@@ -64,7 +64,12 @@ Mask Component Library
 	- [signalState](#prop-signalstate)
 	- [emitIn](#prop-emitin)
 	- [emitOut](#prop-emitout)
-	
+- [Static](#static)
+	- [config](#static-config)
+		- [setDOMLibrary](#static-config-setdomlibrary)
+		- [eventDecorator](#static-config-eventdecorator)
+	- [pipe](#static-pipe)
+		- [emit](#static-pipe-emit)
 
 ##### Constructor
 `mask.Compo(ComponentProto: Object)`
