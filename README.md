@@ -339,38 +339,39 @@ Mask Component Library
 
 - **`meta : Object`** <a name='meta'>#</a>
 
-	Stores some additional information for the component for some validations and transforms
+	Stores some additional information for the component: for some validations and transforms
 	
 	- **`attributes`** <a name='meta-attributes'>#</a>
-	There is a convention for the custom attributes: `x-attribute-name`. Attributes, which are declared here, are then bound directly the instance in `camelCase` manner. When some attribute values are not valid, the component is not rendered, and instead the error message is rendered.
-	```javascript
-	// :foo x-foo='5' x-quux='some value';
 	
-	mask.registerHandler(':foo', mask.Compo({
-		meta: {
-			attributes: {
-				// required custom attribute, value is parsed to number
-				'x-foo': 'number',
-				// optional custom attribute, value is parsed to boolean
-				'?x-baz': 'boolean',
-				
-				// required
-				'x-quux': function(value){
-					// perform some custom check
-					if (check(value) === false)
-						return Error('Attributes value is not valid');
-						
-					// optionally perform some object transformations/parsing
-					return transform(value);
+		There is a convention for the custom attributes: `x-attribute-name`. Attributes, which are declared here, are then bound directly to the instance in `camelCase` manner. When some attribute values are not valid, the component is not rendered, and instead the error message is rendered.
+		```javascript
+		// :foo x-foo='5' x-quux='some value';
+		
+		mask.registerHandler(':foo', mask.Compo({
+			meta: {
+				attributes: {
+					// required custom attribute, value is parsed to number
+					'x-foo': 'number',
+					// optional custom attribute, value is parsed to boolean
+					'?x-baz': 'boolean',
+					
+					// required
+					'x-quux': function(value){
+						// perform some custom check
+						if (check(value) === false)
+							return Error('Attributes value is not valid');
+							
+						// optionally perform some object transformations/parsing
+						return transform(value);
+					}
 				}
+			},
+			onRenderStart: function(){
+				this.xFoo === 5
+				this.xQuux 
 			}
-		},
-		onRenderStart: function(){
-			this.xFoo === 5
-			this.xQuux 
-		}
-	}));
-	```
+		}));
+		```
 
 #### Instance
 
@@ -400,20 +401,85 @@ Mask Component Library
 
 - **`Instance::slotState(slotName, isActive)`** <a name='prop-slotstate'>#</a>
 	
-	Disable/Enable single slot - if is disabled, it will be not fired on dom events, and if no active slots are available for a signal, then all HTMLElements with this signal get `disabled` property set to `true`
+	Disable/Enable single slot signal - if is disabled, it will be not fired. And if no more active slots are available for a signal, then all HTMLElements with this signal get `disabled` property set to `true`
 
 - **`Instance::signalState(signalName, isActive)`** <a name='prop-signalstate'>#</a>
 	
 	Disables/Enables the signal - **all slots** in all controllers up in the tree will be also `enabled/disabled`
+	```javascript
+	// :foo > button x-signal='click: performAction'
+	mask.registerHandler(':foo', mask.Compo({
+		slots: {
+			performAction: function(){
+				this.signalState('performAction', false);
+				// disable signal, so even when it is sent one more time, it wont be called
+				// (button is also disabled as no more slots available for the signal)
+				
+				// fake some async job, and once again enable the signal
+				setTimeout(() => this.signalState('performAction', true), 200);
+			}
+		}
+	})
+	```
 
 - **`Instance::emitIn(signalName [, ...arguments])`** <a name='prop-emitin'>#</a>
 	
-	Sends signal to itself and then DOWN in the controllers tree
+	Send signal to itself and then **DOWN** in the controllers tree
 
 - **`Instance::emitOut(signalName [, ...arguments])`** <a name='prop-emitout'>#</a>
 	
-	Sends signal to itself and then UP in the controllers tree
+	Send signal to itself and then **UP** in the controllers tree
 
+
+#### Static
+
+- **`Compo.config:Object`** <a name='static-config'>#</a>
+
+	Contains configuration functions
+	
+	- **`Compo.config.setDOMLibrary($:Object)`** <a name='static-config-setdomlibrary'>#</a>
+	
+		`DOM Library` is a library, which makes it easer to manipulate the DOM. When the `CompoJS` is loaded, it will try to pick up from globals some of this dom libraries: [JQuery](http://jquery.com), [Zepto](http://zeptojs.com/) or [Kimbo](http://kimbojs.com/). Each time the component is rendered, it will wrap its DOM child nodes using the DOM library and you can access it under `$` property: e.g. `this.$`
+		
+	- **`Compo.config.eventDecorator(name:String)`** <a name='static-config-eventdecorator'>#</a>
+	
+		`name`:
+		- 'touch': Defining this event decorator, all `mouse` events will be converted to touchevents.
+		
+			```javascript
+			mask.registerHandler(':foo', Compo({
+				events: {
+					'click: #submit': function(){},
+					'mousemove: .draw-panel': function(){},
+				}
+			})
+			```
+			```scss
+			button x-signal='click: startAction` > 'Do it'
+			```
+			
+			All `click` events are transformed to `tap` events, and all `mouse*` become `touch*` events.
+			
+- **`Compo.pipe(name:String):Pipe`** <a name='static-pipe'>#</a>
+
+	Get the Pipe.
+	
+	- **`Pipe::emit(signal:String [, ...args])`** <a name='static-pipe-emit'>#</a>
+	
+		Emits the signal in a pipe. 
+		
+		```javascript
+		mask.registerHandler(':some', Compo({
+			pipes: {
+				'foo': {
+					// registers `bazSignal` signal in a `foo` pipe.
+					bazSignal: function(...args){}
+				}
+			}
+		}));
+		Compo.pipe('foo').emit('bazSignal', 'Hello');
+		```
+		
 
 ----
 (c) 2014 MIT

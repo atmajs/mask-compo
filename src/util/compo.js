@@ -155,8 +155,9 @@ var compo_dispose,
 			if (attr != null) 
 				this.attr = obj_copy(this.attr);
 			
+			if (Ctor != null) 
+				Ctor.call(this);
 			
-			Ctor.call(this);
 		};
 	};
 	

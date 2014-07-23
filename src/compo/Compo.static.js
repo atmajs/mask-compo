@@ -52,15 +52,13 @@ obj_extend(Compo, {
 			}
 		}
 		
-		var ctor;
-		
+		var Ctor;
 		if (classProto.hasOwnProperty('constructor'))
-			ctor = classProto.constructor;
+			Ctor = classProto.constructor;
+		if (Ctor == null)
+			Ctor = classProto.Construct;
 		
-		if (ctor == null)
-			ctor = classProto.Construct;
-		
-		classProto.Construct = compo_createConstructor(ctor, classProto);
+		classProto.Construct = compo_createConstructor(Ctor, classProto);
 		
 		
 		var Ext = classProto.Extends;
