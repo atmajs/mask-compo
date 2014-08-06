@@ -119,7 +119,7 @@ Mask Component Library
 		// Example: Load the template and the styles with `IncludeJS`
 		include
 			.css('./myComponent.less')
-			.load('./myComponent.mask)
+			.load('./myComponent.mask')
 			.done(function(resp){
 				mask.registerHandler(':myComponent', mask.Compo({
 					template: resp.load.myComponent

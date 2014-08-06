@@ -66,6 +66,7 @@ var Compo;
 		tagName: null,
 		compoName: null,
 		nodes: null,
+		components: null,
 		attr: null,
 		model: null,
 		
