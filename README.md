@@ -40,8 +40,9 @@ Mask Component Library
 ```
 
 #### Api
-
+- [Inheritance](#inheritance)
 - [Component Definition](#componentsproto)
+	- [constructor](#proto-constructor)
 	- [tagName](#tagname)
 	- [template](#template)
 	- [slots](#slots)
@@ -71,11 +72,44 @@ Mask Component Library
 	- [pipe](#static-pipe)
 		- [emit](#static-pipe-emit)
 
-##### Constructor
-`mask.Compo(ComponentProto: Object)`
+##### Create a Component
+`mask.Compo(ComponentProto: Object):Function`
+
+Returns the components constructor. You would want to add it to masks repo:
+```javascript
+mask.registerHandler('someTagName', mask.Compo(ComponentProto));
+```
+
+###### Inheritance
+`mask.Compo(...base:String|Object|Function, ComponentProto)`
+- `String`: Name of the component. The component must be registered with `mask.registerHandler`
+- `Object`: Any object. _Note:_ **deep** property extending is used.
+- `Function`: _Note:_ constructor is also inherited and will be automatically invoked. Also `prototype` data is inherited.
+
+When overriding a function, then it will be `this.super` function available:
+```javascript
+var A = mask.Compo({
+	slots: {
+		doSmth: function(){
+			console.log('a');
+		}
+	}
+})
+var B = mask.Compo(A, {
+	slots: {
+		doSmth: function(){
+			this.super();
+			console.log('b');
+		}
+	}
+})
+```
+
 ###### ComponentsProto
 
 > All properties are optional, any amount of custom properties and functions are allowed.
+
+- **`constructor : Function`** <a name='proto-constructor'>#</a>
 
 - **`tagName : String`** <a name='tagname'>#</a>
 
