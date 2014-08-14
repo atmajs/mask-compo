@@ -5,7 +5,7 @@
 	"contributors":[
 	],
 	"main": "./lib/compo.js",
-	"author": "Alexander Kit <source.kit@gmail.com>",
+	"author": "Alex Kit <alex.kit@atmajs.com>",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/tenbits/mask-compo.git"
@@ -21,7 +21,8 @@
 		"atma": ">0.6.8"
 	},
 	"scripts" : {
-        "test" : "atma test"
+        "test" : "atma test",
+		"build": "atma"
     },
 	"keywords": [],
 	"engines" : {

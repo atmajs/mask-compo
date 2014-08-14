@@ -1,67 +1,21 @@
-var Compo;
+var Compo, CompoProto;
 (function() {
-
-	var hasInclude = !!(global.include
-		|| (typeof global.atma !== 'undefined' && global.atma.include)
-		|| (typeof exports !== 'undefined' && exports.include))
-		;
 
 	Compo = function(Proto) {
 		if (this instanceof Compo){
 			// used in Class({Base: Compo})
-			return null;
-		}
-
-		var klass, key;
-
-		if (Proto == null)
-			Proto = {};
-		
-		if (hasInclude && global.include) 
-			Proto.__resource = global.include.url;
-		
-		if (Proto.attr != null) {
-			for (key in Proto.attr) {
-				Proto.attr[key] = _mask_ensureTmplFn(Proto.attr[key]);
-			}
+			return void 0;
 		}
 		
-		var slots = Proto.slots;
-		if (slots != null) {
-			for (key in slots) {
-				if (typeof slots[key] === 'string'){
-					//if DEBUG
-					if (is_Function(Proto[slots[key]]) === false)
-						log_error('Not a Function @Slot.',slots[key]);
-					// endif
-					slots[key] = Proto[slots[key]];
-				}
-			}
-		}
-		compo_meta_prepairAttributeHandler(Proto);
-		
-		klass = Proto.hasOwnProperty('constructor')
-			? Proto.constructor
-			: function CompoBase() {}
-			;
-		
-		klass = compo_createConstructor(klass, Proto);
-
-		for(key in CompoProto){
-			if (Proto[key] == null)
-				Proto[key] = CompoProto[key];
-		}
-
-		klass.prototype = Proto;
-		Proto = null;
-		return klass;
+		return compo_create(arguments);
 	};
 
 	// import Compo.static.js
 	// import async.js
 
-	var CompoProto = {
+	CompoProto = {
 		type: Dom.CONTROLLER,
+		__resource: null,
 		
 		tagName: null,
 		compoName: null,

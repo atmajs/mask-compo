@@ -1,0 +1,83 @@
+UTest({
+	'simple object inheritance': function(){
+		var A = {
+			a: 'a',
+			getA: function(){ return this.a; },
+			get: function(){ return this.a; },
+			attr: {
+				xA: 'a'
+			}
+		};
+		var Ctor = Compo(A, {
+			b: 'b',
+			get: function(){
+				return this.b + this.super();
+			},
+			attr: {
+				xB: 'b'
+			}
+		});
+		
+		var x = new Ctor;
+		has_(x, {
+			a: 'a',
+			b: 'b'
+		});
+		
+		has_(x.attr, {
+			xA: 'a',
+			xB: 'b'
+		});
+		
+		is_(x.getA, 'Function');
+		is_(x.get, 'Function');
+		eq_(x.get(), 'ba');
+	},
+	'deep function inheritance': function(){
+		var A = {
+			name: 'a',
+			get: function(){
+				return 'a';
+			},
+			slots: {
+				get: function(){
+					return 'a'
+				},
+				'foo': 'get'
+			}
+		};
+		var B = {
+			name: 'b',
+			get: function(){
+				return 'b' + this.super();
+			},
+			slots: {
+				get: function(){
+					return 'b' + this.super();
+				}
+			}
+		};
+		var C = {
+			name: 'c',
+			get: function(){
+				return 'c' + this.super();
+			},
+			slots: {
+				get: function(){
+					return 'c' + this.super();
+				}
+			}
+		};
+		
+		var foo = new (Compo(A, B, C, {
+			get: function(){
+				return 'd' + this.super();
+			}
+		}));
+		
+		eq_(foo.name, 'c');
+		eq_(foo.get(), 'dcba');
+		eq_(foo.slots.get(), 'cba');
+		eq_(foo.slots.foo(), 'dcba');
+	}
+})

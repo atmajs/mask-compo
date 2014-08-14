@@ -3,7 +3,6 @@ var compo_dispose,
 	compo_ensureTemplate,
 	compo_ensureAttributes,
 	compo_attachDisposer,
-	compo_createConstructor,
 	compo_removeElements,
 	compo_prepairAsync,
 	compo_errored,
@@ -121,43 +120,6 @@ var compo_dispose,
 		compo.dispose = function(){
 			disposer.call(this);
 			prev.call(this);
-		};
-	};
-	
-		
-	
-	compo_createConstructor = function(Ctor, proto) {
-		var compos = proto.compos,
-			pipes = proto.pipes,
-			attr = proto.attr;
-			
-		if (compos == null
-			&& pipes == null
-			&& proto.attr == null) {
-			
-			return Ctor;
-		}
-	
-		/* extend compos / attr to keep
-		 * original prototyped values untouched
-		 */
-		return function CompoBase(){
-	
-			if (compos != null) {
-				// use this.compos instead of compos from upper scope
-				// : in case compos from proto was extended after
-				this.compos = obj_copy(this.compos);
-			}
-	
-			if (pipes != null) 
-				Pipes.addController(this);
-			
-			if (attr != null) 
-				this.attr = obj_copy(this.attr);
-			
-			if (Ctor != null) 
-				Ctor.call(this);
-			
 		};
 	};
 	

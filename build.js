@@ -1,10 +1,9 @@
-/**
- *	IncludeJSBuild
+/*
+ *	Atma.Toolkit
  *
- *	``` $ includejs build.js ```
- **/
-
-
+ *  $ npm install
+ *	$ npm run build
+ */
 module.exports = {
 	'settings': {
 		io: {
@@ -36,7 +35,7 @@ module.exports = {
 		}
 	},
 
-	'defaults': ['import', 'jshint', 'export.embed']
+	'defaults': ['import', 'jshint']
 };
 
 function JSHint() {

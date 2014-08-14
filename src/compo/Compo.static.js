@@ -1,75 +1,13 @@
 obj_extend(Compo, {
-	create: function(proto){
-		var klass;
-
-		if (proto == null){
-			proto = {};
-		}
-
-		if (proto.hasOwnProperty('constructor')){
-			klass = proto.constructor;
-		}
-
-		if (klass == null){
-			klass = function CompoBase(){};
-		}
-
-		for(var key in CompoProto){
-			if (proto[key] == null){
-				proto[key] = CompoProto[key];
-			}
-		}
-
-
-		klass.prototype = proto;
-
-
-		return klass;
+	create: function(){
+		return compo_create(arguments);
 	},
 	
-	createClass: function(classProto){
+	createClass: function(){
 		
-		if (classProto.attr != null) {
-			
-			for (var key in classProto.attr) {
-				classProto.attr[key] = _mask_ensureTmplFn(classProto.attr[key]);
-			}
-		}
-		
-		if (hasInclude && global.include) 
-			classProto.__resource = global.include.url;
-		
-		var slots = classProto.slots;
-		if (slots != null) {
-			for (var key in slots) {
-				if (typeof slots[key] === 'string'){
-					//if DEBUG
-					if (is_Function(classProto[slots[key]]) === false)
-						log_error('Not a Function @Slot.',slots[key]);
-					// endif
-					slots[key] = classProto[slots[key]];
-				}
-			}
-		}
-		
-		var Ctor;
-		if (classProto.hasOwnProperty('constructor'))
-			Ctor = classProto.constructor;
-		if (Ctor == null)
-			Ctor = classProto.Construct;
-		
-		classProto.Construct = compo_createConstructor(Ctor, classProto);
-		
-		
-		var Ext = classProto.Extends;
-		if (Ext == null) {
-			classProto.Extends = CompoProto
-		} else if (is_Array(Ext)) {
-			Ext.unshift(CompoProto)
-		} else {
-			classProto.Extends = [CompoProto, Ext];
-		}
-		
+		var Ctor = compo_create(arguments),
+			classProto = Ctor.prototype;
+		classProto.Construct = Ctor;
 		return Class(classProto);
 	},
 
