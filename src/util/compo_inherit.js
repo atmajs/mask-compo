@@ -5,6 +5,7 @@ var compo_inherit;
 		
 		var imax = Extends.length,
 			i = imax,
+			ctors = [],
 			x;
 		while( --i > -1){
 			x = Extends[i];
@@ -14,7 +15,22 @@ var compo_inherit;
 				log_error('Base component not defined', Extends[i]);
 				continue;
 			}
+			if (typeof x === 'function') {
+				ctors.push(x);
+				x = x.prototype;
+			}
+			
 			inherit_(Proto, x);
+		}
+		
+		i = -1;
+		imax = ctors.length;
+		if (imax > 0) {
+			if (Proto.hasOwnProperty('constructor')) 
+				ctors.unshift(Proto.constructor);
+			
+			Proto.constructor = joinFns_(ctors);
+			
 		}
 	};
 	
@@ -22,7 +38,7 @@ var compo_inherit;
 		var mix, type;
 		for(var key in source){
 			mix = source[key];
-			if (mix == null) 
+			if (mix == null || key === 'constructor')
 				continue;
 			
 			type = typeof mix;
@@ -109,7 +125,7 @@ var compo_inherit;
 		}
 		
 		function compoInheritanceWrapper(){
-			var fn = x._fn || (x._fn = compileFns_(x));
+			var fn = x._fn || (x._fn = compileFns_(x._fn_chain));
 			return fn.apply(this, arguments);
 		}
 		
@@ -119,11 +135,9 @@ var compo_inherit;
 		
 		return x;
 	}
-	function compileFns_(wrapper){
-		var fns = wrapper._fn_chain,
-			i = fns.length;
-		
-		var fn = fns[ --i ];
+	function compileFns_(fns){
+		var i = fns.length,
+			fn = fns[ --i ];
 		while( --i > -1){
 			fn = inheritFn_(fns[i], fn);
 		}
@@ -136,6 +150,15 @@ var compo_inherit;
 			
 			this.super = null;
 			return x;
+		};
+	}
+	function joinFns_(fns) {
+		var imax = fns.length;
+		return function(){
+			var i = imax;
+			while( --i > -1 ){
+				fns[i].apply(this, arguments);
+			}
 		};
 	}
 }());

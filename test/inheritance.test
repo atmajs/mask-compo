@@ -79,5 +79,49 @@ UTest({
 		eq_(foo.get(), 'dcba');
 		eq_(foo.slots.get(), 'cba');
 		eq_(foo.slots.foo(), 'dcba');
+	},
+	'should inherit component attributes and methods': function(){
+		var A = Compo({
+			foo: function(){
+				return 'foo'
+			},
+			attr: {
+				a: '~[name]'
+			}
+		});
+		var B = Compo(A, {
+			foo: function(){
+				return 'foo' + this.super()
+			},
+			attr: {
+				b: '~[name]'
+			}
+		});
+		
+		var b = new B;
+		
+		is_(b.foo, 'Function');
+		eq_(b.foo(), 'foofoo');
+		is_(b.attr.b, 'Function');
+		is_(b.attr.a, 'Function');
+	},
+	'should inherit component constructors': function(){
+		var A = Compo({
+			name: '_',
+			constructor: function(x){
+				this.name += x + 'A';
+			}
+		});
+		var B = function(x){
+			this.name += x + 'B';
+		};
+		var C = Compo(A, B, {
+			constructor: function(x){
+				this.name += x + 'C';
+			}
+		});
+		
+		var c = new C('-');
+		eq_(c.name, '_-A-B-C');
 	}
 })
