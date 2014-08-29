@@ -1,13 +1,13 @@
 // source /src/license.txt
 /*!
- * MaskJS v0.9.2
+ * MaskJS v%VERSION%
  * Part of the Atma.js Project
  * http://atmajs.com/
  *
  * MIT license
  * http://opensource.org/licenses/MIT
  *
- * (c) 2012, 2014 Atma.js and other contributors
+ * (c) 2012, %YEAR% Atma.js and other contributors
  */
 // end:source /src/license.txt
 // source /src/umd-head.js
@@ -778,10 +778,15 @@
 		
 			function createUtil(obj) {
 		
-				if (obj.arguments !== 'parsed')
-					return fn_proxy(obj.process || processRawFn, obj);
-		
-				return processParsedDelegate(obj.process);
+				if (obj.arguments === 'parsed')
+					return processParsedDelegate(obj.process);
+				
+				var fn = fn_proxy(obj.process || processRawFn, obj);
+				// <static> save reference to the initial util object.
+				// Mask.Bootstrap need the original util
+				// @workaround
+				fn.util = obj;
+				return fn;
 			}
 		
 		
@@ -814,7 +819,7 @@
 		// end:source util.js
 		
 		function initialize() {
-				
+			
 			custom_Utils = {
 				expression: function(value, model, ctx, element, controller){
 					return ExpressionUtil.eval(value, model, ctx, controller);
@@ -860,9 +865,14 @@
 				li: null,
 				ol: null,
 				i: null,
+				em: null,
 				b: null,
 				strong: null,
-				form: null
+				form: null,
+				audio: null,
+				video: null,
+				canvas: null,
+				svg: null
 			};
 			
 			// use on server to define reserved tags and its meta info
@@ -1245,7 +1255,6 @@
 					
 					var next = current.next,
 						nextBody = next != null && next.body;
-						
 					if (nextBody != null && value[nextBody] == null){
 							
 						if (next.type === type_FunctionRef
@@ -1270,6 +1279,12 @@
 								break;
 							}
 						}
+						
+						if (value == null) {
+							// prepair for warn message
+							key = '$c.' + nextBody;
+							current = next;
+						}
 					}
 					
 				}
@@ -1285,27 +1300,12 @@
 					value = ctx;
 				
 				else {
-					// dynamic resolver
+					// scope resolver
 					
 					if (model != null) {
 						object = model;
 						value = model[key];
 					}
-					
-					// @TODO - deprecate this for predefined accessors '$c' ...
-					
-					////// remove
-					//////if (value == null && ctx != null) {
-					//////	object = ctx;
-					//////	value = ctx[key];
-					//////}
-				
-					//////if (value == null && controller != null) {
-					//////	do {
-					//////		object = controller;
-					//////		value = controller[key];
-					//////	} while (value == null && (controller = controller.parent) != null);
-					//////}
 					
 					if (value == null) {
 						
@@ -1323,52 +1323,46 @@
 					}
 				}
 				
-			
-				if (value != null) {
-					do {
-						if (current.type === type_FunctionRef) {
-							
-							args = [];
-							i = -1;
-							imax = current.arguments.length;
-							
-							while( ++i < imax )
-								args[i] = expression_evaluate(current.arguments[i], model, ctx, controller);
-							
-							value = value.apply(object, args);
-						}
-			
-						if (value == null || current.next == null) 
-							break;
-						
-			
-						current = current.next;
-						key = current.type === type_AccessorExpr
-							? expression_evaluate(current.body, model, ctx, controller)
-							: current.body
-							;
-						
-						object = value;
-						value = value[key];
-						
-						if (value == null) 
-							break;
-			
-					} while (true);
-				}
-			
-				if (value == null){
+				if (value == null) {
 					if (current == null || current.next != null){
 						// notify that value is not in model, ctx, controller;
 						log_warn('<mask:expression> Accessor error:', key);
 					}
+					return null;
 				}
-			
+				
+				do {
+					if (current.type === type_FunctionRef) {
+						
+						args = [];
+						i = -1;
+						imax = current.arguments.length;
+						
+						while( ++i < imax )
+							args[i] = expression_evaluate(current.arguments[i], model, ctx, controller);
+						
+						value = value.apply(object, args);
+					}
+		
+					if (value == null || current.next == null) 
+						break;
+					
+					current = current.next;
+					key = current.type === type_AccessorExpr
+						? expression_evaluate(current.body, model, ctx, controller)
+						: current.body
+						;
+					
+					object = value;
+					value = value[key];
+					
+					if (value == null) 
+						break;
+		
+				} while (true);
+				
 				return value;
 			};
-		
-			
-			
 		}());
 		
 		
@@ -2122,7 +2116,8 @@
 		
 		// end:source 6.eval.js
 		// source 7.vars.helper.js
-		var refs_extractVars = (function() {
+		var  refs_extractVars;
+		(function() {
 		
 			/**
 			 * extract symbol references
@@ -2133,19 +2128,16 @@
 			 */
 		
 		
-			return function(expr){
-				if (typeof expr === 'string') {
+			refs_extractVars = function(expr, model, ctx, ctr){
+				if (typeof expr === 'string') 
 					expr = expression_parse(expr);
-				}
 				
-				return _extractVars(expr);
-				
-				
+				return _extractVars(expr, model, ctx, ctr);
 			};
 			
 			
 			
-			function _extractVars(expr) {
+			function _extractVars(expr, model, ctx, ctr) {
 		
 				if (expr == null) 
 					return null;
@@ -2158,7 +2150,7 @@
 						imax = body.length,
 						i = -1;
 					while ( ++i < imax ){
-						x = _extractVars(body[i]);
+						x = _extractVars(body[i], model, ctx, ctr);
 						refs = _append(refs, x);
 					}
 				}
@@ -2174,7 +2166,7 @@
 					while (next != null) {
 						nextType = next.type;
 						if (type_FunctionRef === nextType) {
-							return _extractVars(next);
+							return _extractVars(next, model, ctx, ctr);
 						}
 						if ((type_SymbolRef !== nextType) &&
 							(type_Accessor !== nextType) &&
@@ -2184,8 +2176,15 @@
 							return null;
 						}
 		
-						path += '.' + next.body;
-		
+						var prop = nextType === type_AccessorExpr
+							? expression_evaluate(next.body, model, ctx, ctr)
+							: next.body
+							;
+						if (typeof prop !== 'string') {
+							log_warn('Can`t extract accessor name', path);
+							return null;
+						}
+						path += '.' + prop;
 						next = next.next;
 					}
 		
@@ -2197,17 +2196,17 @@
 					case type_Statement:
 					case type_UnaryPrefix:
 					case type_Ternary:
-						x = _extractVars(expr.body);
+						x = _extractVars(expr.body, model, ctx, ctr);
 						refs = _append(refs, x);
 						break;
 				}
 				
 				// get also from case1 and case2
 				if (type_Ternary === exprType) {
-					x = _extractVars(ast.case1);
+					x = _extractVars(ast.case1, model, ctx, ctr);
 					refs = _append(refs, x);
 		
-					x = _extractVars(ast.case2);
+					x = _extractVars(ast.case2, model, ctx, ctr);
 					refs = _append(refs, x);
 				}
 		
@@ -2217,7 +2216,7 @@
 						imax = args.length,
 						i = -1;
 					while ( ++i < imax ){
-						x = _extractVars(args[i]);
+						x = _extractVars(args[i], model, ctx, ctr);
 						refs = _append(refs, x);
 					}
 					
@@ -2244,7 +2243,7 @@
 					}
 					
 					if (expr.next) {
-						x = _extractVars(expr.next);
+						x = _extractVars(expr.next, model, ctx, ctr);
 						refs = _append(refs, {accessor: _getAccessor(expr), ref: x});
 					}
 				}
@@ -2388,6 +2387,125 @@
 	}());
 	
 	// end:source /src/expression/exports.js
+	// source /src/dom/exports.js
+	var Dom;
+	
+	(function(){
+		
+		var dom_NODE = 1,
+			dom_TEXTNODE = 2,
+			dom_FRAGMENT = 3,
+			dom_COMPONENT = 4,
+			dom_CONTROLLER = 9,
+			dom_SET = 10,
+			dom_STATEMENT = 15
+			;
+		
+		// source 1.utils.js
+		function _appendChild(el){
+			
+			if (this.nodes == null) {
+				this.nodes = [el];
+				return;
+			}
+			
+			this.nodes.push(el);
+			var prev = this.nodes[this.nodes.length - 2];
+			
+			prev.nextSibling = el;
+		}
+		// end:source 1.utils.js
+		// source 2.Node.js
+		function Node(tagName, parent) {
+			this.type = Dom.NODE;
+			this.tagName = tagName;
+			this.parent = parent;
+			this.attr = {};	
+		}
+		Node.prototype = {
+			constructor: Node,
+			type: dom_NODE,
+			tagName: null,
+			parent: null,
+			attr: null,
+			nodes: null,
+			expression: null,
+			appendChild: _appendChild,
+			stringify: null,
+			__single: null
+		};
+		// end:source 2.Node.js
+		// source 3.TextNode.js
+		
+		
+		function TextNode(text, parent) {
+			this.content = text;
+			this.parent = parent;
+		}
+		
+		TextNode.prototype = {
+			type: dom_TEXTNODE,
+			content: null,
+			parent: null
+		};
+		// end:source 3.TextNode.js
+		// source 4.Component.js
+		
+		
+		function Component(compoName, parent, controller){
+			this.tagName = compoName;
+			this.parent = parent;
+			this.controller = controller;
+			this.attr = {};
+		}
+		
+		Component.prototype = {
+			constructor: Component,
+			type: dom_COMPONENT,
+			parent: null,
+			attr: null,
+			controller: null,
+			nodes: null,
+			components: null,
+			model: null,
+			modelRef: null
+		};
+		
+		// end:source 4.Component.js
+		// source 5.Fragment.js
+		
+		
+		function Fragment(){
+			
+		}
+		
+		Fragment.prototype = {
+			constructor: Fragment,
+			type: dom_FRAGMENT,
+			nodes: null,
+			appendChild: _appendChild
+		};
+		// end:source 5.Fragment.js
+		
+		
+		Dom = {
+			NODE: dom_NODE,
+			TEXTNODE: dom_TEXTNODE,
+			FRAGMENT: dom_FRAGMENT,
+			COMPONENT: dom_COMPONENT,
+			CONTROLLER: dom_CONTROLLER,
+			SET: dom_SET,
+			STATEMENT: dom_STATEMENT,
+		
+			Node: Node,
+			TextNode: TextNode,
+			Fragment: Fragment,
+			Component: Component
+		};
+	}());
+	
+	// end:source /src/dom/exports.js
+	
 	// source /src/statements/exports.js
 	// source 1.if.js
 	(function(){
@@ -2432,7 +2550,9 @@
 	// source 2.for.js
 	
 	(function(){
-	
+		var FOR_OF_ITEM = 'for..of/item',
+			FOR_IN_ITEM = 'for..in/item';
+			
 		custom_Statements['for'] = {
 			
 			render: function(node, model, ctx, container, controller, childs){
@@ -2464,6 +2584,19 @@
 				return createHandler(compoName, model);
 			}
 		};
+		
+		function createBootstrapCompo(name) {
+			var Ctor = function(){};
+			Ctor.prototype = {
+				type: Dom.COMPONENT,
+				compoName: name,
+				renderEnd: handler_proto_renderEnd,
+				dispose: handler_proto_dispose
+			};
+			return Ctor;
+		}
+		custom_Tags[FOR_OF_ITEM] = createBootstrapCompo(FOR_OF_ITEM);
+		custom_Tags[FOR_IN_ITEM] = createBootstrapCompo(FOR_IN_ITEM);
 		
 		function build(value, For, nodes, model, ctx, container, ctr, childs) {
 			
@@ -2517,7 +2650,7 @@
 					scope[prop2] = i;
 				
 				
-				nodes[i] = createForItem('for..of/item', template, scope);
+				nodes[i] = createForItem(FOR_OF_ITEM, template, scope);
 			}
 			
 			return nodes;
@@ -2537,8 +2670,7 @@
 				if (prop2) 
 					scope[prop2] = value;
 				
-				
-				nodes[i++] = createForItem('for..in/item', template, scope);
+				nodes[i++] = createForItem(FOR_IN_ITEM, template, scope);
 			}
 			
 			return nodes;
@@ -2553,7 +2685,8 @@
 				controller: {
 					compoName: name,
 					scope: scope,
-					renderEnd: handler_proto_renderEnd
+					renderEnd: handler_proto_renderEnd,
+					dispose: handler_proto_dispose
 				}
 			};
 		}
@@ -2562,12 +2695,17 @@
 			return {
 				compoName: name,
 				scope: scope,
-				renderEnd: handler_proto_renderEnd
+				renderEnd: handler_proto_renderEnd,
+				dispose: handler_proto_dispose
 			}
 		}
 		
 		function handler_proto_renderEnd(elements) {
 			this.elements = elements;
+		}
+		function handler_proto_dispose() {
+			if (this.elements) 
+				this.elements.length = 0;
 		}
 	
 		
@@ -2747,8 +2885,13 @@
 				itemCtr = createEachItem(i, nodes, controller);
 				builder_build(nodes, array[i], ctx, container, itemCtr, children);
 				
-				if (itemCtr.components != null) 
+				if (itemCtr.components != null) {
+					var compos = controller.components;
+					if (compos == null) 
+						compos = controller.components = [];
+					
 					arr_pushMany(controller.components, itemCtr.components);
+				}
 			}
 			
 		}
@@ -2985,124 +3128,7 @@
 	};
 	// end:source 8.var.js
 	// end:source /src/statements/exports.js
-	// source /src/dom/exports.js
-	var Dom;
 	
-	(function(){
-		
-		var dom_NODE = 1,
-			dom_TEXTNODE = 2,
-			dom_FRAGMENT = 3,
-			dom_COMPONENT = 4,
-			dom_CONTROLLER = 9,
-			dom_SET = 10,
-			dom_STATEMENT = 15
-			;
-		
-		// source 1.utils.js
-		function _appendChild(el){
-			
-			if (this.nodes == null) {
-				this.nodes = [el];
-				return;
-			}
-			
-			this.nodes.push(el);
-			var prev = this.nodes[this.nodes.length - 2];
-			
-			prev.nextSibling = el;
-		}
-		// end:source 1.utils.js
-		// source 2.Node.js
-		function Node(tagName, parent) {
-			this.type = Dom.NODE;
-			this.tagName = tagName;
-			this.parent = parent;
-			this.attr = {};	
-		}
-		Node.prototype = {
-			constructor: Node,
-			type: dom_NODE,
-			tagName: null,
-			parent: null,
-			attr: null,
-			nodes: null,
-			expression: null,
-			appendChild: _appendChild,
-			stringify: null,
-			__single: null
-		};
-		// end:source 2.Node.js
-		// source 3.TextNode.js
-		
-		
-		function TextNode(text, parent) {
-			this.content = text;
-			this.parent = parent;
-		}
-		
-		TextNode.prototype = {
-			type: dom_TEXTNODE,
-			content: null,
-			parent: null
-		};
-		// end:source 3.TextNode.js
-		// source 4.Component.js
-		
-		
-		function Component(compoName, parent, controller){
-			this.tagName = compoName;
-			this.parent = parent;
-			this.controller = controller;
-			this.attr = {};
-		}
-		
-		Component.prototype = {
-			constructor: Component,
-			type: dom_COMPONENT,
-			parent: null,
-			attr: null,
-			controller: null,
-			nodes: null,
-			components: null,
-			model: null,
-			modelRef: null
-		};
-		
-		// end:source 4.Component.js
-		// source 5.Fragment.js
-		
-		
-		function Fragment(){
-			
-		}
-		
-		Fragment.prototype = {
-			constructor: Fragment,
-			type: dom_FRAGMENT,
-			nodes: null,
-			appendChild: _appendChild
-		};
-		// end:source 5.Fragment.js
-		
-		
-		Dom = {
-			NODE: dom_NODE,
-			TEXTNODE: dom_TEXTNODE,
-			FRAGMENT: dom_FRAGMENT,
-			COMPONENT: dom_COMPONENT,
-			CONTROLLER: dom_CONTROLLER,
-			SET: dom_SET,
-			STATEMENT: dom_STATEMENT,
-		
-			Node: Node,
-			TextNode: TextNode,
-			Fragment: Fragment,
-			Component: Component
-		};
-	}());
-	
-	// end:source /src/dom/exports.js
 	
 	// source /src/parse/parser.js
 	var parser_parse,
@@ -4352,6 +4378,14 @@
 			if (container == null && type !== 1) 
 				container = document.createDocumentFragment();
 			
+			
+			// Dom.TEXTNODE
+			if (type === 2) {
+				
+				build_textNode(node, model, ctx, container, controller);
+				return container;
+			}
+			
 			// Dom.SET
 			if (type === 10) {
 				
@@ -4363,17 +4397,21 @@
 				}
 				return container;
 			}
-		
+			
+			var tagName = node.tagName;
+			if (tagName === 'else') 
+				return container;
+			
 			// Dom.STATEMENT
 			if (type === 15) {
-				var Handler = custom_Statements[node.tagName];
+				var Handler = custom_Statements[tagName];
 				if (Handler == null) {
 					
-					if (custom_Tags[node.tagName] != null) {
+					if (custom_Tags[tagName] != null) {
 						// Dom.COMPONENT
 						type = 4;
 					} else {
-						log_error('<mask: statement is undefined', node.tagName);
+						log_error('<mask: statement is undefined>', tagName);
 						return container;
 					}
 					
@@ -4388,19 +4426,8 @@
 		
 			// Dom.NODE
 			if (type === 1) {
-				
-				if (node.tagName === 'else') 
-					return container;
-		
 				container = build_node(node, model, ctx, container, controller, childs);
 				childs = null;
-			}
-		
-			// Dom.TEXTNODE
-			if (type === 2) {
-				
-				build_textNode(node, model, ctx, container, controller);
-				return container;
 			}
 		
 			// Dom.COMPONENT
@@ -4473,13 +4500,11 @@
 				
 				if (is_Function(node.renderEnd)) 
 					node.renderEnd(elements, model, ctx, container);
-				
 			}
 		
 			if (childs != null && elements != null && childs !== elements)
 				arr_pushMany(childs, elements);
 			
-		
 			return container;
 		};
 		
@@ -4527,9 +4552,12 @@
 				? new Ctr
 				: new Dom.Component
 				;
+			controller.ID = ++builder_componentID;
 			
 			var scripts = document.getElementsByTagName('script'),
-				script, found = false;
+				script,
+				found = false;
+				
 			imax = scripts.length;
 			i = -1;
 			while( ++i < imax ){
@@ -4539,19 +4567,214 @@
 				if (script.getAttribute('data-run') !== 'true') 
 					continue;
 				
-				var fragment = Mask.render(
-					script.textContent, model, null, null, controller
+				var fragment = builder_build(
+					parser_parse(script.textContent), model, {}, null, controller
 				);
 				script.parentNode.insertBefore(fragment, script);
 				found = true;
 			}
-			
-			
+			if (found === false) {
+				log_warn("No blocks found: <script type='text/mask' data-run='true'>...</script>");
+			}
+			if (is_Function(controller.renderEnd)) {
+				controller.renderEnd(container, model);
+			}
 			Compo.signal.emitIn(controller, 'domInsert');
 			return controller;
 		};
 	}());
 	// end:source /src/feature/run.js
+	// source /src/feature/merge.js
+	var mask_merge;
+	(function(){
+		
+		mask_merge = function(a, b){
+			if (typeof a === 'string') 
+				a = parser_parse(a);
+			if (typeof b === 'string') 
+				b = parser_parse(b);
+			
+			var contents = _getContents(b, b, {});
+			
+			return _merge(a, contents);
+		};
+		
+		var tag_PLACEHOLDER_ELSE = '@else',
+			dom_NODE = Dom.NODE,
+			dom_TEXTNODE = Dom.TEXTNODE,
+			dom_FRAGMENT = Dom.FRAGMENT
+			;
+		
+		function _merge(node, contents, _defaultContent, clonedParent){
+			if (is_Array(node)) {
+				return _mergeArray(node, contents, _defaultContent, clonedParent);
+			}
+			switch(node.type){
+				case dom_TEXTNODE:
+					return node;
+				case dom_NODE:
+					return _mergeNode(node, contents, _defaultContent, clonedParent);
+				case dom_FRAGMENT:
+					return {
+						type: node.type,
+						nodes: _mergeArray(node.nodes, contents, _defaultContent, clonedParent)
+					};
+			}
+			
+			log_warn('Uknown type', node.type);
+			return null;
+		}
+		function _mergeArray(nodes, contents, _defaultContent, clonedParent){
+			var arr = [],
+				imax = nodes.length,
+				i = -1,
+				x, tagName, node;
+			while( ++i < imax ) {
+				node = nodes[i];
+				
+				if (node.type === dom_NODE && node.tagName === tag_PLACEHOLDER_ELSE) {
+					
+					if (x == null) {
+						// previous is null
+						x = _merge(nodes[i].nodes, contents, _defaultContent, clonedParent)
+					}
+				}
+				else {
+					x = _merge(node, contents, _defaultContent, clonedParent);
+				}
+				
+				if (x == null) 
+					continue;
+				
+				if (is_Array(x)) {
+					arr = arr.concat(x);
+					continue;
+				}
+				arr.push(x);
+			}
+			return arr;
+		}
+		function _mergeNode(node, contents, _defaultContent, clonedParent){
+			var tagName = node.tagName;
+			if (tagName.charCodeAt(0) !== 64) {
+				// @
+				return _cloneNode(node, contents, _defaultContent, clonedParent);
+			}
+			
+			var id = node.attr.id;
+			if (tagName === '@placeholder' && id == null) 
+				return _defaultContent;
+			
+			if (id == null) 
+				id = tagName.substring(1);
+			
+			var content = contents[id];
+			if (content == null) 
+				return null;
+			
+			if (content.parent) 
+				_modifyParents(clonedParent, content.parent);
+			
+			if (node.nodes == null) 
+				return content.nodes;
+			
+			return _merge(node.nodes, contents.nodes, content, clonedParent);
+		}
+		function _cloneNode(node, contents, _defaultContent, clonedParent){
+			var outnode = {
+				tagName: node.tagName || node.compoName,
+				attr: node.attr,
+				type: node.type,
+				controller: node.controller,
+				parent: clonedParent
+			};
+			if (node.nodes) 
+				outnode.nodes = _merge(node.nodes, contents, _defaultContent, outnode);
+			
+			return outnode;
+		}
+		
+		function _getContents(b, node, contents) {
+			if (node == null) 
+				return contents;
+			
+			if (is_Array(node)) {
+				var imax = node.length,
+					i = -1;
+				while( ++i < imax ){
+					_getContents(node === b ? node[i] : b, node[i], contents);
+				}
+				return contents;
+			}
+			
+			var type = node.type;
+			if (type === dom_TEXTNODE) 
+				return contents;
+			
+			if (type === dom_NODE) {
+				var tagName = node.tagName;
+				if (tagName != null && tagName.charCodeAt(0) === 64) {
+					// @
+					var id = tagName.substring(1);
+					contents[id] = {
+						nodes: node.nodes,
+						parent: _getParentModifiers(b, node)
+					};
+				}
+			}
+			return _getContents(b, node.nodes, contents);
+		}
+		function _getParentModifiers(root, node) {
+			if (node === root) 
+				return null;
+			
+			var current, parents, parent = node.parent;
+			while (true) {
+				if (parent == null) 
+					break;
+				if (parent === root && root.type !== dom_NODE)
+					break;
+				
+				var p = {
+						type: parent.type,
+						tagName: parent.tagName,
+						attr: parent.attr,
+						controller: parent.controller,
+						expression: parent.expression,
+						nodes: null,
+						parent: null
+					};
+	
+				if (parents == null) {
+					current = parents = p;
+				} else {
+					current.parent = p;
+					current = p;
+				}
+				parent = parent.parent;
+			}
+			return parents;
+		}
+		function _modifyParents(clonedParent, parents){
+			var nodeParent = clonedParent, modParent = parents;
+			while(nodeParent != null && modParent != null){
+				
+				if (modParent.tagName) 
+					nodeParent.tagName = modParent.tagName;
+				
+				if (modParent.expression) 
+					nodeParent.expression = modParent.expression;
+				
+				for(var key in modParent.attr){
+					nodeParent.attr[key] = modParent.attr[key];
+				}
+				
+				nodeParent = nodeParent.parent;
+				modParent = modParent.parent;
+			}
+		}
+	}());
+	// end:source /src/feature/merge.js
 	
 	// source /src/mask.js
 	
@@ -4617,6 +4840,15 @@
 			 * - ?container: Node (@default: body)
 			 */
 			run: mask_run,
+			
+			
+			/*
+			 * - aTmpl: Mask Template
+			 * - bTmpl: Mask Template
+			 *
+			 * @returns New joined mask template
+			 */
+			merge: mask_merge,
 			
 			/**
 			 * mask.registerHandler(tagName, tagHandler) -> void
@@ -4819,7 +5051,7 @@
 			},
 			Dom: Dom,
 			plugin: function(source){
-				return eval(source);
+				eval(source);
 			},
 			
 			on: listeners_on,
@@ -5433,6 +5665,44 @@
 	}(Mask));
 	
 	// end:source /src/handlers/utils.js
+	// source /src/handlers/define.js
+	(function(mask){
+		
+		
+		//mask.registerHandler('define', {
+		//	render: function(){
+		//		var name = Object.keys(this.attr)[0];
+		//		
+		//		mask.registerHandler(name, mask.Compo({
+		//			template: this.nodes
+		//		}));
+		//	}
+		//})
+		//return;
+		custom_Tags['define']  = Define;
+		
+		function Define(){};
+		Define.prototype = {
+			render: function(){
+				var name;
+				for(name in this.attr) break;
+				
+				var nodes = this.nodes;
+				mask.registerHandler(name, Compo({
+					renderStart: function(){
+						this.nodes = this.nodes == null
+							? nodes
+							: mask.merge(nodes, this.nodes)
+							;
+							
+						
+					}
+				}));
+			}
+		};
+		
+	}(Mask));
+	// end:source /src/handlers/define.js
 
 	/* Libraries */
 	
@@ -5440,64 +5710,60 @@
 	
 	var Compo = exports.Compo = (function(mask){
 		'use strict';
-		// source ../src/scope-vars.js
+		// source /src/scope-vars.js
 		var Dom = mask.Dom,
 		
 			_array_slice = Array.prototype.slice,
+			_Array_slice = Array.prototype.slice,
 			_Array_splice = Array.prototype.splice,
 			_Array_indexOf = Array.prototype.indexOf,
 			
 			_mask_ensureTmplFnOrig = mask.Utils.ensureTmplFn,
-			
+			_mask_ensureTmplFn,
+			_resolve_Ref,
 			domLib,
 			Class	
 			;
-		
-		(function(){
 			
-			var scope = [global.atma, exports, global];
+		(function(){
+			_mask_ensureTmplFn = function(value) {
+				return typeof value !== 'string'
+					? value
+					: _mask_ensureTmplFnOrig(value)
+					;
+			};
+			_resolve_Ref = function(key){
+				return _global[key] || _exports[key] || _atma[key]
+			};
+			
+			var _global = global,
+				_atma = global.atma || {},
+				_exports = exports || {};
 			
 			function resolve() {
-				
-				var args = arguments,
-					j = scope.length,
-					
-					obj, r, i;
-				
-				while (--j > -1) {
-					obj = scope[j];
-					if (obj == null) 
-						continue;
-					
-					i = args.length;
-					while (--i > -1){
-						r = obj[args[i]];
-						if (r != null) 
-							return r;
-					}
+				var i = arguments.length, val;
+				while( --i > -1 ) {
+					val = _resolve_Ref(arguments[i]);
+					if (val != null) 
+						return val;
 				}
+				return null;
 			}
-			
 			domLib = resolve('jQuery', 'Zepto', '$');
 			Class = resolve('Class');
 		}());
 		
+		
 		// if DEBUG
 		if (global.document != null && domLib == null) {
 			
-			console.warn('jQuery-Zepto-Kimbo etc. was not loaded before MaskJS:Compo, please use Compo.config.setDOMLibrary to define dom engine');
+			log_warn('jQuery-Zepto-Kimbo etc. was not loaded before MaskJS:Compo, please use Compo.config.setDOMLibrary to define dom engine');
 		}
 		// endif
-		
-		function _mask_ensureTmplFn(value) {
-			return typeof value !== 'string'
-				? value
-				: _mask_ensureTmplFnOrig(value)
-				;
-		}
-		// end:source ../src/scope-vars.js
+		// end:source /src/scope-vars.js
 	
-		// source ../src/util/is.js
+		// source /src/util/exports.js
+		// source ./is.js
 		function is_Function(x) {
 			return typeof x === 'function';
 		}
@@ -5534,8 +5800,8 @@
 			return obj.constructor === Object;
 		}
 		
-		// end:source ../src/util/is.js
-		// source ../src/util/polyfill.js
+		// end:source ./is.js
+		// source ./polyfill.js
 		if (!Array.prototype.indexOf) {
 			Array.prototype.indexOf = function(x){
 				for (var i = 0, imax = this.length; i < imax; i++){
@@ -5546,8 +5812,8 @@
 				return -1;
 			}
 		}
-		// end:source ../src/util/polyfill.js
-		// source ../src/util/object.js
+		// end:source ./polyfill.js
+		// source ./object.js
 		var obj_extend,
 			obj_copy
 			;
@@ -5582,8 +5848,8 @@
 			
 		}());
 		
-		// end:source ../src/util/object.js
-		// source ../src/util/array.js
+		// end:source ./object.js
+		// source ./array.js
 		
 		var arr_each,
 			arr_remove
@@ -5601,40 +5867,36 @@
 			
 			arr_remove = function(array, child){
 				if (array == null){
-					console.error('Can not remove myself from parent', child);
+					log_error('Can not remove myself from parent', child);
 					return;
 				}
-			
 				var index = array.indexOf(child);
-			
 				if (index === -1){
-					console.error('Can not remove myself from parent', child, index);
+					log_error('Can not remove myself from parent', child);
 					return;
 				}
-			
 				array.splice(index, 1);
 			};
 			
 			
 		}());
 		
-		// end:source ../src/util/array.js
-		// source ../src/util/function.js
+		// end:source ./array.js
+		// source ./function.js
 		var fn_proxy,
-			fn_apply
+			fn_apply,
+			fn_doNothing
 			;
 		
 		(function(){
 		
 			fn_proxy = function(fn, ctx) {
-			
 				return function() {
 					return fn_apply(fn, ctx, arguments);
 				};
 			};
 			
 			fn_apply = function(fn, ctx, arguments_){
-				
 				switch (arguments_.length) {
 					case 0:
 						return fn.call(ctx);
@@ -5655,15 +5917,17 @@
 							arguments_[1],
 							arguments_[2],
 							arguments_[3]);
-				};
-				
+				}
 				return fn.apply(ctx, arguments_);
 			};
 			
+			fn_doNothing = function(){
+				return false;
+			};
 		}());
 		
-		// end:source ../src/util/function.js
-		// source ../src/util/selector.js
+		// end:source ./function.js
+		// source ./selector.js
 		var selector_parse,
 			selector_match
 			;
@@ -5672,7 +5936,7 @@
 			
 			selector_parse = function(selector, type, direction) {
 				if (selector == null)
-					console.error('<compo>selector is undefined', type);
+					log_error('<compo>selector is undefined', type);
 				
 				if (typeof selector === 'object')
 					return selector;
@@ -5772,8 +6036,8 @@
 			
 		}());
 		
-		// end:source ../src/util/selector.js
-		// source ../src/util/traverse.js
+		// end:source ./selector.js
+		// source ./traverse.js
 		var find_findSingle;
 		
 		(function(){
@@ -5812,8 +6076,8 @@
 			
 		}());
 		
-		// end:source ../src/util/traverse.js
-		// source ../src/util/dom.js
+		// end:source ./traverse.js
+		// source ./dom.js
 		var dom_addEventListener,
 			
 			node_tryDispose,
@@ -5879,8 +6143,8 @@
 			
 		}());
 		
-		// end:source ../src/util/dom.js
-		// source ../src/util/domLib.js
+		// end:source ./dom.js
+		// source ./domLib.js
 		/**
 		 *	Combine .filter + .find
 		 */
@@ -5911,14 +6175,19 @@
 		}());
 		
 		
-		// end:source ../src/util/domLib.js
-		// source ../src/util/compo.js
+		// end:source ./domLib.js
+		// source ./compo.js
 		var compo_dispose,
 			compo_detachChild,
 			compo_ensureTemplate,
+			compo_ensureAttributes,
 			compo_attachDisposer,
-			compo_createConstructor,
-			compo_removeElements
+			compo_removeElements,
+			compo_prepairAsync,
+			compo_errored,
+			
+			compo_meta_prepairAttributeHandler,
+			compo_meta_executeAttributeHandler
 			;
 		
 		(function(){
@@ -5979,7 +6248,7 @@
 					}
 			
 					if (i === -1)
-						console.warn('<compo:remove> - i`m not in parents collection', childCompo);
+						log_warn('<compo:remove> - i`m not in parents collection', childCompo);
 				}
 			};
 			
@@ -6005,7 +6274,7 @@
 						// #
 						var node = document.getElementById(template.substring(1));
 						if (node == null) {
-							console.error('<compo> Template holder not found by id:', template);
+							log_error('<compo> Template holder not found by id:', template);
 							return;
 						}
 						template = node.innerHTML;
@@ -6030,42 +6299,6 @@
 				compo.dispose = function(){
 					disposer.call(this);
 					prev.call(this);
-				};
-			};
-			
-				
-			
-			compo_createConstructor = function(Ctor, proto) {
-				var compos = proto.compos,
-					pipes = proto.pipes,
-					attr = proto.attr;
-					
-				if (compos == null
-						&& pipes == null
-						&& proto.attr == null) {
-					
-					return Ctor;
-				}
-			
-				/* extend compos / attr to keep
-				 * original prototyped values untouched
-				 */
-				return function CompoBase(){
-			
-					if (compos != null) {
-						// use this.compos instead of compos from upper scope
-						// : in case compos from proto was extended after
-						this.compos = obj_copy(this.compos);
-					}
-			
-					if (pipes != null) 
-						Pipes.addController(this);
-					
-					if (attr != null) 
-						this.attr = obj_copy(this.attr);
-					
-					if (is_Function(Ctor)) 
-						Ctor.call(this);
 				};
 			};
 			
@@ -6094,14 +6327,415 @@
 						compo_removeElements(compos[i]);
 					}
 				}
-			}
+			};
 		
+			compo_prepairAsync = function(dfr, compo, ctx){
+				var resume = Compo.pause(compo, ctx)
+				dfr.then(resume, function(error){
+					compo_errored(compo, error);
+					resume();
+				});
+			};
+			
+			compo_errored = function(compo, error){
+				compo.nodes = mask.parse('.-mask-compo-errored > "~[.]"');
+				compo.model = error.message || String(error);
+				compo.renderEnd = fn_doNothing;
+			};
+			
+			// == Meta Attribute Handler
+			(function(){
+				
+				compo_meta_prepairAttributeHandler = function(Proto){
+					if (Proto.meta == null) 
+						Proto.meta = {};
+					
+					var metas = Proto.meta.attributes,
+						fn = null;
+					if (metas) {
+						var hash = {};
+						for(var key in metas) {
+							_handleProperty_Delegate(Proto, key, metas[key], hash);
+						}
+						fn = _handleAll_Delegate(hash);
+					}
+					Proto.meta.handleAttributes = fn;
+				};
+				compo_meta_executeAttributeHandler = function(compo){
+					var fn = compo.meta && compo.meta.handleAttributes;
+					return fn == null ? true : fn(compo);
+				};
+				
+				function _handleAll_Delegate(hash){
+					return function(compo){
+						var attr = compo.attr,
+							key, fn, val, error;
+						for(key in hash){
+							fn    = hash[key];
+							val   = attr[key];
+							error = fn(compo, val);
+							
+							if (error == null)
+								continue;
+							
+							_errored(compo, error, key, val)
+							return false;
+						}
+						return true;
+					};
+				}
+				function _handleProperty_Delegate(Proto, metaKey, metaVal, hash) {
+					var optional = metaKey.charCodeAt(0) === 63, // ?
+						attrName = optional
+							? metaKey.substring(1)
+							: metaKey;
+					
+					var property = attrName.replace(/-(\w)/g, _toCamelCase_Replacer),
+						fn = metaVal;
+					
+					if (typeof metaVal === 'string') 
+						fn = _ensureFns[metaVal];
+						
+					else if (metaVal instanceof RegExp) 
+						fn = _ensureFns_Delegate.regexp(metaVal);
+					
+					else if (typeof metaVal === 'function') 
+						fn = metaVal;
+					
+					else if (metaVal == null) 
+						fn = _ensureFns_Delegate.any();
+					
+					if (fn == null) {
+						log_error('Function expected for the attr. handler', metaKey);
+						return;
+					}
+					
+					Proto[property] = null;
+					Proto = null;
+					hash [attrName] = function(compo, attrVal){
+						if (attrVal == null) 
+							return optional ? null : Error('Expected');
+						
+						var val = fn.call(compo, attrVal, compo);
+						if (val instanceof Error) 
+							return val;
+						
+						compo[property] = val;
+						return null;
+					};
+				}
+				
+				function _toCamelCase_Replacer(full, char_){
+					return char_.toUpperCase();
+				}
+				function _errored(compo, error, key, val) {
+					error.message = compo.compoName + ' - attribute `' + key + '`: ' + error.message;
+					compo_errored(compo, error);
+					log_error(error.message, '. Current: ', val);
+				}
+				var _ensureFns = {
+					'string': function(x) {
+						return typeof x === 'string' ? x : Error('String');
+					},
+					'number': function(x){
+						var num = Number(x);
+						return num === num ? num : Error('Number');
+					},
+					'boolean': function(x){
+						if (x === 'true'  || x === '1') return true;
+						if (x === 'false' || x === '0') return false;
+						return Error('Boolean');
+					}
+				};
+				var _ensureFns_Delegate = {
+					regexp: function(rgx){
+						return function(x){
+							return rgx.test(x) ? x : Error('RegExp');
+						};
+					},
+					any: function(){
+						return function(x){ return x; };
+					}
+				};
+			}());
 			
 		}());
 		
-		// end:source ../src/util/compo.js
+		// end:source ./compo.js
+		// source ./compo_create.js
+		var compo_create,
+			compo_createConstructor;
+		(function(){
+			compo_create = function(arguments_){
+				
+				var argLength = arguments_.length,
+					Proto = arguments_[argLength - 1],
+					Ctor,
+					key;
+				
+				if (argLength > 1) 
+					compo_inherit(Proto, _Array_slice.call(arguments_, 0, argLength - 1));
+				
+				if (Proto == null)
+					Proto = {};
+				
+				var include = _resolve_Ref('include');
+				if (include != null) 
+					Proto.__resource = include.url;
+				
+				var attr = Proto.attr;
+				for (key in Proto.attr) {
+					Proto.attr[key] = _mask_ensureTmplFn(Proto.attr[key]);
+				}
+				
+				var slots = Proto.slots;
+				for (key in slots) {
+					if (typeof slots[key] === 'string'){
+						//if DEBUG
+						if (is_Function(Proto[slots[key]]) === false)
+							log_error('Not a Function @Slot.',slots[key]);
+						// endif
+						slots[key] = Proto[slots[key]];
+					}
+				}
+				
+				compo_meta_prepairAttributeHandler(Proto);
+				
+				Ctor = Proto.hasOwnProperty('constructor')
+					? Proto.constructor
+					: function CompoBase() {}
+					;
+				
+				Ctor = compo_createConstructor(Ctor, Proto);
+		
+				for(key in CompoProto){
+					if (Proto[key] == null)
+						Proto[key] = CompoProto[key];
+				}
+		
+				Ctor.prototype = Proto;
+				Proto = null;
+				return Ctor;
+			};
+			
+			compo_createConstructor = function(Ctor, proto) {
+				var compos = proto.compos,
+					pipes = proto.pipes,
+					attr = proto.attr;
+					
+				if (compos == null
+					&& pipes == null
+					&& proto.attr == null) {
+					
+					return Ctor;
+				}
+			
+				/* extend compos / attr to keep
+				 * original prototyped values untouched
+				 */
+				return function CompoBase(){
+			
+					if (compos != null) {
+						// use this.compos instead of compos from upper scope
+						// : in case compos from proto was extended after
+						this.compos = obj_copy(this.compos);
+					}
+			
+					if (pipes != null) 
+						Pipes.addController(this);
+					
+					if (attr != null) 
+						this.attr = obj_copy(this.attr);
+					
+					if (Ctor != null) 
+						Ctor.call(this);
+					
+				};
+			};
+		}());
+		// end:source ./compo_create.js
+		// source ./compo_inherit.js
+		var compo_inherit;
+		(function(){
+			
+			compo_inherit = function(Proto, Extends){
+				
+				var imax = Extends.length,
+					i = imax,
+					ctors = [],
+					x;
+				while( --i > -1){
+					x = Extends[i];
+					if (typeof x === 'string') 
+						x = Mask.getHandler(x);
+					if (x == null) {
+						log_error('Base component not defined', Extends[i]);
+						continue;
+					}
+					if (typeof x === 'function') {
+						ctors.push(x);
+						x = x.prototype;
+					}
+					
+					inherit_(Proto, x);
+				}
+				
+				i = -1;
+				imax = ctors.length;
+				if (imax > 0) {
+					if (Proto.hasOwnProperty('constructor')) 
+						ctors.unshift(Proto.constructor);
+					
+					Proto.constructor = joinFns_(ctors);
+					
+				}
+			};
+			
+			function inherit_(target, source){
+				var mix, type;
+				for(var key in source){
+					mix = source[key];
+					if (mix == null || key === 'constructor')
+						continue;
+					
+					type = typeof mix;
+					
+					if (target[key] == null) {
+						target[key] = 'object' === type
+							? clone_(mix)
+							: mix;
+						continue;
+					}
+					
+					if ('function' === type) {
+						target[key] = createWrapper_(target[key], mix);
+						continue;
+					}
+					if ('object' !== type) {
+						// value properties are not extended
+						continue;
+					}
+					
+					switch(key){
+						case 'slots':
+						case 'pipes':
+						case 'events':
+						case 'attr':
+							inherit_(target[key], mix);
+							continue;
+						case 'nodes':
+							target.nodes = mix;
+							continue;
+					}
+					defaults_(target[key], mix);
+				}
+				
+				if (target.super != null) 
+					log_error('`super` property is reserved. Dismissed. Current prototype', target);
+				target.super = null;
+			}
+			
+			/*! Circular references are not handled */
+			function clone_(a) {
+				if (a == null) 
+					return null;
+				
+				if (typeof a !== 'object') 
+					return a;
+				
+				if (is_Array(a)) {
+					var imax = a.length,
+						i = -1,
+						arr = new Array(imax)
+						;
+					while( ++i < imax ){
+						arr[i] = clone_(a[i]);
+					}
+					return arr;
+				}
+				
+				var object = {};
+				for(var key in a){
+					object[key] = clone_(a[key]);
+				}
+				return object;
+			}
+			function defaults_(target, source){
+				var targetV, sourceV, key;
+				for(var key in source){
+					targetV = target[key];
+					sourceV = source[key];
+					if (targetV == null) {
+						target[key] = sourceV;
+						continue;
+					}
+					if (is_rawObject(targetV) && is_rawObject(sourceV)){
+						defaults_(targetV, sourceV);
+						continue;
+					}
+				}
+			}
+			function createWrapper_(selfFn, baseFn){
+				if (selfFn.name === 'compoInheritanceWrapper') {
+					selfFn._fn_chain.push(baseFn);
+					return selfFn;
+				}
+				
+				function compoInheritanceWrapper(){
+					var fn = x._fn || (x._fn = compileFns_(x._fn_chain));
+					return fn.apply(this, arguments);
+				}
+				
+				var x = compoInheritanceWrapper;
+				x._fn_chain = [ selfFn, baseFn ];
+				x._fn = null;
+				
+				return x;
+			}
+			function compileFns_(fns){
+				var i = fns.length,
+					fn = fns[ --i ];
+				while( --i > -1){
+					fn = inheritFn_(fns[i], fn);
+				}
+				return fn;
+			}
+			function inheritFn_(selfFn, baseFn){
+				return function(){
+					this.super = baseFn;
+					var x = fn_apply(selfFn, this, arguments);
+					
+					this.super = null;
+					return x;
+				};
+			}
+			function joinFns_(fns) {
+				var imax = fns.length;
+				return function(){
+					var i = imax;
+					while( --i > -1 ){
+						fns[i].apply(this, arguments);
+					}
+				};
+			}
+		}());
+		// end:source ./compo_inherit.js
+		// source ./dfr.js
+		var dfr_isBusy;
+		(function(){
+			dfr_isBusy = function(dfr){
+				if (dfr == null || typeof dfr.then !== 'function') 
+					return false;
+				
+				// Class.Deferred support, @todo Promise|jQuery dfr etc.
+				return this._resolved != null || this._rejected != null;
+			};
+		}());
+		// end:source ./dfr.js
+		
+		// end:source /src/util/exports.js
 	
-		// source ../src/compo/children.js
+		// source /src/compo/children.js
 		var Children_ = {
 		
 			/**
@@ -6133,8 +6767,8 @@
 						selector = data;
 					}
 					if (data == null || selector == null) {
-						console.error('Unknown component child', name, compos[name]);
-						console.warn('Is this object shared within multiple compo classes? Define it in constructor!');
+						log_error('Unknown component child', name, compos[name]);
+						log_warn('Is this object shared within multiple compo classes? Define it in constructor!');
 						return;
 					}
 		
@@ -6163,8 +6797,8 @@
 			}
 		};
 		
-		// end:source ../src/compo/children.js
-		// source ../src/compo/events.js
+		// end:source /src/compo/children.js
+		// source /src/compo/events.js
 		var Events_ = {
 			on: function(component, events, $element) {
 				if ($element == null) {
@@ -6213,8 +6847,8 @@
 		},
 			EventDecorator = null;
 		
-		// end:source ../src/compo/events.js
-		// source ../src/compo/events.deco.js
+		// end:source /src/compo/events.js
+		// source /src/compo/events.deco.js
 		var EventDecos = (function() {
 		
 			var hasTouch = (function() {
@@ -6260,8 +6894,8 @@
 		
 		}());
 		
-		// end:source ../src/compo/events.deco.js
-		// source ../src/compo/pipes.js
+		// end:source /src/compo/events.deco.js
+		// source /src/compo/pipes.js
 		var Pipes = (function() {
 			
 			var _collection = {};
@@ -6285,7 +6919,7 @@
 						pipe, signal;
 		
 					if (dot === -1) {
-						console.error('define pipeName "click: pipeName.pipeSignal"');
+						log_error('define pipeName "click: pipeName.pipeSignal"');
 						return;
 					}
 		
@@ -6296,7 +6930,7 @@
 		
 		
 					// if DEBUG
-					!event && console.error('Signal: event type is not set', attrValue);
+					!event && log_error('Signal: event type is not set', attrValue);
 					// endif
 		
 		
@@ -6314,7 +6948,7 @@
 		
 			function pipe_attach(pipeName, controller) {
 				if (controller.pipes[pipeName] == null) {
-					console.error('Controller has no pipes to be added to collection', pipeName, controller);
+					log_error('Controller has no pipes to be added to collection', pipeName, controller);
 					return;
 				}
 		
@@ -6348,7 +6982,7 @@
 		
 				// if DEBUG
 				if (pipes == null) {
-					console.error('Controller has no pipes', controller);
+					log_error('Controller has no pipes', controller);
 					return;
 				}
 				// endif
@@ -6377,7 +7011,7 @@
 					
 					if (controllers == null) {
 						//if DEBUG
-						console.warn('Pipe.emit: No signals were bound to:', pipeName);
+						log_warn('Pipe.emit: No signals were bound to:', pipeName);
 						//endif
 						return;
 					}
@@ -6415,7 +7049,7 @@
 		
 					// if DEBUG
 					if (!called)
-						console.warn('Pipe `%s` has not slots for `%s`', pipeName, signal);
+						log_warn('Pipe `%s` has not slots for `%s`', pipeName, signal);
 					// endif
 				}
 			};
@@ -6432,9 +7066,9 @@
 		
 		}());
 		
-		// end:source ../src/compo/pipes.js
+		// end:source /src/compo/pipes.js
 	
-		// source ../src/compo/anchor.js
+		// source /src/compo/anchor.js
 		
 		/**
 		 *	Get component that owns an element
@@ -6447,7 +7081,7 @@
 			return {
 				create: function(compo){
 					if (compo.ID == null){
-						console.warn('Component should have an ID');
+						log_warn('Component should have an ID');
 						return;
 					}
 		
@@ -6492,7 +7126,7 @@
 		
 		
 					// if DEBUG
-					findID && console.warn('No controller for ID', findID);
+					findID && log_warn('No controller for ID', findID);
 					// endif
 					return null;
 				},
@@ -6509,150 +7143,31 @@
 		
 		}());
 		
-		// end:source ../src/compo/anchor.js
-		// source ../src/compo/Compo.js
-		var Compo = (function() {
+		// end:source /src/compo/anchor.js
+		// source /src/compo/Compo.js
+		var Compo, CompoProto;
+		(function() {
 		
-			var hasInclude = !!(global.include
-				|| (typeof global.atma !== 'undefined' && global.atma.include)
-				|| (typeof exports !== 'undefined' && exports.include))
-				;
-		
-			function Compo(controller) {
+			Compo = function(Proto) {
 				if (this instanceof Compo){
 					// used in Class({Base: Compo})
-					return null;
-				}
-		
-				var klass;
-		
-				if (controller == null){
-					controller = {};
+					return void 0;
 				}
 				
-				if (hasInclude && global.include) 
-					controller.__resource = global.include.url;
-				
-		
-				if (controller.attr != null) {
-					
-					for (var key in controller.attr) {
-						controller.attr[key] = _mask_ensureTmplFn(controller.attr[key]);
-					}
-					
-				}
-				
-				var slots = controller.slots;
-				if (slots != null) {
-					for (var key in slots) {
-						if (typeof slots[key] === 'string'){
-							//if DEBUG
-							typeof controller[slots[key]] !== 'function' && console.error('Not a Function @Slot.',slots[key]);
-							// endif
-							slots[key] = controller[slots[key]];
-						}
-					}
-				}
-				
-				if (controller.hasOwnProperty('constructor')){
-					klass = controller.constructor;
-				}
-		
-		
-				klass = compo_createConstructor(klass, controller);
-		
-				if (klass == null){
-					klass = function CompoBase(){};
-				}
-		
-				for(var key in Proto){
-					if (controller[key] == null){
-						controller[key] = Proto[key];
-					}
-					//- controller['base_' + key] = Proto[key];
-				}
-		
-				klass.prototype = controller;
-		
-				controller = null;
-		
-				return klass;
-			}
+				return compo_create(arguments);
+			};
 		
 			// source Compo.static.js
 			obj_extend(Compo, {
-				create: function(proto){
-					var klass;
-			
-					if (proto == null){
-						proto = {};
-					}
-			
-					if (proto.hasOwnProperty('constructor')){
-						klass = proto.constructor;
-					}
-			
-					if (klass == null){
-						klass = function CompoBase(){};
-					}
-			
-					for(var key in Proto){
-						if (proto[key] == null){
-							proto[key] = Proto[key];
-						}
-					}
-			
-			
-					klass.prototype = proto;
-			
-			
-					return klass;
+				create: function(){
+					return compo_create(arguments);
 				},
 				
-				createClass: function(classProto){
+				createClass: function(){
 					
-					if (classProto.attr != null) {
-						
-						for (var key in classProto.attr) {
-							classProto.attr[key] = _mask_ensureTmplFn(classProto.attr[key]);
-						}
-					}
-					
-					if (hasInclude && global.include) 
-						classProto.__resource = global.include.url;
-					
-					var slots = classProto.slots;
-					if (slots != null) {
-						for (var key in slots) {
-							if (typeof slots[key] === 'string'){
-								//if DEBUG
-								typeof classProto[slots[key]] !== 'function' && console.error('Not a Function @Slot.',slots[key]);
-								// endif
-								slots[key] = classProto[slots[key]];
-							}
-						}
-					}
-					
-					var ctor;
-					
-					if (classProto.hasOwnProperty('constructor'))
-						ctor = classProto.constructor;
-					
-					if (ctor == null)
-						ctor = classProto.Construct;
-					
-					classProto.Construct = compo_createConstructor(ctor, classProto);
-					
-					
-					var Ext = classProto.Extends;
-					if (Ext == null) {
-						classProto.Extends = Proto
-					} else if (is_Array(Ext)) {
-						Ext.unshift(Proto)
-					} else {
-						classProto.Extends = [Proto, Ext];
-					}
-					
+					var Ctor = compo_create(arguments),
+						classProto = Ctor.prototype;
+					classProto.Construct = Ctor;
 					return Class(classProto);
 				},
 			
@@ -6702,7 +7217,7 @@
 						
 						compo = mask.getHandler(compoName);
 						if (!compo){
-							console.error('Compo not found:', compo);
+							log_error('Compo not found:', compo);
 						}
 					}
 			
@@ -6751,7 +7266,7 @@
 							var r = domLib_find(compo.$, selector)
 							// if DEBUG
 							if (r.length === 0) 
-								console.error('<compo-selector> - element not found -', selector, compo);
+								log_error('<compo-selector> - element not found -', selector, compo);
 							// endif
 							return r;
 						},
@@ -6759,7 +7274,7 @@
 							var r = Compo.find(compo, selector);
 							// if DEBUG
 							if (r == null) 
-								console.error('<compo-selector> - component not found -', selector, compo);
+								log_error('<compo-selector> - component not found -', selector, compo);
 							// endif
 							return r;
 						}
@@ -6878,7 +7393,10 @@
 						this.async = false;
 						_call(this, '_cbs_fail', arguments);
 						_call(this, '_cbs_always');
-					}
+					},
+					_cbs_done: null,
+					_cbs_fail: null,
+					_cbs_always: null
 				};
 				
 				var CompoProto = {
@@ -6886,34 +7404,23 @@
 					await: function(resume){
 						this.resume = resume;
 					}
-				}
+				};
 				
 				Compo.pause = function(compo, ctx){
-					
 					if (ctx.async == null) {
 						ctx.defers = [];
-						
-						ctx._cbs_done = null;
-						ctx._cbs_fail = null;
-						ctx._cbs_always = null;
-						
-						for (var key in DeferProto) {
-							ctx[key] = DeferProto[key];
-						}
+						obj_extend(ctx, DeferProto);
 					}
 					
 					ctx.async = true;
-					
-					for (var key in CompoProto) {
-						compo[key] = CompoProto[key];
-					}
-					
 					ctx.defers.push(compo);
+					
+					obj_extend(compo, CompoProto);
 					
 					return function(){
 						Compo.resume(compo, ctx);
 					};
-				}
+				};
 				
 				Compo.resume = function(compo, ctx){
 					
@@ -6923,34 +7430,35 @@
 					
 					compo.async = false;
 					
-					var busy = false;
-					for (var i = 0, x, imax = ctx.defers.length; i < imax; i++){
-						x = ctx.defers[i];
+					var busy = false,
+						dfrs = ctx.defers,
+						imax = dfrs.length,
+						i = -1,
+						x;
+					while ( ++i < imax ){
+						x = dfrs[i];
 						
 						if (x === compo) {
-							ctx.defers[i] = null;
+							dfrs[i] = null;
 							continue;
 						}
-						
-						if (busy === false) {
-							busy = x != null;
-						}
+						busy = busy || x != null;
 					}
-					
-					if (busy === false) {
+					if (busy === false) 
 						ctx.resolve();
-					}
 				};
 				
 			}());
 			// end:source async.js
 		
-			var Proto = {
+			CompoProto = {
 				type: Dom.CONTROLLER,
+				__resource: null,
 				
 				tagName: null,
 				compoName: null,
 				nodes: null,
+				components: null,
 				attr: null,
 				model: null,
 				
@@ -6961,27 +7469,44 @@
 				events: null,
 				
 				async: false,
+				await: null,
+				
+				meta: {
+					/* render modes, relevant for mask-node */
+					mode: null,
+					modelMode: null,
+					attributes: null,
+				},
 				
 				onRenderStart: null,
 				onRenderEnd: null,
 				render: null,
 				renderStart: function(model, ctx, container){
 		
-					if (arguments.length === 1 && model != null && model instanceof Array === false && model[0] != null){
+					if (arguments.length === 1
+						&& model != null
+						&& model instanceof Array === false
+						&& model[0] != null){
+						
 						var args = arguments[0];
 						model = args[0];
 						ctx = args[1];
 						container = args[2];
 					}
 		
-					if (this.nodes == null){
+					if (this.nodes == null)
 						compo_ensureTemplate(this);
+					
+					if (compo_meta_executeAttributeHandler(this) === false) {
+						// errored
+						return;
 					}
 					
 					if (is_Function(this.onRenderStart)){
-						this.onRenderStart(model, ctx, container);
+						var x = this.onRenderStart(model, ctx, container);
+						if (x !== void 0 && dfr_isBusy(x)) 
+							compo_prepairAsync(x, this, ctx);
 					}
-		
 				},
 				renderEnd: function(elements, model, ctx, container){
 					if (arguments.length === 1 && elements instanceof Array === false){
@@ -6996,17 +7521,14 @@
 		
 					this.$ = domLib(elements);
 		
-					if (this.events != null) {
+					if (this.events != null)
 						Events_.on(this, this.events);
-					}
-		
-					if (this.compos != null) {
+					
+					if (this.compos != null) 
 						Children_.select(this, this.compos);
-					}
-		
-					if (is_Function(this.onRenderEnd)){
+					
+					if (is_Function(this.onRenderEnd))
 						this.onRenderEnd(elements, model, ctx, container);
-					}
 				},
 				appendTo: function(mix) {
 					
@@ -7015,9 +7537,8 @@
 						: mix
 						;
 					
-		
 					if (element == null) {
-						console.warn('Compo.appendTo: parent is undefined. Args:', arguments);
+						log_warn('Compo.appendTo: parent is undefined. Args:', arguments);
 						return this;
 					}
 		
@@ -7077,15 +7598,13 @@
 				on: function() {
 					var x = _array_slice.call(arguments);
 					if (arguments.length < 3) {
-						console.error('Invalid Arguments Exception @use .on(type,selector,fn)');
+						log_error('Invalid Arguments Exception @use .on(type,selector,fn)');
 						return this;
 					}
 		
-					if (this.$ != null) {
+					if (this.$ != null) 
 						Events_.on(this, [x]);
-					}
-		
-		
+					
 					if (this.events == null) {
 						this.events = [x];
 					} else if (is_Array(this.events)) {
@@ -7139,14 +7658,11 @@
 				}
 			};
 		
-			Compo.prototype = Proto;
-		
-		
-			return Compo;
+			Compo.prototype = CompoProto;
 		}());
 		
-		// end:source ../src/compo/Compo.js
-		// source ../src/compo/signals.js
+		// end:source /src/compo/Compo.js
+		// source /src/compo/signals.js
 		(function() {
 		
 			/**
@@ -7175,7 +7691,7 @@
 						;
 		
 					// if DEBUG
-					!event && console.error('Signal: event type is not set', attrValue);
+					!event && log_error('Signal: event type is not set', attrValue);
 					// endif
 		
 					if (Handler) {
@@ -7185,7 +7701,7 @@
 					}
 		
 					// if DEBUG
-					!Handler && console.warn('No slot found for signal', handler, controller);
+					!Handler && log_warn('No slot found for signal', handler, controller);
 					// endif
 				}
 		
@@ -7322,7 +7838,7 @@
 		
 			function __toggle_elementsState(controller, slot, isActive) {
 				if (controller.$ == null) {
-					console.warn('Controller has no elements to toggle state');
+					log_warn('Controller has no elements to toggle state');
 					return;
 				}
 		
@@ -7379,7 +7895,7 @@
 						var captured = _fire(controller, slot, sender, args, -1);
 						
 						// if DEBUG
-						!captured && console.warn('Signal %c%s','font-weight:bold;', slot, 'was not captured');
+						!captured && log_warn('Signal %c%s','font-weight:bold;', slot, 'was not captured');
 						// endif
 						
 					},
@@ -7407,7 +7923,7 @@
 					invoke: function(controller, slot, event, args) {
 						var slots = controller.slots;
 						if (slots == null || typeof slots[slot] !== 'function') {
-							console.error('Slot not found', slot, controller);
+							log_error('Slot not found', slot, controller);
 							return null;
 						}
 		
@@ -7424,18 +7940,16 @@
 		
 		}());
 		
-		// end:source ../src/compo/signals.js
+		// end:source /src/compo/signals.js
 	
-		// source ../src/jcompo/jCompo.js
-		// try to initialize the dom lib, or is then called from setDOMLibrary
+		// source /src/jcompo/jCompo.js
+		// try to initialize the dom lib, or is then called from `setDOMLibrary`
 		domLib_initialize();
 		
 		function domLib_initialize(){
-		
 			if (domLib == null || domLib.fn == null)
 				return;
 			
-		
 			domLib.fn.compo = function(selector){
 				if (this.length === 0)
 					return null;
@@ -7460,16 +7974,14 @@
 				return model;
 			};
 			
-			
+			// insert
 			(function(){
-				
 				var jQ_Methods = [
 					'append',
 					'prepend',
 					'before',
 					'after'
 				];
-				
 				arr_each([
 					'appendMask',
 					'prependMask',
@@ -7481,32 +7993,28 @@
 						
 						if (this.length === 0) {
 							// if DEBUG
-							console.warn('<jcompo> $.', method, '- no element was selected(found)');
+							log_warn('<jcompo> $.', method, '- no element was selected(found)');
 							// endif
 							return this;
 						}
 						
 						if (this.length > 1) {
 							// if DEBUG
-							console.warn('<jcompo> $.', method, ' can insert only to one element. Fix is comming ...');
+							log_warn('<jcompo> $.', method, ' can insert only to one element. Fix is comming ...');
 							// endif
 						}
 						
 						if (controller == null) {
-							
 							controller = index < 2
 								? this.compo()
 								: this.parent().compo()
 								;
 						}
 						
+						var isUnsafe = false;
 						if (controller == null) {
 							controller = {};
-							// if DEBUG
-							console.warn(
-								'$.***Mask - controller not found, this can lead to memory leaks if template contains compos'
-							);
-							// endif
+							isUnsafe = true;
 						}
 						
 						
@@ -7514,15 +8022,31 @@
 							controller.components = [];
 						}
 						
-						var components = controller.components,
-							i = components.length,
+						var compos = controller.components,
+							i = compos.length,
 							fragment = mask.render(template, model, ctx, null, controller);
 						
 						var self = this[jQ_Methods[index]](fragment),
-							imax = components.length;
+							imax = compos.length;
 						
 						for (; i < imax; i++) {
-							Compo.signal.emitIn(components[i], 'domInsert');
+							Compo.signal.emitIn(compos[i], 'domInsert');
+						}
+						
+						if (isUnsafe && imax !== 0) {
+							// if DEBUG
+							log_warn(
+								'$.'
+								, method
+								, '- parent controller was not found in Elements DOM.'
+								, 'This can lead to memory leaks.'
+							);
+							log_warn(
+								'Specify the controller directly, via $.'
+								, method
+								, '(template[, model, controller, ctx])'
+							);
+							// endif
 						}
 						
 						return self;
@@ -7560,12 +8084,11 @@
 				}
 				
 			}());
+		}
 		
-		};
-		
-		// end:source ../src/jcompo/jCompo.js
+		// end:source /src/jcompo/jCompo.js
 	
-		// source ../src/handler/slot.js
+		// source /src/handler/slot.js
 		
 		function SlotHandler() {}
 		
@@ -7587,7 +8110,7 @@
 			}
 		};
 		
-		// end:source ../src/handler/slot.js
+		// end:source /src/handler/slot.js
 	
 	
 		return Compo;
@@ -7597,7 +8120,7 @@
 	// end:source /mask-compo/lib/compo.embed.js
 	// source /mask-j/lib/jmask.embed.js
 	
-	var jmask = exports.jmask = (function(mask){
+	var jmask = exports.jmask = Mask.jmask = (function(mask){
 		'use strict';
 		// source ../src/scope-vars.js
 		var Dom = mask.Dom,
@@ -7636,7 +8159,7 @@
 		// end:source ../src/util/object.js
 		// source ../src/util/array.js
 		function arr_each(any, fn) {
-			var isarray = any instanceof Array,
+			var isarray = arr_isArray(any),
 				i = -1,
 				imax = isarray
 					? any.length
@@ -7722,229 +8245,270 @@
 		
 		// end:source ../src/util/array.js
 		// source ../src/util/selector.js
-		
-		var sel_key_UP = 'parent',
-			sel_key_MASK = 'nodes',
-			sel_key_COMPOS = 'components',
-			sel_key_ATTR = 'attr';
-		
-		function selector_parse(selector, type, direction) {
-			if (selector == null) {
-				console.warn('selector is null for type', type);
-			}
-		
-			if (typeof selector === 'object') {
-				return selector;
-			}
-		
-			var key,
-				prop,
-				nextKey,
-				filters,
-		
-				_key,
-				_prop,
-				_selector;
-		
-			var index = 0,
-				length = selector.length,
-				c,
-				end,
-				matcher,
-				eq,
-				slicer;
-		
-			if (direction === 'up') {
-				nextKey = sel_key_UP;
-			} else {
-				nextKey = type === Dom.SET
-					? sel_key_MASK
-					: sel_key_COMPOS;
-			}
-		
-			while (index < length) {
-		
-				c = selector.charCodeAt(index);
-		
-				if (c < 33) {
-					continue;
+		var selector_parse,
+			selector_match;
+			
+		(function(){
+			
+			selector_parse = function(selector, type, direction) {
+				if (selector == null) 
+					log_error('selector is null for the type', type);
+				
+				if (typeof selector === 'object') 
+					return selector;
+				
+				var key,
+					prop,
+					nextKey,
+					filters,
+			
+					_key,
+					_prop,
+					_selector;
+			
+				var index = 0,
+					length = selector.length,
+					c,
+					end,
+					matcher, root, current,
+					eq,
+					slicer;
+			
+				if (direction === 'up') {
+					nextKey = sel_key_UP;
+				} else {
+					nextKey = type === Dom.SET
+						? sel_key_MASK
+						: sel_key_COMPOS;
 				}
-		
-				end = selector_moveToBreak(selector, index + 1, length);
-		
-		
-				if (c === 46 /*.*/ ) {
-					_key = 'class';
-					_prop = sel_key_ATTR;
-					_selector = sel_hasClassDelegate(selector.substring(index + 1, end));
-				}
-		
-				else if (c === 35 /*#*/ ) {
-					_key = 'id';
-					_prop = sel_key_ATTR;
-					_selector = selector.substring(index + 1, end);
-				}
-		
-				else if (c === 91 /*[*/ ) {
-					eq = selector.indexOf('=', index);
-					//if DEBUG
-					eq === -1 && console.error('Attribute Selector: should contain "="');
-					// endif
-		
-					_prop = sel_key_ATTR;
-					_key = selector.substring(index + 1, eq);
-		
-					//slice out quotes if any
-					c = selector.charCodeAt(eq + 1);
-					slicer = c === 34 || c === 39 ? 2 : 1;
-		
-					_selector = selector.substring(eq + slicer, end - slicer + 1);
-		
-					// increment, as cursor is on closed ']'
-					end++;
-				}
-		
-				else {
-					_prop = null;
-					_key = type === Dom.SET ? 'tagName' : 'compoName';
-					_selector = selector.substring(index, end);
-				}
-		
-				index = end;
-		
-		
-		
-				if (matcher == null) {
-					matcher = {
+			
+				while (index < length) {
+			
+					c = selector.charCodeAt(index);
+			
+					if (c < 33) {
+						index++;
+						continue;
+					}
+					if (c === 62 /* > */) {
+						if (matcher == null) {
+							root = matcher = {
+								selector: '__scope__',
+								nextKey: nextKey,
+								filters: null,
+								next: {
+									type: 'children',
+									matcher: null
+								}
+							};
+						} else {
+							matcher.next = {
+								type: 'children',
+								matcher: null
+							};
+						}
+						current = matcher;
+						matcher = null;
+						index++;
+						continue;
+					}
+					
+					end = selector_moveToBreak(selector, index + 1, length);
+					if (c === 46 /*.*/ ) {
+						_key = 'class';
+						_prop = sel_key_ATTR;
+						_selector = sel_hasClassDelegate(selector.substring(index + 1, end));
+					}
+			
+					else if (c === 35 /*#*/ ) {
+						_key = 'id';
+						_prop = sel_key_ATTR;
+						_selector = selector.substring(index + 1, end);
+					}
+			
+					else if (c === 91 /*[*/ ) {
+						eq = selector.indexOf('=', index);
+						//if DEBUG
+						eq === -1 && console.error('Attribute Selector: should contain "="');
+						// endif
+			
+						_prop = sel_key_ATTR;
+						_key = selector.substring(index + 1, eq);
+			
+						//slice out quotes if any
+						c = selector.charCodeAt(eq + 1);
+						slicer = c === 34 || c === 39 ? 2 : 1;
+			
+						_selector = selector.substring(eq + slicer, end - slicer + 1);
+			
+						// increment, as cursor is on closed ']'
+						end++;
+					}
+					else {
+						
+						if (matcher != null) {
+							matcher.next = {
+								type: 'any',
+								matcher: null
+							};
+							current = matcher;
+							matcher = null;
+						}
+						
+						_prop = null;
+						_key = type === Dom.SET ? 'tagName' : 'compoName';
+						_selector = selector.substring(index, end);
+					}
+			
+					index = end;
+			
+					if (matcher == null) {
+						matcher = {
+							key: _key,
+							prop: _prop,
+							selector: _selector,
+							nextKey: nextKey,
+							filters: null
+						};
+						if (root == null) 
+							root = matcher;
+							
+						if (current != null) {
+							current.next.matcher = matcher;
+						}
+						
+						continue;
+					}
+					if (matcher.filters == null) 
+						matcher.filters = [];
+					
+					matcher.filters.push({
 						key: _key,
-						prop: _prop,
 						selector: _selector,
-						nextKey: nextKey,
-		
-						filters: null
-					}
-		
-					continue;
+						prop: _prop
+					});
 				}
-		
-				if (matcher.filters == null) {
-					matcher.filters = [];
-				}
-		
-				matcher.filters.push({
-					key: _key,
-					selector: _selector,
-					prop: _prop
-				});
-		
-			}
-		
-			return matcher;
-		}
-		
-		
-		function sel_hasClassDelegate(matchClass) {
-			return function(className){
-				return sel_hasClass(className, matchClass);
+				
+				if (current && current.next) 
+					current.next.matcher = matcher;
+				
+				return root;
 			};
-		}
-		
-		// [perf] http://jsperf.com/match-classname-indexof-vs-regexp/2
-		function sel_hasClass(className, matchClass, index) {
-			if (typeof className !== 'string')
-				return false;
 			
-			if (index == null) 
-				index = 0;
-				
-			index = className.indexOf(matchClass, index);
-		
-			if (index === -1)
-				return false;
-		
-			if (index > 0 && className.charCodeAt(index - 1) > 32)
-				return sel_hasClass(className, matchClass, index + 1);
-		
-			var class_Length = className.length,
-				match_Length = matchClass.length;
-				
-			if (index < class_Length - match_Length && className.charCodeAt(index + match_Length) > 32)
-				return sel_hasClass(className, matchClass, index + 1);
-		
-			return true;
-		}
-		
-		
-		function selector_moveToBreak(selector, index, length) {
-			var c, 
-				isInQuote = false,
-				isEscaped = false;
-		
-			while (index < length) {
-				c = selector.charCodeAt(index);
-		
-				if (c === 34 || c === 39) {
-					// '"
-					isInQuote = !isInQuote;
+			selector_match = function(node, selector, type) {
+				if (typeof selector === 'string') {
+					if (type == null) {
+						type = Dom[node.compoName ? 'CONTROLLER' : 'SET'];
+					}
+					selector = selector_parse(selector, type);
 				}
-		
-				if (c === 92) {
-					// [\]
-					isEscaped = !isEscaped;
+				
+				if (selector.selector === '*') 
+					return true;
+			
+				var obj = selector.prop ? node[selector.prop] : node,
+					matched = false;
+			
+				if (obj == null) 
+					return false;
+				
+				if (typeof selector.selector === 'function') {
+					matched = selector.selector(obj[selector.key]);
 				}
-		
-				if (c === 46 || c === 35 || c === 91 || c === 93 || c < 33) {
-					// .#[]
-					if (isInQuote !== true && isEscaped !== true) {
-						break;
+				
+				else if (selector.selector.test != null) {
+					if (selector.selector.test(obj[selector.key])) {
+						matched = true;
 					}
 				}
-				index++;
-			}
-			return index;
-		}
-		
-		function selector_match(node, selector, type) {
-			if (typeof selector === 'string') {
-				if (type == null) {
-					type = Dom[node.compoName ? 'CONTROLLER' : 'SET'];
-				}
-				selector = selector_parse(selector, type);
-			}
-		
-			var obj = selector.prop ? node[selector.prop] : node,
-				matched = false;
-		
-			if (obj == null) {
-				return false;
-			}
-		
-			if (typeof selector.selector === 'function') {
-				matched = selector.selector(obj[selector.key]);
-			}
-			
-			else if (selector.selector.test != null) {
-				if (selector.selector.test(obj[selector.key])) {
+				
+				else  if (obj[selector.key] === selector.selector) {
 					matched = true;
 				}
-			}
 			
-			else  if (obj[selector.key] === selector.selector) {
-				matched = true;
-			}
-		
-			if (matched === true && selector.filters != null) {
-				for(var i = 0, x, imax = selector.filters.length; i < imax; i++){
-					x = selector.filters[i];
-		
-					if (selector_match(node, x, type) === false) {
-						return false;
+				if (matched === true && selector.filters != null) {
+					for(var i = 0, x, imax = selector.filters.length; i < imax; i++){
+						x = selector.filters[i];
+			
+						if (selector_match(node, x, type) === false) {
+							return false;
+						}
 					}
 				}
+			
+				return matched;
+			};
+			
+			// ==== private
+			
+			var sel_key_UP = 'parent',
+				sel_key_MASK = 'nodes',
+				sel_key_COMPOS = 'components',
+				sel_key_ATTR = 'attr';
+			
+			
+			function sel_hasClassDelegate(matchClass) {
+				return function(className){
+					return sel_hasClass(className, matchClass);
+				};
 			}
-		
-			return matched;
-		}
+			
+			// [perf] http://jsperf.com/match-classname-indexof-vs-regexp/2
+			function sel_hasClass(className, matchClass, index) {
+				if (typeof className !== 'string')
+					return false;
+				
+				if (index == null) 
+					index = 0;
+					
+				index = className.indexOf(matchClass, index);
+			
+				if (index === -1)
+					return false;
+			
+				if (index > 0 && className.charCodeAt(index - 1) > 32)
+					return sel_hasClass(className, matchClass, index + 1);
+			
+				var class_Length = className.length,
+					match_Length = matchClass.length;
+					
+				if (index < class_Length - match_Length && className.charCodeAt(index + match_Length) > 32)
+					return sel_hasClass(className, matchClass, index + 1);
+			
+				return true;
+			}
+			
+			
+			function selector_moveToBreak(selector, index, length) {
+				var c, 
+					isInQuote = false,
+					isEscaped = false;
+			
+				while (index < length) {
+					c = selector.charCodeAt(index);
+			
+					if (c === 34 || c === 39) {
+						// '"
+						isInQuote = !isInQuote;
+					}
+			
+					if (c === 92) {
+						// [\]
+						isEscaped = !isEscaped;
+					}
+			
+					if (c === 46 || c === 35 || c === 91 || c === 93 || c === 62 || c < 33) {
+						// .#[]>
+						if (isInQuote !== true && isEscaped !== true) {
+							break;
+						}
+					}
+					index++;
+				}
+				return index;
+			}
+			
+		}());
 		
 		// end:source ../src/util/selector.js
 		// source ../src/util/utils.js
@@ -7972,32 +8536,44 @@
 			/**
 			 * - mix (Node | Array[Node])
 			 */
-			jmask_find = function(mix, matcher, output) {
+			jmask_find = function(mix, matcher, output, deep) {
 				if (mix == null) {
 					return output;
 				}
-			
 				if (output == null) {
 					output = [];
 				}
-			
-				if (mix instanceof Array){
-					for(var i = 0, length = mix.length; i < length; i++){
-						jmask_find(mix[i], matcher, output);
+				if (deep == null) {
+					// is root and matchling like `> div` (childs only)
+					if (matcher.selector === '__scope__') {
+						deep = false;
+						matcher = matcher.next.matcher;
+					} else{
+						deep = true;
 					}
-					return output;
 				}
-			
-				if (selector_match(mix, matcher)){
-					output.push(mix);
-				}
-			
-				var next = mix[matcher.nextKey];
-			
-				if (next != null){
-					jmask_find(next, matcher, output);
-				}
-			
+				
+				arr_each(mix, function(node){
+					if (selector_match(node, matcher) === false) {
+						
+						if (matcher.next == null && deep !== false) 
+							jmask_find(node[matcher.nextKey], matcher, output, deep);
+						
+						return;
+					}
+					
+					if (matcher.next == null) {
+						output.push(node);
+						if (deep === true) 
+							jmask_find(node[matcher.nextKey], matcher, output, deep);
+							
+						return;
+					}
+					
+					var next = matcher.next;
+					deep = next.type !== 'children';
+					jmask_find(node[matcher.nextKey], next.matcher, output, deep);
+				});
 				return output;
 			};
 			
@@ -9007,7 +9583,8 @@
 							listeners[i](x);
 						}
 					},
-					configurable: true
+					configurable: true,
+					enumerable : true
 				});
 			
 				
@@ -9046,7 +9623,8 @@
 						value = x;
 						rebinder(path, old);
 					},
-					configurable: true
+					configurable: true,
+					enumerable : true
 				});
 			}
 			
@@ -9487,113 +10065,55 @@
 					;
 			};
 				
-			expression_bind = function(expr, model, cntx, controller, callback) {
+			expression_bind = function(expr, model, ctx, ctr, callback) {
 				
 				if (expr === '.') {
-					
 					if (arr_isArray(model)) 
 						arr_addObserver(model, callback);
-					
 					return;
 				}
 				
 				var ast = expression_parse(expr),
-					vars = expression_varRefs(ast),
+					vars = expression_varRefs(ast, model, ctx, ctr),
 					obj, ref;
 			
 				if (vars == null) 
 					return;
 				
 				if (typeof vars === 'string') {
-					
-					if (obj_isDefined(model, vars)) {
-						obj = model;
-					}
-					
-					if (obj == null && obj_isDefined(controller, vars)) {
-						obj = controller;
-					}
-					
-					if (obj == null) {
-						obj = model;
-					}
-					
-					obj_addObserver(obj, vars, callback);
+					_toggleObserver(obj_addObserver, model, ctr, vars, callback);
 					return;
 				}
 			
 				var isArray = vars.length != null && typeof vars.splice === 'function',
 					imax = isArray === true ? vars.length : 1,
 					i = 0,
-					x;
+					x, prop;
 				
 				for (; i < imax; i++) {
-					x = isArray
-						? vars[i]
-						: vars;
-					if (x == null) 
-						continue;
-					
-					
-					if (typeof x === 'object') {
-						
-						obj = expression_eval_origin(x.accessor, model, cntx, controller);
-						
-						if (obj == null || typeof obj !== 'object') {
-							console.error('Binding failed to an object over accessor', x);
-							continue;
-						}
-						
-						x = x.ref;
-					}
-					
-					else if (obj_isDefined(model, x)) {
-						obj = model;
-					}
-					
-					else if (obj_isDefined(controller, x)) {
-						obj = controller;
-					}
-					
-					else {
-						obj = model;
-					}
-					
-					
-					if (x == null || x === '$c') 
-						continue;
-					
-					obj_addObserver(obj, x, callback);
+					x = isArray === true ? vars[i] : vars;
+					_toggleObserver(obj_addObserver, model, ctr, x, callback);
 				}
-			
-				return;
 			};
 			
-			expression_unbind = function(expr, model, controller, callback) {
+			expression_unbind = function(expr, model, ctr, callback) {
 				
-				if (typeof controller === 'function') 
-					console.warn('[mask.binding] - expression unbind(expr, model, controller, callback)');
-				
+				if (typeof ctr === 'function') 
+					log_warn('[mask.binding] - expression unbind(expr, model, controller, callback)');
 				
 				if (expr === '.') {
 					arr_removeObserver(model, callback);
 					return;
 				}
 				
-				var vars = expression_varRefs(expr),
+				var vars = expression_varRefs(expr, model, null, ctr),
 					x, ref;
 			
 				if (vars == null) 
 					return;
 				
 				if (typeof vars === 'string') {
-					if (obj_isDefined(model, vars)) 
-						obj_removeObserver(model, vars, callback);
-					
-					
-					if (obj_isDefined(controller, vars)) 
-						obj_removeObserver(controller, vars, callback);
-					
+					_toggleObserver(obj_removeObserver, model, ctr, vars, callback);
 					return;
 				}
 				
@@ -9603,26 +10123,8 @@
 					x;
 				
 				for (; i < imax; i++) {
-					x = isArray
-						? vars[i]
-						: vars;
-					if (x == null) 
-						continue;
-					
-					if (typeof x === 'object') {
-						
-						var obj = expression_eval_origin(x.accessor, model, null, controller);
-						if (obj) 
-							obj_removeObserver(obj, x.ref, callback);
-						
-						continue;
-					}
-					
-					if (obj_isDefined(model, x)) 
-						obj_removeObserver(model, x, callback);
-					
-					if (obj_isDefined(controller, x)) 
-						obj_removeObserver(controller, x, callback);
+					x = isArray === true ? vars[i] : vars;
+					_toggleObserver(obj_removeObserver, model, ctr, x, callback);
 				}
 			
 			}
@@ -9636,7 +10138,7 @@
 				return function binder() {
 					if (++locks > 1) {
 						locks = 0;
-						console.warn('<mask:bind:expression> Concurent binder detected', expr);
+						log_warn('<mask:bind:expression> Concurent binder detected', expr);
 						return;
 					}
 					
@@ -9661,7 +10163,7 @@
 				return function(){
 					if (++locks > 1) {
 						locks = 0;
-						console.warn('<mask:listener:expression> concurent binder');
+						log_warn('<mask:listener:expression> concurent binder');
 						return;
 					}
 					
@@ -9670,6 +10172,49 @@
 				}
 			};
 			
+			function _toggleObserver(mutatorFn, model, ctr, accessor, callback) {
+				if (accessor == null) 
+					return;
+				
+				var accessorType = typeof accessor,
+					obj = _getObservableObject(model, ctr, accessor, accessorType);
+				if (obj == null) 
+					return;
+				
+				var property = accessorType === 'object'
+					? accessor.ref
+					: accessor;
+				mutatorFn(obj, property, callback);
+			}
+			function _getObservableObject(model, ctr, property, type){
+				if (type === 'object') {
+					var obj = expression_eval_origin(property.accessor, model, null, ctr);
+					if (obj == null || typeof obj !== 'object') {
+						log_error('Binding failed to an object over accessor', property);
+						return null;
+					}
+					return obj;
+				}
+				if (property == null || property === '$c') 
+					return null;
+				
+				if (obj_isDefined(model, property)) 
+					return model;
+				
+				if (obj_isDefined(ctr, property)) 
+					return ctr;
+				
+				var x = ctr,
+					scope;
+				while(x != null){
+					scope = x.scope;
+					if (scope != null && obj_isDefined(scope, property)) 
+						return scope;
+					
+					x = x.parent;
+				}
+				return model;
+			}
 		}());
 		
 		
@@ -10594,7 +11139,7 @@
 				if (!attrValue) 
 					return newValue;
 				
-				if (!currentValue) 
+				if (currentValue == null || currentValue === '') 
 					return attrValue + ' ' + newValue;
 				
 				return attrValue.replace(currentValue, newValue);

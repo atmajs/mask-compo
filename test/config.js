@@ -6,10 +6,9 @@ module.exports = {
             $config: {
                 $before: function(done){
                     include
-                        .js('/.import/mask.js')
+                        .js('/.import/mask.js::Mask')
                         .load('/lib/compo.embed.js::Source')
                         .done(function(resp){
-                            
                             mask.plugin(resp.load.Source);
                             done();
                         })

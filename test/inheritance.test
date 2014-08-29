@@ -123,5 +123,21 @@ UTest({
 		
 		var c = new C('-');
 		eq_(c.name, '_-A-B-C');
+	},
+	'!should inherit template via merging': function(){
+		var A = Compo({
+			template: 'section > span > @body'
+		});
+		var B = Compo(A, {
+			template: '@body > em > "B"'
+		});
+		mask.registerHandler('b', B);
+		
+		var dom = mask.render('b').firstChild;
+		$(dom)
+			.eq_('prop', 'tagName', 'SECTION')
+			.find('span > em')
+			.eq_('length', 1)
+			.eq_('html', 'B');
 	}
 })

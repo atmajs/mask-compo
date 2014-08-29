@@ -1,5 +1,5 @@
 var compo_inherit;
-(function(){
+(function(mask_merge){
 	
 	compo_inherit = function(Proto, Extends){
 		
@@ -34,7 +34,7 @@ var compo_inherit;
 		}
 	};
 	
-	function inherit_(target, source){
+	function inherit_(target, source, name){
 		var mix, type;
 		for(var key in source){
 			mix = source[key];
@@ -55,6 +55,9 @@ var compo_inherit;
 				continue;
 			}
 			if ('object' !== type) {
+				if (key === 'template') 
+					target[key] = mask_merge(mix, target[key]);
+				
 				// value properties are not extended
 				continue;
 			}
@@ -161,4 +164,4 @@ var compo_inherit;
 			}
 		};
 	}
-}());
+}(mask.merge));
