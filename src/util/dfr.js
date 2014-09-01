@@ -4,7 +4,15 @@ var dfr_isBusy;
 		if (dfr == null || typeof dfr.then !== 'function') 
 			return false;
 		
-		// Class.Deferred support, @todo Promise|jQuery dfr etc.
-		return this._resolved != null || this._rejected != null;
+		// Class.Deferred
+		if (is_Function(dfr.isBusy)) 
+			return dfr.isBusy();
+		
+		// jQuery Deferred
+		if (is_Function(dfr.state)) 
+			return dfr.state() === 'pending';
+		
+		log_warn('Class or jQuery deferred interface expected');
+		return false;
 	};
 }());
