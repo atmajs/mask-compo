@@ -67,8 +67,10 @@ var selector_parse,
 		if (selector.selector.test != null) 
 			return selector.selector.test(obj[selector.key]);
 		
-		//! == - to match int and string
+		// string | int
+		/* jshint eqeqeq: false */
 		return obj[selector.key] == selector.selector;
+		/* jshint eqeqeq: true */
 	}
 	
 	// PRIVATE
