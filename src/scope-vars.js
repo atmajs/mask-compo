@@ -44,6 +44,6 @@ var Dom = mask.Dom,
 // if DEBUG
 if (global.document != null && domLib == null) {
 	
-	log_warn('jQuery-Zepto-Kimbo etc. was not loaded before MaskJS:Compo, please use Compo.config.setDOMLibrary to define dom engine');
+	log_warn('jQuery-Zepto-Kimbo etc. was not loaded before MaskJS:Compo, please use Compo.config.setDOMLibrary to define the dom engine');
 }
 // endif

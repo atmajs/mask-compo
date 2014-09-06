@@ -1,31 +1,40 @@
 {
-	"name": "compo",
-	"description": "Mask Component MVC Library",
-	"version": "0.5.0",
-	"contributors":[
-	],
-	"main": "./lib/compo.js",
-	"author": "Alex Kit <alex.kit@atmajs.com>",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/tenbits/mask-compo.git"
-	},
-	"bugs": {
-		"url": "https://github.com/tenbits/mask-compo/issues"
-	},
-	"licenses": [
-		"MIT"
-	],
-	"dependencies": {},
-	"devDependencies": {
-		"atma": ">0.6.8"
-	},
-	"scripts" : {
-        "test" : "atma test",
-		"build": "atma"
+    "name": "compo",
+    "description": "Mask Component MVC Library",
+    "version": "0.5.0",
+    "contributors": [],
+    "main": "./lib/compo.js",
+    "author": "Alex Kit <alex.kit@atmajs.com>",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/tenbits/mask-compo.git"
     },
-	"keywords": [],
-	"engines" : {
-        "node" : "~0.8.9"
+    "bugs": {
+        "url": "https://github.com/tenbits/mask-compo/issues"
+    },
+    "licenses": [
+        "MIT"
+    ],
+    "devDependencies": {
+        "atma": ">0.6.8",
+		"atma-loader-traceur": ">0.0.0"
+    },
+    "scripts": {
+        "test": "atma test",
+        "build": "atma"
+    },
+    "keywords": [],
+    "engines": {
+        "node": "~0.8.9"
+    },
+    "atma": {
+        "plugins": [
+            "atma-loader-traceur"
+        ],
+		"settings": {
+			"atma-loader-traceur": {
+				"extensions": [ "test" ]
+			}
+		}
     }
 }

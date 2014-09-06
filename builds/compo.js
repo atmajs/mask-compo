@@ -13,12 +13,11 @@
 	// import /src/compo/Compo.js
 	// import /src/compo/signals.js
 
+	// import /src/DomLite.js
 	// import /src/jcompo/jCompo.js
 
 	// import /src/handler/slot.js
 
 
-
 	return Compo;
-
 }));
