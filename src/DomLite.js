@@ -17,7 +17,7 @@ var DomLite;
 	if (domLib == null) 
 		domLib = DomLite;
 	
-	DomLite.prototype = DomLite.fn = {
+	var Proto = DomLite.fn = {
 		constructor: DomLite,
 		length: 0,
 		add: function(mix){
@@ -106,15 +106,15 @@ var DomLite;
 		return -1;
 	}
 	
-	var doc = document.documentElement;
-	var _$$ = doc.querySelectorAll;
+	var docEl = document.documentElement;
+	var _$$ = docEl.querySelectorAll;
 	var _is = (function(){
 		var matchesSelector =
-			doc.webkitMatchesSelector ||
-			doc.mozMatchesSelector ||
-			doc.msMatchesSelector ||
-			doc.oMatchesSelector ||
-			doc.matchesSelector
+			docEl.webkitMatchesSelector ||
+			docEl.mozMatchesSelector ||
+			docEl.msMatchesSelector ||
+			docEl.oMatchesSelector ||
+			docEl.matchesSelector
 		;
 		return function (el, selector) {
 			return el == null || el.nodeType !== 1
@@ -150,8 +150,11 @@ var DomLite;
 		};
 		delegate = function(type, selector, fn){
 			function guard(event){
-				var el = event.target;
-				while(el != null){
+				var el = event.target,
+					current = event.currentTarget;
+				if (current === el) 
+					return;
+				while(el != null && el !== current){
 					if (_is(el, selector)) {
 						fn(event);
 						return;
@@ -173,14 +176,14 @@ var DomLite;
 				handler.call(node, type, fn, false);
 			});
 		}
-		var _addEvent = doc.addEventListener,
-			_remEvent = doc.removeEventListener;
+		var _addEvent = docEl.addEventListener,
+			_remEvent = docEl.removeEventListener;
 	}());
 	
 	/* class handler */
 	each(['add', 'remove', 'toggle', 'has'], function(method){
 		var isHasClass = 'has' === method,
-			isClassListSupported = doc.classList != null,
+			isClassListSupported = docEl.classList != null,
 			Fn;
 		
 		var hasClass = isClassListSupported === true
@@ -218,7 +221,7 @@ var DomLite;
 							return;
 						}
 						if ('remove' === method) {
-							if (true === method) 
+							if (true === has) 
 								remove(node, klass);
 							return;
 						}
@@ -233,7 +236,56 @@ var DomLite;
 			};
 		}
 		
-		DomLite.prototype[method + 'Class'] = Fn;
-	})
+		Proto[method + 'Class'] = Fn;
+	});
+	
+	// Events
+	(function(){
+		var createEvent = function(type){
+			var event = document.createEvent('Event');
+			event.initEvent(type, true, true);
+			return event;
+		};
+		var create = function(type, data){
+			if (data == null) 
+				return createEvent(type);
+			var event = document.createEvent('CustomEvent');
+			event.initCustomEvent(type, true, true, data);
+			return event;
+		};
+		var dispatch = function(node, event){
+			node.dispatchEvent(event);
+		};
+		Proto['trigger'] = function(type, data){
+			var event = create(type, data);
+			return each(this, function(node){
+				dispatch(node, event);
+			});
+		};
+	}());
+	
+	// Attributes
+	(function(){
+		Proto['attr'] = function(name, val){
+			if (val === void 0) 
+				return this[0] && this[0].getAttribute(name);
+			return each(this, function(node){
+				node.setAttribute(name, val);
+			});
+		};
+		Proto['removeAttr'] = function(name){
+			return each(this, function(node){
+				node.removeAttribute(name);
+			});
+		};
+	}());
+	
+	if (Object.setPrototypeOf) 
+		Object.setPrototypeOf(Proto, Array.prototype);
+	else if (Proto.__proto__) 
+		Proto.__proto__ = Array.prototype;
+	
+	DomLite.prototype = Proto;
+	domLib_initialize();
 	
 }(global.document));

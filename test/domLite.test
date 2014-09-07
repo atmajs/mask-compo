@@ -1,20 +1,21 @@
+var DomLite = Compo.DomLite;
 UTest({
 	$before () {
-		Compo.config.setDOMLibrary(Compo.DomLite);
+		Compo.config.setDOMLibrary(DomLite);
 	},
 	$after () {
 		Compo.config.setDOMLibrary(window.$);
 	},
 	'filter' () {
 		var div = mask.render('div { span; section; }');
-		var set = Compo.DomLite(div);
+		var set = DomLite(div);
 		eq_(set.length, 1);
 		eq_(set.filter('div').length, 1);
 		eq_(set.filter('span').length, 0);
 		eq_(set.filter('section').length, 0);
 		
 		var fragment = mask.render('div; span.foo; section.foo;');
-		var set = Compo.DomLite(fragment.childNodes);
+		var set = DomLite(fragment.childNodes);
 		
 		eq_(set.length, 3);
 		eq_(set.filter('div').length, 1);
@@ -25,17 +26,19 @@ UTest({
 	},
 	'event' () {
 		var div = document.createElement('div');
-		var set = Compo.DomLite(div);
+		document.body.appendChild(div);
+		
+		var set = DomLite(div);
 		eq_(set[0], div);
 		
 		set.on('click', assert.await());
-		$(div).click();
+		DomLite(div).trigger('click').remove();
 	},
 	'delegated event' () {
 		var div = mask.render('div { span; section }');
 		document.body.appendChild(div);
 		
-		var set = Compo.DomLite(div);
+		var set = DomLite(div);
 		eq_(set.length, 1);
 		eq_(set[0].tagName, 'DIV');
 		
@@ -48,35 +51,39 @@ UTest({
 		
 		eq_(count, 1);
 	},
-	'component with events' () {
+	'component with delegated event' () {
 		mask.registerHandler('foo', Compo({
 			template: `
 				h4 > em > 'Hello'
 				section > p > 'World'
 			`,
 			events: {
-				'click: p': assert.await(function(event) {
+				'foo: p': function(event) {
 					notEq_(expects.length, 0);
 					eq_(event.target.tagName, expects.shift());
-				})
+				},
+				'click: h4': function(event) {
+					notEq_(expects.length, 0);
+					eq_(event.target.tagName, expects.shift());
+				},
+				
 			}
 		}));
-		
-		var expects = [ 'P' ];
-		var dom = $(mask.render('foo').children).appendTo('body');
-		
-		
-		dom
+		var expects = [ 'P', 'EM' ];
+		var dom = $(mask.render('foo').childNodes).appendTo('body');
+		DomLite(dom)
 			.find('p')
-			.eq_('length', 1)
-			.trigger('click')
-			;
-		
+			.trigger('foo', {});
+			
+		DomLite(dom)
+			.find('em')
+			.trigger('click', {});
+			
 		eq_(expects.length, 0);
 	},
 	'children' () {
 		var dom = mask.render('div > span; section > p > a');
-		var children = Compo.DomLite(dom).children();
+		var children = DomLite(dom).children();
 		eq_(children.length, 2);
 		eq_(children[0].tagName, 'SPAN');
 		eq_(children[1].tagName, 'P');
@@ -87,7 +94,7 @@ UTest({
 	},
 	'closest' () {
 		var dom = mask.render('section > p name=baz > a > em');
-		var $ = Compo.DomLite(dom).find('em');
+		var $ = DomLite(dom).find('em');
 		
 		eq_($.length, 1);
 		
@@ -97,13 +104,14 @@ UTest({
 	},
 	'classHandler' () {
 		var dom = mask.render('.foo.bar');
-		var $ = Compo.DomLite(dom);
+		var $ = DomLite(dom);
 		eq_($.hasClass('foo'), true);
 		eq_($.hasClass('bar'), true);
 		
 		$.removeClass('foo');
 		eq_($.hasClass('foo'), false);
 		eq_($.hasClass('bar'), true);
+		
 		$.toggleClass('foo');
 		eq_($.hasClass('foo'), true);
 		eq_($.hasClass('bar'), true);
@@ -112,6 +120,38 @@ UTest({
 		eq_($.hasClass('foo'), true);
 		eq_($.hasClass('bar'), true);
 		eq_($.hasClass('baz'), true);
+	},
+	'trigger' () {
+		var div = mask.render('.foo > input type=text');
+		document.body.appendChild(div);
+		
+		div.addEventListener('change', assert.await(function(event){
+			eq_(event.target.value, 'Baz');
+		}), false);
+		
+		var input = div.querySelector('input');
+		input.value = 'Baz';
+		DomLite(input).trigger('change');
+		
+		div.addEventListener('foo', assert.await(function(event){
+			eq_(event.detail, 'Hello');
+		}), false);
+		DomLite(input).trigger('foo', 'Hello');
+		
+		DomLite(div).remove();
+		eq_(div.parentNode, null);
+	},
+	'attr' () {
+		var div = DomLite(mask.render('.foo name=baz'))
+		
+		eq_(div.attr('name'), 'baz');
+		eq_(div.attr('class'), 'foo');
+		
+		div.attr('name', 'qux')
+		eq_(div.attr('name'), 'qux');
+		
+		div.removeAttr('name')
+		eq_(div.attr('name'), null);
 	}
 	
 });

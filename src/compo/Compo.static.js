@@ -134,7 +134,10 @@ obj_extend(Compo, {
 			domLib_initialize();
 		},
 
-
+		getDOMLibrary: function(){
+			return domLib;
+		},
+		
 		eventDecorator: function(mix){
 			if (typeof mix === 'function') {
 				EventDecorator = mix;
