@@ -3,7 +3,10 @@
  * Only methods, required for the Compo library are implemented.
  */
 var DomLite;
-(function(){
+(function(document){
+	if (document == null) 
+		return;
+	
 	Compo.DomLite = DomLite = function(els){
 		if (this instanceof DomLite === false) 
 			return new DomLite(els);
@@ -11,7 +14,7 @@ var DomLite;
 		return this.add(els)
 	};
 	
-	if (domLib == null && global.document != null) 
+	if (domLib == null) 
 		domLib = DomLite;
 	
 	DomLite.prototype = DomLite.fn = {
@@ -92,7 +95,7 @@ var DomLite;
 		return ctx || arr;
 	}
 	
-	var doc = global.document.documentElement;
+	var doc = document.documentElement;
 	var _$$ = doc.querySelectorAll;
 	var _is = (function(){
 		var matchesSelector =
@@ -162,4 +165,4 @@ var DomLite;
 		var _addEvent = doc.addEventListener,
 			_remEvent = doc.removeEventListener;
 	}());
-}());
+}(global.document));
