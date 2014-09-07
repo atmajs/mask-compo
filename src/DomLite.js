@@ -94,6 +94,17 @@ var DomLite;
 		}
 		return ctx || arr;
 	}
+	function indexOf(arr, fn, ctx){
+		if (arr == null) 
+			return -1;
+		var imax = arr.length,
+			i = -1;
+		while( ++i < imax ){
+			if (fn.call(ctx || arr, arr[i], i) === true)
+				return i;
+		}
+		return -1;
+	}
 	
 	var doc = document.documentElement;
 	var _$$ = doc.querySelectorAll;
@@ -165,4 +176,64 @@ var DomLite;
 		var _addEvent = doc.addEventListener,
 			_remEvent = doc.removeEventListener;
 	}());
+	
+	/* class handler */
+	each(['add', 'remove', 'toggle', 'has'], function(method){
+		var isHasClass = 'has' === method,
+			isClassListSupported = doc.classList != null,
+			Fn;
+		
+		var hasClass = isClassListSupported === true
+			? function (node, klass) {
+				return -1 !== _Array_indexOf.call(node.classList, klass);
+			}
+			: function(node, klass) {
+				return -1 !== (' ' + node.className + ' ').indexOf(' ' + klass + ' ');
+			};
+		if (isHasClass) {
+			Fn = function(klass){
+				return -1 !== indexOf(this, function(node){
+					return hasClass(node, klass);
+				});
+			}
+		}
+		else {
+			var mutator = isClassListSupported === true
+				? function(node, klass){
+					var classList = node.classList;
+					classList[method].call(classList, klass);
+				}
+				: (function(){
+					function add(node, klass){
+						node.className += ' ' + klass;
+					}
+					function remove(node, klass){
+						node.className = (' ' + node.className + ' ').replace(' ' + klass + ' ', ' ');
+					}
+					return function(node, klass){
+						var has = hasClass(node, klass)
+						if ('add' === method) {
+							if (false === has) 
+								add(node, klass);
+							return;
+						}
+						if ('remove' === method) {
+							if (true === method) 
+								remove(node, klass);
+							return;
+						}
+						var fn = has ? remove : add;
+						fn(node, klass);
+					}
+				}());
+			Fn = function(klass){
+				return each(this, function(node){
+					mutator(node, klass);
+				});
+			};
+		}
+		
+		DomLite.prototype[method + 'Class'] = Fn;
+	})
+	
 }(global.document));

@@ -94,5 +94,24 @@ UTest({
 		$ = $.closest('[name=baz]');
 		eq_($.length, 1);
 		eq_($[0].tagName, 'P');
+	},
+	'classHandler' () {
+		var dom = mask.render('.foo.bar');
+		var $ = Compo.DomLite(dom);
+		eq_($.hasClass('foo'), true);
+		eq_($.hasClass('bar'), true);
+		
+		$.removeClass('foo');
+		eq_($.hasClass('foo'), false);
+		eq_($.hasClass('bar'), true);
+		$.toggleClass('foo');
+		eq_($.hasClass('foo'), true);
+		eq_($.hasClass('bar'), true);
+		
+		$.toggleClass('baz');
+		eq_($.hasClass('foo'), true);
+		eq_($.hasClass('bar'), true);
+		eq_($.hasClass('baz'), true);
 	}
+	
 });
