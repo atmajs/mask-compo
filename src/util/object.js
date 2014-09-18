@@ -18,16 +18,11 @@ var obj_extend,
 		return target;
 	};
 	
-	obj_copy = function(object) {
-		var copy = {},
-			key;
-	
+	obj_copy = Object.create || function(object) {
+		var copy = {}, key;
 		for (key in object) {
 			copy[key] = object[key];
 		}
-	
 		return copy;
 	};
-	
-	
 }());

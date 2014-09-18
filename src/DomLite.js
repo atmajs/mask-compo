@@ -84,6 +84,48 @@ var DomLite;
 		}
 	};
 	
+	(function(){
+		var Manip = {
+			append: function(node, el){
+				after_(node, node.lastChild, el);
+			},
+			prepend: function(node, el){
+				before_(node, node.firstChild, el);
+			},
+			after: function(node, el){
+				after_(node.parentNode, node, el);
+			},
+			before: function(node, el){
+				before_(node.parentNode, node, el);
+			}
+		};
+		each(['append', 'prepend', 'before', 'after'], function(method){
+			var fn = Manip[method];
+			Proto[method] = function(mix){
+				var isArray = is_Array(mix);
+				return each(this, function(node){
+					if (isArray) {
+						each(mix, function(el){
+							fn(node, el);
+						});
+						return;
+					}
+					fn(node, mix);
+				});
+			};
+		});
+		function before_(parent, anchor, el){
+			if (parent == null || el == null)
+				return;
+			parent.insertBefore(el, anchor);
+		}
+		function after_(parent, anchor, el) {
+			var next = anchor != null ? anchor.nextSibling : null;
+			before_(parent, next, el);
+		}
+	}());
+	
+	
 	function each(arr, fn, ctx){
 		if (arr == null) 
 			return ctx || arr;

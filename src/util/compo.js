@@ -168,15 +168,20 @@ var compo_dispose,
 	(function(){
 		
 		compo_meta_prepairAttributeHandler = function(Proto){
-			if (Proto.meta == null) 
-				Proto.meta = {};
+			if (Proto.meta == null) {
+				Proto.meta = {
+					attributes: null,
+					cache: null,
+					mode: null
+				};
+			}
 			
-			var metas = Proto.meta.attributes,
+			var attr = Proto.meta.attributes,
 				fn = null;
-			if (metas) {
+			if (attr) {
 				var hash = {};
-				for(var key in metas) {
-					_handleProperty_Delegate(Proto, key, metas[key], hash);
+				for(var key in attr) {
+					_handleProperty_Delegate(Proto, key, attr[key], hash);
 				}
 				fn = _handleAll_Delegate(hash);
 			}

@@ -152,6 +152,81 @@ UTest({
 		
 		div.removeAttr('name')
 		eq_(div.attr('name'), null);
+	},
+	
+	'manip': {
+		'should append elements' () {
+			var div = DomLite(mask.render('.foo name=baz'));
+			div.append(document.createElement('section'));
+			div.append(DomLite(mask.render('.baz')));
+			
+			DomLite(div).append(document.createElement('span'));
+			
+			$(div)
+				.has_('span')
+				.has_('.baz')
+				.has_('section')
+				;
+		},
+		'should prepend elements' () {
+			var div = DomLite(mask.render('.foo name=baz'));
+			div.prepend(document.createElement('section'));
+			div.prepend(DomLite(mask.render('.baz')));
+			
+			DomLite(div).prepend(document.createElement('span'));
+			
+			$(div)
+				.has_('span')
+				.has_('.baz')
+				.has_('section')
+				;
+		},
+		'should insert elements before' () {
+			var frag = DomLite(mask.render('section > .foo name=baz'));
+			var div = DomLite(frag).find('div');
+			notEq_(div, null);
+			
+			div.before(document.createElement('section'));
+			div.before(DomLite(mask.render('.baz')));
+			
+			DomLite(div).before(document.createElement('span'));
+			
+			$(frag)
+				.has_('span')
+				.has_('.baz')
+				.has_('section')
+				
+				.children()
+				.eq(0)
+				.eq_('prop', 'tagName', 'SECTION')
+				.end()
+				.eq(2)
+				.eq_('prop', 'tagName', 'SPAN')
+				;
+		},
+		'should insert elements after' () {
+			var frag = DomLite(mask.render('section > .foo name=baz'));
+			var div = DomLite(frag).find('div');
+			notEq_(div, null);
+			
+			div.after(document.createElement('section'));
+			div.after(DomLite(mask.render('.baz')));
+			
+			DomLite(div).after(document.createElement('span'));
+			
+			$(frag)
+				.has_('span')
+				.has_('.baz')
+				.has_('section')
+				
+				.children()
+				.eq(1)
+				.eq_('prop', 'tagName', 'SPAN')
+				.end()
+				.eq(3)
+				.eq_('prop', 'tagName', 'SECTION')
+				;
+		}
 	}
 	
 });

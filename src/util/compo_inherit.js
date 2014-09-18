@@ -100,9 +100,13 @@ var compo_inherit;
 			return arr;
 		}
 		
-		var object = {};
-		for(var key in a){
-			object[key] = clone_(a[key]);
+		var object = obj_copy(a),
+			key, val;
+		for(key in object){
+			val = object[key];
+			if (val == null || typeof val !== 'object') 
+				continue;
+			object[key] = clone_(val);
 		}
 		return object;
 	}
