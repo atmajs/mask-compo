@@ -86,21 +86,29 @@ mask.registerHandler('someTagName', mask.Compo(ComponentProto));
 - `Object`: Any object. _Note:_ **deep** property extending is used.
 - `Function`: _Note:_ constructor is also inherited and will be automatically invoked. Also `prototype` data is inherited.
 
-When overriding a function, then it will be `this.super` function available:
+> `onRenderStart`, `onRenderEnd`, slots and pipes are called automatically one after
+> another starting from the first inherited component.
+> All other functions will have `super` function.
 ```javascript
 var A = mask.Compo({
 	slots: {
 		doSmth: function(){
-			console.log('a');
+			console.log('slot-a');
 		}
+	},
+	foo: function(){
+		console.log('fn-foo-a');
 	}
 })
 var B = mask.Compo(A, {
 	slots: {
 		doSmth: function(){
-			this.super();
 			console.log('b');
 		}
+	},
+	foo: function(){
+		console.log('fn-foo-b');
+		this.super();
 	}
 })
 ```
