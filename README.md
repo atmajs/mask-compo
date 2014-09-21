@@ -72,15 +72,15 @@ Mask Component Library
 	- [pipe](#static-pipe)
 		- [emit](#static-pipe-emit)
 
-##### Create a Component
+##### Create a component
 `mask.Compo(ComponentProto: Object):Function`
 
-Returns the components constructor. You would want to add it to masks repo:
+> Returns the components constructor. You would want to add it to masks repo:
 ```javascript
 mask.registerHandler('someTagName', mask.Compo(ComponentProto));
 ```
 
-###### Inheritance
+#### Inheritance
 `mask.Compo(...base:String|Object|Function, ComponentProto)`
 - `String`: Name of the component. The component must be registered with `mask.registerHandler`
 - `Object`: Any object. _Note:_ **deep** property extending is used.
@@ -113,7 +113,7 @@ var B = mask.Compo(A, {
 })
 ```
 
-###### ComponentsProto
+#### ComponentsProto
 
 > All properties are optional, any amount of custom properties and functions are allowed.
 
