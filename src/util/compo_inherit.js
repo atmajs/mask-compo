@@ -65,6 +65,27 @@ var compo_inherit;
 					: mix;
 				continue;
 			}
+			if ('node' === name) {
+				// http://jsperf.com/indexof-vs-bunch-of-if
+				var isSealed = key === 'renderStart' ||
+						key === 'renderEnd' ||
+						key === 'emitIn' ||
+						key === 'emitOut' ||
+						key === 'components' ||
+						key === 'nodes' ||
+						key === 'template' ||
+						key === 'find' ||
+						key === 'closest' ||
+						key === 'on' ||
+						key === 'remove' ||
+						key === 'slotState' ||
+						key === 'signalState' ||
+						key === 'append' ||
+						key === 'appendTo'
+						;
+				if (isSealed === true) 
+					continue;
+			}
 			if ('pipes' === name) {
 				inherit_(target[key], mix, 'pipe');
 				continue;
