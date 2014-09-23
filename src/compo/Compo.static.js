@@ -106,7 +106,7 @@ obj_extend(Compo, {
 				var r = domLib_find(compo.$, selector)
 				// if DEBUG
 				if (r.length === 0) 
-					log_error('<compo-selector> - element not found -', selector, compo);
+					log_warn('<compo-selector> - element not found -', selector, compo);
 				// endif
 				return r;
 			},
@@ -114,7 +114,7 @@ obj_extend(Compo, {
 				var r = Compo.find(compo, selector);
 				// if DEBUG
 				if (r == null) 
-					log_error('<compo-selector> - component not found -', selector, compo);
+					log_warn('<compo-selector> - component not found -', selector, compo);
 				// endif
 				return r;
 			}
