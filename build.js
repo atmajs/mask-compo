@@ -114,6 +114,7 @@ function JSHint() {
 		"white": false,
 		"predef": [
 			"Mask"
+			, "mask_merge"
 			, "log_error"
 			, "log_warn"
 			, "global"

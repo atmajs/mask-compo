@@ -73,7 +73,7 @@ var compo_dispose,
 			compo.nodes = getTemplateProp_(compo);
 			return;
 		}
-		var behaviour = compo.meta.nodes;
+		var behaviour = compo.meta.template;
 		if (behaviour == null || behaviour === 'replace') {
 			return;
 		}

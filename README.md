@@ -56,7 +56,7 @@ Mask Component Library
 	- [dispose](#dispose)
 	- [meta](#meta)
 		- [attributes](#meta-attributes)
-		- [nodes](#meta-nodes)
+		- [template](#meta-template)
 		- [mode](#meta-mode)
 		
 - [Instance](#instance)
@@ -423,7 +423,7 @@ var B = mask.Compo(A, {
 		}));
 		```
 
-	- **`nodes`** <a name='meta-nodes'>#</a>
+	- **`template`** <a name='meta-template'>#</a>
 
 		Defines how `template` property defined via the component declaration and the `nodes` property defined in
 		inlined mask template behavious towards each other.
@@ -456,7 +456,7 @@ var B = mask.Compo(A, {
 			```
 		- `'join'` - `template` and `nodes` will be concatenated
 		
-		@see tests [/test/meta/nodes.test](/test/meta/nodes.test) for more examples
+		@see tests [/test/meta/template.test](/test/meta/template.test) for more examples
 
 	- **`mode`** <a name='meta-mode'>#</a>
 	
