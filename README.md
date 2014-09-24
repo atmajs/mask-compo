@@ -56,6 +56,9 @@ Mask Component Library
 	- [dispose](#dispose)
 	- [meta](#meta)
 		- [attributes](#meta-attributes)
+		- [nodes](#meta-nodes)
+		- [mode](#meta-mode)
+		
 - [Instance](#instance)
 	- [$](#prop-domlib)
 	- [find](#prop-find)
@@ -420,6 +423,49 @@ var B = mask.Compo(A, {
 		}));
 		```
 
+	- **`nodes`** <a name='meta-nodes'>#</a>
+
+		Defines how `template` property defined via the component declaration and the `nodes` property defined in
+		inlined mask template behavious towards each other.
+		
+		- `'replace'` - (_default_) Child nodes from the inlined mask markup (_if any_) will replace the `template` property
+		
+			```javascript
+				mask.registerHandler(':foo', mask.Compo({
+					template: 'h4 > "Hello"'
+				});
+				mask.render(':foo')
+					// `h4 > "Hello"` template is rendered
+				
+				mask.render(':foo > h1 > "World"')
+					// `h1 > "World"` template is rendered
+			```
+			
+		- `'merge'` - `template` and `nodes` will be merged using merge syntax
+		
+			```javascript
+				// very basic sample, usually it would be much greater encapsulation
+				mask.registerHandler(':foo', mask.Compo({
+					meta: {
+						nodes: 'merge'
+					},
+					template: 'h4 > @title;'
+				});
+				mask.render(':foo > @title > "Foo"')
+					// `h4 > "Foo"` template is rendered
+			```
+		- `'join'` - `template` and `nodes` will be concatenated
+		
+		@see tests [/test/meta/nodes.test](/test/meta/nodes.test) for more examples
+
+	- **`mode`** <a name='meta-mode'>#</a>
+	
+		Render Mode. _Relevant only to the NodeJS._
+		- `client`: Component is not rendered on the backend, but will be serialized and the rendered on the client
+		- `server`: Component is rendered on the backend, and will not be bootstrapped on the client
+		- `both`  : (_default_) Component is rendered on the backend, and will be bootstrapped(initialized) on the client
+	
+	
 #### Instance
 
 - **`Instance::$`** <a name='prop-domlib'>#</a>
