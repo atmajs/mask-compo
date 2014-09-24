@@ -14,22 +14,19 @@ var compo_dispose,
 (function(){
 	
 	compo_dispose = function(compo) {
-		
 		if (compo.dispose != null) 
 			compo.dispose();
 		
 		Anchor.removeCompo(compo);
 	
 		var compos = compo.components,
-			i = (compos && compos.length) || 0;
-	
+			i = compos == null ? 0 : compos.length;
 		while ( --i > -1 ) {
 			compo_dispose(compos[i]);
 		}
 	};
 	
 	compo_detachChild = function(childCompo){
-		
 		var parent = childCompo.parent;
 		if (parent == null) 
 			return;
@@ -49,7 +46,6 @@ var compo_dispose,
 				
 				while(--j > -1){
 					if (el === arr[j]) {
-						
 						elements.splice(i, 1);
 						break;
 					}
@@ -72,43 +68,26 @@ var compo_dispose,
 				log_warn('<compo:remove> - i`m not in parents collection', childCompo);
 		}
 	};
-	
-	
-	
 	compo_ensureTemplate = function(compo) {
-		if (compo.nodes != null) 
+		if (compo.nodes == null) {
+			compo.nodes = getTemplateProp_(compo);
 			return;
-		
-		// obsolete
-		if (compo.attr.template != null) {
-			compo.template = compo.attr.template;
-			
-			delete compo.attr.template;
 		}
-		
-		var template = compo.template;
-		if (template == null) 
+		var behaviour = compo.meta.nodes;
+		if (behaviour == null || behaviour === 'replace') {
 			return;
-		
-		if (is_String(template)) {
-			if (template.charCodeAt(0) === 35 && /^#[\w\d_-]+$/.test(template)) {
-				// #
-				var node = document.getElementById(template.substring(1));
-				if (node == null) {
-					log_error('<compo> Template holder not found by id:', template);
-					return;
-				}
-				template = node.innerHTML;
-			}
-			
-			template = mask.parse(template);
 		}
-	
-		if (typeof template === 'object') 
-			compo.nodes = template;
+		var template = getTemplateProp_(compo);
+		if (behaviour === 'merge') {
+			compo.nodes = mask_merge(template, compo.nodes, compo);
+			return;
+		}
+		if (behaviour === 'join') {
+			compo.nodes = [template, compo.nodes];
+			return;
+		}
+		log_error('Invalid meta.nodes behaviour', behaviour);
 	};
-	
-		
 	compo_attachDisposer = function(compo, disposer) {
 	
 		if (compo.dispose == null) {
@@ -284,5 +263,31 @@ var compo_dispose,
 			}
 		};
 	}());
-	
+	function getTemplateProp_(compo){
+		var template = compo.template;
+		if (template == null) {
+			template = compo.attr.template;
+			if (template == null) 
+				return null;
+			
+			delete compo.attr.template;
+		}
+		if (typeof template === 'object') 
+			return template;
+		
+		if (is_String(template)) {
+			if (template.charCodeAt(0) === 35 && /^#[\w\d_-]+$/.test(template)) {
+				// #
+				var node = document.getElementById(template.substring(1));
+				if (node == null) {
+					log_warn('Template not found by id:', template);
+					return null;
+				}
+				template = node.innerHTML;
+			}
+			return mask.parse(template);
+		}
+		log_warn('Invalid template', typeof template);
+		return null;
+	}
 }());

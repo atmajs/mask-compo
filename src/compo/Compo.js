@@ -55,14 +55,12 @@ var Compo, CompoProto;
 				ctx = args[1];
 				container = args[2];
 			}
-
-			if (this.nodes == null)
-				compo_ensureTemplate(this);
-			
+				
 			if (compo_meta_executeAttributeHandler(this) === false) {
 				// errored
 				return;
 			}
+			compo_ensureTemplate(this);
 			
 			if (is_Function(this.onRenderStart)){
 				var x = this.onRenderStart(model, ctx, container);
