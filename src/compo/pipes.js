@@ -129,7 +129,7 @@ var Pipes = (function() {
 				args = arguments[1];
 				
 			else if (arguments.length > 1) 
-				args = _array_slice.call(arguments, 1);
+				args = _Array_slice.call(arguments, 1);
 			
 			
 			var i = controllers.length,

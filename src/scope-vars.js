@@ -1,13 +1,8 @@
 var Dom = mask.Dom,
 
-	_array_slice = Array.prototype.slice,
-	_Array_slice = Array.prototype.slice,
-	_Array_splice = Array.prototype.splice,
-	_Array_indexOf = Array.prototype.indexOf,
-	
 	_mask_ensureTmplFnOrig = mask.Utils.ensureTmplFn,
 	_mask_ensureTmplFn,
-	_resolve_Ref,
+	_resolve_External,
 	domLib,
 	Class	
 	;
@@ -19,7 +14,7 @@ var Dom = mask.Dom,
 			: _mask_ensureTmplFnOrig(value)
 			;
 	};
-	_resolve_Ref = function(key){
+	_resolve_External = function(key){
 		return _global[key] || _exports[key] || _atma[key]
 	};
 	
@@ -30,7 +25,7 @@ var Dom = mask.Dom,
 	function resolve() {
 		var i = arguments.length, val;
 		while( --i > -1 ) {
-			val = _resolve_Ref(arguments[i]);
+			val = _resolve_External(arguments[i]);
 			if (val != null) 
 				return val;
 		}
@@ -44,6 +39,6 @@ var Dom = mask.Dom,
 // if DEBUG
 if (global.document != null && domLib == null) {
 	
-	log_warn('jQuery-Zepto-Kimbo etc. was not loaded before MaskJS:Compo, please use Compo.config.setDOMLibrary to define the dom engine');
+	log_warn('DomLite is used. You can set jQuery-Zepto-Kimbo via `Compo.config.setDOMLibrary($)`');
 }
 // endif

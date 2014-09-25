@@ -14,7 +14,7 @@ var compo_create,
 		if (Proto == null)
 			Proto = {};
 		
-		var include = _resolve_Ref('include');
+		var include = _resolve_External('include');
 		if (include != null) 
 			Proto.__resource = include.url;
 		
@@ -73,14 +73,14 @@ var compo_create,
 			if (compos != null) {
 				// use this.compos instead of compos from upper scope
 				// : in case compos from proto was extended after
-				this.compos = obj_copy(this.compos);
+				this.compos = obj_create(this.compos);
 			}
 	
 			if (pipes != null) 
 				Pipes.addController(this);
 			
 			if (attr != null) 
-				this.attr = obj_copy(this.attr);
+				this.attr = obj_create(this.attr);
 			
 			if (Ctor != null) 
 				Ctor.call(this);

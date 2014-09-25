@@ -142,7 +142,7 @@
 		}
 
 		return function(event) {
-			var args = arguments.length > 1 ? _array_slice.call(arguments, 1) : null;
+			var args = arguments.length > 1 ? _Array_slice.call(arguments, 1) : null;
 			
 			_fire(controller, slot, event, args, -1);
 		};

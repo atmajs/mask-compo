@@ -156,7 +156,7 @@ var Compo, CompoProto;
 			return find_findSingle(this, selector_parse(selector, Dom.CONTROLLER, 'up'));
 		},
 		on: function() {
-			var x = _array_slice.call(arguments);
+			var x = _Array_slice.call(arguments);
 			if (arguments.length < 3) {
 				log_error('Invalid Arguments Exception @use .on(type,selector,fn)');
 				return this;
@@ -199,7 +199,7 @@ var Compo, CompoProto;
 				signalName,
 				this,
 				arguments.length > 1
-					? _array_slice.call(arguments, 1)
+					? _Array_slice.call(arguments, 1)
 					: null
 			);
 			return this;
@@ -211,7 +211,7 @@ var Compo, CompoProto;
 				signalName,
 				this,
 				arguments.length > 1
-					? _array_slice.call(arguments, 1)
+					? _Array_slice.call(arguments, 1)
 					: null
 			);
 			return this;

@@ -142,7 +142,7 @@ var compo_inherit;
 			return arr;
 		}
 		
-		var object = obj_copy(a),
+		var object = obj_create(a),
 			key, val;
 		for(key in object){
 			val = object[key];

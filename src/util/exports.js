@@ -1,8 +1,3 @@
-// import ./is.js
-// import ./polyfill.js
-// import ./object.js
-// import ./array.js
-// import ./function.js
 // import ./selector.js
 // import ./traverse.js
 // import ./dom.js

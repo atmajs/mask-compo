@@ -29,7 +29,7 @@ module.exports = {
 		config: '#[import]'
 	},
 	
-	'copy': {
+	'import.libs': {
 		files: {
 			'../mask/lib/mask.js' : '.import/mask.js'
 		}
@@ -113,6 +113,22 @@ function JSHint() {
 		"passfail": false,
 		"white": false,
 		"predef": [
+			/* utils */
+			"is_Object",
+			"is_rawObject",
+			"is_String",
+			"is_Function",
+			"is_Array",
+			"fn_doNothing",
+			"fn_proxy",
+			"fn_apply",
+			"obj_create",
+			"obj_extend",
+			
+			"_Array_slice",
+			"_Array_splice",
+			"_Array_indexOf",
+			
 			"Mask"
 			, "mask_merge"
 			, "log_error"

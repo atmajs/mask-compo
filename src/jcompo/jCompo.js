@@ -37,12 +37,13 @@ function domLib_initialize(){
 			'before',
 			'after'
 		];
-		arr_each([
+		
+		[
 			'appendMask',
 			'prependMask',
 			'beforeMask',
 			'afterMask'
-		], function(method, index){
+		].forEach(function(method, index){
 			
 			domLib.fn[method] = function(template, model, controller, ctx){
 				
