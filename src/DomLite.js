@@ -223,63 +223,62 @@ var DomLite;
 	}());
 	
 	/* class handler */
-	each(['add', 'remove', 'toggle', 'has'], function(method){
-		var isHasClass = 'has' === method,
-			isClassListSupported = docEl.classList != null,
-			Fn;
-		
+	(function(){
+		var isClassListSupported = docEl.classList != null;
 		var hasClass = isClassListSupported === true
 			? function (node, klass) {
-				return -1 !== _Array_indexOf.call(node.classList, klass);
+				return node.classList.contains(klass);
 			}
 			: function(node, klass) {
 				return -1 !== (' ' + node.className + ' ').indexOf(' ' + klass + ' ');
 			};
-		if (isHasClass) {
-			Fn = function(klass){
-				return -1 !== indexOf(this, function(node){
-					return hasClass(node, klass);
-				});
+		Proto.hasClass = function(klass){
+			return -1 !== indexOf(this, function(node){
+				return hasClass(node, klass)
+			});
+		};
+		var Shim;
+		(function(){
+			Shim = {
+				add: function(node, klass){
+					if (hasClass(node, klass) === false) 
+						add(node, klass);
+				},
+				remove: function(node, klass){
+					if (hasClass(node, klass) === true) 
+						remove(node, klass);
+				},
+				toggle: function(node, klass){
+					var fn = hasClass(node, klass) === true
+						? remove
+						: add;
+					fn(node, klass);
+				}
+			};
+			function add(node, klass){
+				node.className += ' ' + klass;
 			}
-		}
-		else {
-			var mutator = isClassListSupported === true
-				? function(node, klass){
+			function remove(node, klass){
+				node.className = (' ' + node.className + ' ').replace(' ' + klass + ' ', ' ');
+			}
+		}());
+		
+		each(['add', 'remove', 'toggle'], function(method){
+			var mutatorFn = isClassListSupported === false
+				? Shim[method]
+				: function(node, klass){
 					var classList = node.classList;
 					classList[method].call(classList, klass);
-				}
-				: (function(){
-					function add(node, klass){
-						node.className += ' ' + klass;
-					}
-					function remove(node, klass){
-						node.className = (' ' + node.className + ' ').replace(' ' + klass + ' ', ' ');
-					}
-					return function(node, klass){
-						var has = hasClass(node, klass)
-						if ('add' === method) {
-							if (false === has) 
-								add(node, klass);
-							return;
-						}
-						if ('remove' === method) {
-							if (true === has) 
-								remove(node, klass);
-							return;
-						}
-						var fn = has ? remove : add;
-						fn(node, klass);
-					}
-				}());
-			Fn = function(klass){
+				};
+			Proto[method + 'Class'] = function(klass){
 				return each(this, function(node){
-					mutator(node, klass);
+					mutatorFn(node, klass);
 				});
 			};
-		}
-		
-		Proto[method + 'Class'] = Fn;
-	});
+		});
+			
+	}());
+	
 	
 	// Events
 	(function(){

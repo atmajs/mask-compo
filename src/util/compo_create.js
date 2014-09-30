@@ -56,12 +56,13 @@ var compo_create,
 	compo_createConstructor = function(Ctor, proto) {
 		var compos = proto.compos,
 			pipes = proto.pipes,
+			scope = proto.scope,
 			attr = proto.attr;
 			
-		if (compos == null
+		if (compos   == null
 			&& pipes == null
-			&& proto.attr == null) {
-			
+			&& attr  == null
+			&& scope == null) {
 			return Ctor;
 		}
 	
@@ -72,7 +73,7 @@ var compo_create,
 	
 			if (compos != null) {
 				// use this.compos instead of compos from upper scope
-				// : in case compos from proto was extended after
+				// : in case compos they were extended after
 				this.compos = obj_create(this.compos);
 			}
 	
@@ -82,9 +83,11 @@ var compo_create,
 			if (attr != null) 
 				this.attr = obj_create(this.attr);
 			
+			if (scope != null) 
+				this.scope = obj_create(this.scope);
+			
 			if (Ctor != null) 
 				Ctor.call(this);
-			
 		};
 	};
 }());

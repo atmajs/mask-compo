@@ -166,19 +166,19 @@ var compo_dispose,
 			}
 			Proto.meta.handleAttributes = fn;
 		};
-		compo_meta_executeAttributeHandler = function(compo){
+		compo_meta_executeAttributeHandler = function(compo, model){
 			var fn = compo.meta && compo.meta.handleAttributes;
-			return fn == null ? true : fn(compo);
+			return fn == null ? true : fn(compo, model);
 		};
 		
 		function _handleAll_Delegate(hash){
-			return function(compo){
+			return function(compo, model){
 				var attr = compo.attr,
 					key, fn, val, error;
 				for(key in hash){
 					fn    = hash[key];
 					val   = attr[key];
-					error = fn(compo, val);
+					error = fn(compo, val, model);
 					
 					if (error == null)
 						continue;

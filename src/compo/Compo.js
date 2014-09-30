@@ -10,8 +10,8 @@ var Compo, CompoProto;
 		return compo_create(arguments);
 	};
 
-	// import Compo.static.js
-	// import async.js
+	// import ./Compo.static.js
+	// import ./async.js
 
 	CompoProto = {
 		type: Dom.CONTROLLER,
@@ -21,6 +21,7 @@ var Compo, CompoProto;
 		compoName: null,
 		nodes: null,
 		components: null,
+		expression: null,
 		attr: null,
 		model: null,
 		
@@ -38,6 +39,8 @@ var Compo, CompoProto;
 			mode: null,
 			modelMode: null,
 			attributes: null,
+			serializeNodes: null,
+			handleAttributes: null,
 		},
 		
 		onRenderStart: null,
@@ -56,7 +59,7 @@ var Compo, CompoProto;
 				container = args[2];
 			}
 				
-			if (compo_meta_executeAttributeHandler(this) === false) {
+			if (compo_meta_executeAttributeHandler(this, model) === false) {
 				// errored
 				return;
 			}
