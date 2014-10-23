@@ -226,10 +226,15 @@ var compo_inherit;
 	function joinFns_(fns) {
 		var imax = fns.length;
 		return function(){
-			var i = imax;
+			var i = imax, result;
 			while( --i > -1 ){
-				fns[i].apply(this, arguments);
+				var x = fns[i].apply(this, arguments);
+				if (x != null) {
+					// use last return
+					result = x;
+				}
 			}
+			return result;
 		};
 	}
 }(mask.merge));

@@ -217,11 +217,11 @@ var compo_dispose,
 			
 			Proto[property] = null;
 			Proto = null;
-			hash [attrName] = function(compo, attrVal){
+			hash [attrName] = function(compo, attrVal, model){
 				if (attrVal == null) 
 					return optional ? null : Error('Expected');
 				
-				var val = fn.call(compo, attrVal, compo);
+				var val = fn.call(compo, attrVal, compo, model, attrName);
 				if (val instanceof Error) 
 					return val;
 				
@@ -246,7 +246,10 @@ var compo_dispose,
 				var num = Number(x);
 				return num === num ? num : Error('Number');
 			},
-			'boolean': function(x){
+			'boolean': function(x, compo, model, attrName){
+				if (typeof x === 'boolean') 
+					return x;
+				if (x === attrName)  return true;
 				if (x === 'true'  || x === '1') return true;
 				if (x === 'false' || x === '0') return false;
 				return Error('Boolean');

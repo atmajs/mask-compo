@@ -69,14 +69,20 @@ var compo_create,
 		/* extend compos / attr to keep
 		 * original prototyped values untouched
 		 */
-		return function CompoBase(){
-	
+		return function CompoBase(node, model, ctx, container, ctr){
+			
+			if (Ctor != null) {
+				var overriden = Ctor.call(this, node, model, ctx, container, ctr);
+				if (overriden != null) 
+					return overriden;
+			}
+			
 			if (compos != null) {
 				// use this.compos instead of compos from upper scope
 				// : in case compos they were extended after
 				this.compos = obj_create(this.compos);
 			}
-	
+			
 			if (pipes != null) 
 				Pipes.addController(this);
 			
@@ -85,9 +91,6 @@ var compo_create,
 			
 			if (scope != null) 
 				this.scope = obj_create(this.scope);
-			
-			if (Ctor != null) 
-				Ctor.call(this);
 		};
 	};
 }());
