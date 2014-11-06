@@ -1,7 +1,7 @@
 var Compo, CompoProto;
 (function() {
 
-	Compo = function(Proto) {
+	Compo = function () {
 		if (this instanceof Compo){
 			// used in Class({Base: Compo})
 			return void 0;
@@ -153,10 +153,19 @@ var Compo, CompoProto;
 			return this;
 		},
 		find: function(selector){
-			return find_findSingle(this, selector_parse(selector, Dom.CONTROLLER, 'down'));
+			return find_findSingle(
+				this, selector_parse(selector, Dom.CONTROLLER, 'down')
+			);
+		},
+		findAll: function(selector){
+			return find_findAll(
+				this, selector_parse(selector, Dom.CONTROLLER, 'down')
+			);
 		},
 		closest: function(selector){
-			return find_findSingle(this, selector_parse(selector, Dom.CONTROLLER, 'up'));
+			return find_findSingle(
+				this, selector_parse(selector, Dom.CONTROLLER, 'up')
+			);
 		},
 		on: function() {
 			var x = _Array_slice.call(arguments);
