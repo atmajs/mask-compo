@@ -17,6 +17,8 @@ var Compo, CompoProto;
 		type: Dom.CONTROLLER,
 		__resource: null,
 		
+		ID: null,
+		
 		tagName: null,
 		compoName: null,
 		nodes: null,
