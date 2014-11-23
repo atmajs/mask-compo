@@ -1,0 +1,17 @@
+UTest({
+	'click' () {
+		mask.registerHandler(':foo', {
+			slots: {
+				foo: assert.await()
+			}
+		});
+		
+		var div = mask.render(`
+			:foo > button x-click='foo';
+		`);
+		
+		return UTest.domtest(div, `
+			find(button) > do click;
+		`);
+	}
+})

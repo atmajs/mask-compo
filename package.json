@@ -17,7 +17,7 @@
     ],
     "devDependencies": {
         "atma": ">0.6.8",
-		"atma-loader-traceur": ">0.0.0"
+        "atma-loader-traceur": ">0.0.0"
     },
     "scripts": {
         "test": "atma test",
@@ -31,10 +31,12 @@
         "plugins": [
             "atma-loader-traceur"
         ],
-		"settings": {
-			"atma-loader-traceur": {
-				"extensions": [ "test" ]
-			}
-		}
+        "settings": {
+            "atma-loader-traceur": {
+                "extensions": [
+                    "test"
+                ]
+            }
+        }
     }
 }

@@ -39,6 +39,8 @@ Mask Component Library
 </body>
 ```
 
+> `click` and `mouse*` events are also mapped to coresponding `touch*` events, when also touch input is supported.
+
 #### Api
 - [Inheritance](#inheritance)
 - [Component Definition](#componentsproto)
@@ -71,7 +73,6 @@ Mask Component Library
 - [Static](#static)
 	- [config](#static-config)
 		- [setDOMLibrary](#static-config-setdomlibrary)
-		- [eventDecorator](#static-config-eventdecorator)
 	- [pipe](#static-pipe)
 		- [emit](#static-pipe-emit)
 
@@ -533,26 +534,7 @@ var B = mask.Compo(A, {
 	- **`Compo.config.setDOMLibrary($:Object)`** <a name='static-config-setdomlibrary'>#</a>
 	
 		`DOM Library` is a library, which makes it easer to manipulate the DOM. When the `CompoJS` is loaded, it will try to pick up from globals some of this dom libraries: [JQuery](http://jquery.com), [Zepto](http://zeptojs.com/) or [Kimbo](http://kimbojs.com/). Each time the component is rendered, it will wrap its DOM child nodes using the DOM library and you can access it under `$` property: e.g. `this.$`
-		
-	- **`Compo.config.eventDecorator(name:String)`** <a name='static-config-eventdecorator'>#</a>
 	
-		`name`:
-		- 'touch': Defining this event decorator, all `mouse` events will be converted to touchevents.
-		
-			```javascript
-			mask.registerHandler(':foo', Compo({
-				events: {
-					'click: #submit': function(){},
-					'mousemove: .draw-panel': function(){},
-				}
-			})
-			```
-			```scss
-			button x-signal='click: startAction` > 'Do it'
-			```
-			
-			All `click` events are transformed to `tap` events, and all `mouse*` become `touch*` events.
-			
 - **`Compo.pipe(name:String):Pipe`** <a name='static-pipe'>#</a>
 
 	Get the Pipe.

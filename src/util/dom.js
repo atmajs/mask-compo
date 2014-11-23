@@ -8,8 +8,11 @@ var dom_addEventListener,
 
 	dom_addEventListener = function(element, event, listener) {
 	
-		if (EventDecorator != null) 
-			event = EventDecorator(event);
+		if (TouchHandler.supports(event) === true) {
+			TouchHandler.on(element, event, listener);
+			return;
+		}
+		
 		
 		// allows custom events - in x-signal, for example
 		if (domLib != null) 
@@ -31,20 +34,17 @@ var dom_addEventListener,
 				compo = Anchor.getByID(id)
 				;
 			
-			if (compo) {
-				
+			if (compo != null) {
 				if (compo.$ == null || compo.$.length === 1) {
 					compo_dispose(compo);
 					compo_detachChild(compo);
 					return;
 				}
-				
 				var i = _Array_indexOf.call(compo.$, node);
 				if (i !== -1) 
 					_Array_splice.call(compo.$, i, 1);
 			}
 		}
-		
 		node_tryDisposeChildren(node);
 	};
 	

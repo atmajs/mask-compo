@@ -144,6 +144,7 @@ obj_extend(Compo, {
 				return;
 			}
 			if (typeof mix === 'string') {
+				console.error('EventDecorators are not used. Touch&Mouse support is already integrated');
 				EventDecorator = EventDecos[mix];
 				return;
 			}

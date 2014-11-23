@@ -1,11 +1,12 @@
 (function() {
-
 	/**
 	 *	Mask Custom Attribute
 	 *	Bind Closest Controller Handler Function to dom event(s)
 	 */
-
-	mask.registerAttrHandler('x-signal', 'client', function(node, attrValue, model, ctx, element, controller) {
+	mask.registerAttrHandler(
+		'x-signal'
+		, 'client'
+		, function(node, attrValue, model, ctx, el, ctr) {
 
 		var arr = attrValue.split(';'),
 			signals = '',
@@ -18,11 +19,10 @@
 			if (x === '') 
 				continue;
 			
-
 			var i_colon = x.indexOf(':'),
 				event = x.substring(0, i_colon),
 				handler = x.substring(i_colon + 1).trim(),
-				Handler = _createListener(controller, handler)
+				Handler = _createListener(ctr, handler)
 				;
 
 			// if DEBUG
@@ -32,19 +32,46 @@
 			if (Handler) {
 
 				signals += ',' + handler + ',';
-				dom_addEventListener(element, event, Handler);
+				dom_addEventListener(el, event, Handler);
 			}
 
 			// if DEBUG
-			!Handler && log_warn('No slot found for signal', handler, controller);
+			!Handler && log_warn('No slot found for signal', handler, ctr);
 			// endif
 		}
-
+		
 		if (signals !== '') 
-			element.setAttribute('data-signals', signals);
-
+			el.setAttribute('data-signals', signals);
 	});
-
+	
+	_createAttr('click');
+	_createAttr('change');
+	_createAttr('keypress');
+	_createAttr('keydown');
+	_createAttr('keyup');
+	_createAttr('mousedown');
+	_createAttr('mouseup');	
+	function _createAttr (type) {
+		mask.registerAttrHandler('x-' + type
+			, 'client'
+			, _addSignalDelegate(type)
+		);
+	}
+	
+	function _addSignalDelegate(type) {
+		return function(node, attrValue, model, ctx, el, ctr){
+			_bind(el, type, attrValue.trim(), ctr);
+		};
+	}
+	function _bind(el, event, handler, ctr) {
+		var Handler = _createListener(ctr, handler);
+		if (Handler == null) {
+			log_warn('No slot found for signal', handler, ctr);
+			return;
+		}
+		dom_addEventListener(el, event, Handler);
+	}
+	
 	// @param sender - event if sent from DOM Event or CONTROLLER instance
 	function _fire(controller, slot, sender, args, direction) {
 		

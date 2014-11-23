@@ -11,6 +11,7 @@
 	
 	// import /src/compo/anchor.js
 	// import /src/compo/Compo.js
+	// import /src/compo/TouchHandler.js
 	// import /src/compo/signals.js
 
 	// import /src/DomLite.js
