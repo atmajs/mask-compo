@@ -39,7 +39,7 @@ Mask Component Library
 </body>
 ```
 
-> `click` and `mouse*` events are also mapped to coresponding `touch*` events, when also touch input is supported.
+> `click` and `mouse*` events are also mapped to corresponding `touch*` events, when also touch input is supported.
 
 #### Api
 - [Inheritance](#inheritance)
@@ -143,7 +143,7 @@ var B = mask.Compo(A, {
 	
 	- in-line the template of the component directly into the parents template
 	
-		```scss
+		```sass
 		h4 > 'Hello'
 		:myComponent {
 			// here goes components template
@@ -156,7 +156,7 @@ var B = mask.Compo(A, {
 		```
 	- via the `template` property. This approach is much better, as it leads to the separation of concerns. Each component loads and defines its own templates. Direct **inline** template was shown in the `tagName` sample, but to write some the templates in javascript files is not always a good idea. Better to preload the template with `IncludeJS` for example. **Note:** The Application can be built for production. All the templates are then embedded into single `html` file. Style and Javascript files are also combined into single files.
 	
-		```scss
+		```sass
 		// myComponent.mask
 		span > 'My Component'
 		/*..*/
@@ -185,7 +185,7 @@ var B = mask.Compo(A, {
 	
 	- via the `:template` component
 	
-		```scss
+		```sass
 		// somewhere before
 		:template #myComponentTmpl {
 			h4 > "Hello"
@@ -219,8 +219,11 @@ var B = mask.Compo(A, {
 	
 	- from the template itself, when `x-signal` attribute is defined for the element:
 	
-		```scss
+		```sass
 		div x-signal='eventName: signalName; otherEventName: otherSignalName;';
+		
+		// attribute aliases:
+		x-click, x-tap, x-taphold, x-keypress, x-keydown, x-keyup, x-mousedown, x-mouseup
 		```
 	- from any parent controller:
 	
@@ -339,7 +342,7 @@ var B = mask.Compo(A, {
 - **`attr : Object`** <a name='attr'>#</a>
 
 	Add additional attributes to the component. This object will also store the attributes defined from the template.
-	```scss
+	```sass
 	:foo name='fooName';
 	```
 	```javascript
