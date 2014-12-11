@@ -38,10 +38,10 @@ obj_extend(Compo, {
 		return compo;
 	},
 
-	initialize: function(compo, model, ctx, container, parent) {
+	initialize: function(mix, model, ctx, container, parent) {
+		if (mix == null)
+			throw Error('Undefined is not a component');
 		
-		var compoName;
-
 		if (container == null){
 			if (ctx && ctx.nodeType != null){
 				container = ctx;
@@ -51,38 +51,45 @@ obj_extend(Compo, {
 				model = null;
 			}
 		}
-
-		if (typeof compo === 'string'){
-			compoName = compo;
-			
-			compo = mask.getHandler(compoName);
-			if (!compo){
-				log_error('Compo not found:', compo);
+		var node;
+		function createNode(compo) {
+			node = {
+				controller: compo,
+				type: Dom.COMPONENT
+			};
+		}
+		if (typeof mix === 'string'){
+			if (/^[^\s]+$/.test(mix)) {
+				var compo = mask.getHandler(mix);
+				if (compo == null)
+					throw Error('Component not found: ' + mix);
+				
+				createNode(compo);
+			} else {
+				createNode(Compo({
+					template: mix
+				}));
 			}
 		}
-
-		var node = {
-			controller: compo,
-			type: Dom.COMPONENT,
-			tagName: compoName
-		};
-
-		if (parent == null && container != null)
+		else if (typeof mix === 'function') {
+			createNode(mix);
+		}
+		
+		if (parent == null && container != null) {
 			parent = Anchor.resolveCompo(container);
+		}
+		if (parent == null){
+			parent = new Compo();
+		}
 		
-		if (parent == null)
-			parent = new Dom.Component();
-		
-
 		var dom = mask.render(node, model, ctx, null, parent),
 			instance = parent.components[parent.components.length - 1];
 
 		if (container != null){
 			container.appendChild(dom);
-
 			Compo.signal.emitIn(instance, 'domInsert');
 		}
-
+		
 		return instance;
 	},
 
