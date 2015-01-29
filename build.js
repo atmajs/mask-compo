@@ -131,6 +131,7 @@ function JSHint() {
 			"_Array_indexOf",
 			
 			"Mask"
+			, "class_create"
 			, "mask_merge"
 			, "log_error"
 			, "log_warn"

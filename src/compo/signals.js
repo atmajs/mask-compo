@@ -22,21 +22,30 @@
 			var i_colon = x.indexOf(':'),
 				event = x.substring(0, i_colon),
 				handler = x.substring(i_colon + 1).trim(),
-				Handler = _createListener(ctr, handler)
+				Handler = _createListener(ctr, handler),
+				i_param = event.indexOf('('),
+				param
 				;
-
+			if (i_param !== -1) {
+				param = event.substring(i_param + 1, event.lastIndexOf(')'));
+				event = event.substring(0, i_param);
+				
+				// if DEBUG
+				param === '' && log_error('Not valid signal parameter');
+				// endif
+			}
 			// if DEBUG
-			!event && log_error('Signal: event type is not set', attrValue);
+			!event && log_error('Signal: Event is not set', attrValue);
 			// endif
 
 			if (Handler) {
 
 				signals += ',' + handler + ',';
-				dom_addEventListener(el, event, Handler);
+				dom_addEventListener(el, event, Handler, param, ctr);
 			}
 
 			// if DEBUG
-			!Handler && log_warn('No slot found for signal', handler, ctr);
+			!Handler && log_warn('Slot not found:', handler);
 			// endif
 		}
 		
@@ -74,44 +83,41 @@
 	}
 	
 	// @param sender - event if sent from DOM Event or CONTROLLER instance
-	function _fire(controller, slot, sender, args, direction) {
-		
-		if (controller == null) 
+	function _fire(ctr, slot, sender, args, direction) {
+		if (ctr == null) 
 			return false;
 		
 		var found = false,
-			fn = controller.slots != null && controller.slots[slot];
+			fn = ctr.slots != null && ctr.slots[slot];
 			
 		if (typeof fn === 'string') 
-			fn = controller[fn];
+			fn = ctr[fn];
 		
 		if (typeof fn === 'function') {
 			found = true;
 			
-			var isDisabled = controller.slots.__disabled != null && controller.slots.__disabled[slot];
-
+			var isDisabled = ctr.slots.__disabled != null && ctr.slots.__disabled[slot];
 			if (isDisabled !== true) {
 
 				var result = args == null
-						? fn.call(controller, sender)
-						: fn.apply(controller, [sender].concat(args));
+					? fn.call(ctr, sender)
+					: fn.apply(ctr, [ sender ].concat(args));
 
 				if (result === false) {
 					return true;
 				}
-				
 				if (result != null && typeof result === 'object' && result.length != null) {
 					args = result;
 				}
 			}
 		}
 
-		if (direction === -1 && controller.parent != null) {
-			return _fire(controller.parent, slot, sender, args, direction) || found;
+		if (direction === -1 && ctr.parent != null) {
+			return _fire(ctr.parent, slot, sender, args, direction) || found;
 		}
 
-		if (direction === 1 && controller.components != null) {
-			var compos = controller.components,
+		if (direction === 1 && ctr.components != null) {
+			var compos = ctr.components,
 				imax = compos.length,
 				i = 0,
 				r;
@@ -125,18 +131,15 @@
 		return found;
 	}
 
-	function _hasSlot(controller, slot, direction, isActive) {
-		if (controller == null) {
+	function _hasSlot(ctr, slot, direction, isActive) {
+		if (ctr == null) {
 			return false;
 		}
-
-		var slots = controller.slots;
-
+		var slots = ctr.slots;
 		if (slots != null && slots[slot] != null) {
 			if (typeof slots[slot] === 'string') {
-				slots[slot] = controller[slots[slot]];
+				slots[slot] = ctr[slots[slot]];
 			}
-
 			if (typeof slots[slot] === 'function') {
 				if (isActive === true) {
 					if (slots.__disabled == null || slots.__disabled[slot] !== true) {
@@ -147,67 +150,65 @@
 				}
 			}
 		}
-
-		if (direction === -1 && controller.parent != null) {
-			return _hasSlot(controller.parent, slot, direction);
+		if (direction === -1 && ctr.parent != null) {
+			return _hasSlot(ctr.parent, slot, direction);
 		}
-
-		if (direction === 1 && controller.components != null) {
-			for (var i = 0, length = controller.components.length; i < length; i++) {
-				if (_hasSlot(controller.components[i], slot, direction)) {
+		if (direction === 1 && ctr.components != null) {
+			for (var i = 0, length = ctr.components.length; i < length; i++) {
+				if (_hasSlot(ctr.components[i], slot, direction)) {
 					return true;
 				}
-
 			}
 		}
 		return false;
 	}
 
-	function _createListener(controller, slot) {
-
-		if (_hasSlot(controller, slot, -1) === false) {
+	function _createListener(ctr, slot) {
+		if (_hasSlot(ctr, slot, -1) === false) {
 			return null;
 		}
-
 		return function(event) {
-			var args = arguments.length > 1 ? _Array_slice.call(arguments, 1) : null;
-			
-			_fire(controller, slot, event, args, -1);
+			var args = arguments.length > 1
+				? _Array_slice.call(arguments, 1)
+				: null;
+			_fire(ctr, slot, event, args, -1);
 		};
 	}
 
-	function __toggle_slotState(controller, slot, isActive) {
-		var slots = controller.slots;
+	function __toggle_slotState(ctr, slot, isActive) {
+		var slots = ctr.slots;
 		if (slots == null || slots.hasOwnProperty(slot) === false) {
 			return;
 		}
-
-		if (slots.__disabled == null) {
-			slots.__disabled = {};
+		var disabled = slots.__disabled;
+		if (disabled == null) {
+			disabled = slots.__disabled = {};
 		}
-
-		slots.__disabled[slot] = isActive === false;
+		disabled[slot] = isActive === false;
 	}
 
-	function __toggle_slotStateWithChilds(controller, slot, isActive) {
-		__toggle_slotState(controller, slot, isActive);
-
-		if (controller.components != null) {
-			for (var i = 0, length = controller.components.length; i < length; i++) {
-				__toggle_slotStateWithChilds(controller.components[i], slot, isActive);
+	function __toggle_slotStateWithChilds(ctr, slot, isActive) {
+		__toggle_slotState(ctr, slot, isActive);
+		
+		var compos = ctr.components;
+		if (compos != null) {
+			var imax = compos.length,
+				i = 0;
+			for(; i < imax; i++) {
+				__toggle_slotStateWithChilds(compos[i], slot, isActive);
 			}
 		}
 	}
 
-	function __toggle_elementsState(controller, slot, isActive) {
-		if (controller.$ == null) {
+	function __toggle_elementsState(ctr, slot, isActive) {
+		if (ctr.$ == null) {
 			log_warn('Controller has no elements to toggle state');
 			return;
 		}
 
 		domLib() 
-			.add(controller.$.filter('[data-signals]')) 
-			.add(controller.$.find('[data-signals]')) 
+			.add(ctr.$.filter('[data-signals]')) 
+			.add(ctr.$.find('[data-signals]')) 
 			.each(function(index, node) {
 				var signals = node.getAttribute('data-signals');
 	
@@ -217,10 +218,10 @@
 			});
 	}
 
-	function _toggle_all(controller, slot, isActive) {
+	function _toggle_all(ctr, slot, isActive) {
 
-		var parent = controller,
-			previous = controller;
+		var parent = ctr,
+			previous = ctr;
 		while ((parent = parent.parent) != null) {
 			__toggle_slotState(parent, slot, isActive);
 
@@ -232,19 +233,19 @@
 			previous = parent;
 		}
 
-		__toggle_slotStateWithChilds(controller, slot, isActive);
+		__toggle_slotStateWithChilds(ctr, slot, isActive);
 		__toggle_elementsState(previous, slot, isActive);
 
 	}
 
-	function _toggle_single(controller, slot, isActive) {
-		__toggle_slotState(controller, slot, isActive);
+	function _toggle_single(ctr, slot, isActive) {
+		__toggle_slotState(ctr, slot, isActive);
 
-		if (!isActive && (_hasSlot(controller, slot, -1, true) || _hasSlot(controller, slot, 1, true))) {
+		if (!isActive && (_hasSlot(ctr, slot, -1, true) || _hasSlot(ctr, slot, 1, true))) {
 			// there are some active slots; do not disable elements;
 			return;
 		}
-		__toggle_elementsState(controller, slot, isActive);
+		__toggle_elementsState(ctr, slot, isActive);
 	}
 
 

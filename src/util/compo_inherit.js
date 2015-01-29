@@ -41,11 +41,10 @@ var compo_inherit;
 		if ('node' === name) {
 			var targetNodes = target.template || target.nodes,
 				sourceNodes = source.template || source.nodes;
-			if (targetNodes == null || sourceNodes == null) {
-				target.template = targetNodes || sourceNodes;
-			} else {
-				target.nodes = mask.merge(sourceNodes, targetNodes, target);
-			}
+				
+			target.template = targetNodes == null || sourceNodes == null
+				? (targetNodes || sourceNodes)
+				: (mask.merge(sourceNodes, targetNodes, target));
 		}
 		
 		var mix, type, fnAutoCall, hasFnOverrides = false;

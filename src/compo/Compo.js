@@ -32,7 +32,7 @@ var Compo, CompoProto;
 		
 		compos: null,
 		events: null,
-		
+		hotkeys: null,
 		async: false,
 		await: null,
 		
@@ -91,6 +91,10 @@ var Compo, CompoProto;
 			
 			if (this.compos != null) 
 				Children_.select(this, this.compos);
+			
+			if (this.hotkeys != null) 
+				KeyboardHandler.hotkeys(this, this.hotkeys);
+			
 			
 			if (is_Function(this.onRenderEnd))
 				this.onRenderEnd(elements, model, ctx, container);

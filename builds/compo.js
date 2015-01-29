@@ -1,5 +1,14 @@
 // import /src/umd-head.js
-
+	
+	var log_warn = console.warn.bind(console);
+	var log_error = console.error.bind(console);
+	var obj_extend = mask.obj.extend;
+	var class_create = mask.class.create;
+	
+	var is_Function = mask.is.Function;
+	var is_Array 	= mask.is.ArrayLike;
+	var is_String 	= mask.is.String;
+	
 	// import /src/scope-vars.js
 
 	// import /src/util/exports.js
@@ -9,10 +18,13 @@
 	// import /src/compo/events.deco.js
 	// import /src/compo/pipes.js
 	
+	// import /src/keyboard/Handler.js
+	// import /src/touch/Handler.js
+	
 	// import /src/compo/anchor.js
 	// import /src/compo/Compo.js
-	// import /src/compo/TouchHandler.js
-	// import /src/compo/signals.js
+	
+	// import /src/signal/exports.js
 
 	// import /src/DomLite.js
 	// import /src/jcompo/jCompo.js

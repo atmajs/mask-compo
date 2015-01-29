@@ -1,0 +1,85 @@
+var _hasSlot,
+	_fire;
+	
+(function(){
+	// @param sender - event if sent from DOM Event or CONTROLLER instance
+	_fire = function (ctr, slot, sender, args, direction) {
+		if (ctr == null) 
+			return false;
+		
+		var found = false,
+			fn = ctr.slots != null && ctr.slots[slot];
+			
+		if (typeof fn === 'string') 
+			fn = ctr[fn];
+		
+		if (typeof fn === 'function') {
+			found = true;
+			
+			var isDisabled = ctr.slots.__disabled != null && ctr.slots.__disabled[slot];
+			if (isDisabled !== true) {
+
+				var result = args == null
+					? fn.call(ctr, sender)
+					: fn.apply(ctr, [ sender ].concat(args));
+
+				if (result === false) {
+					return true;
+				}
+				if (result != null && typeof result === 'object' && result.length != null) {
+					args = result;
+				}
+			}
+		}
+
+		if (direction === -1 && ctr.parent != null) {
+			return _fire(ctr.parent, slot, sender, args, direction) || found;
+		}
+
+		if (direction === 1 && ctr.components != null) {
+			var compos = ctr.components,
+				imax = compos.length,
+				i = 0,
+				r;
+			for (; i < imax; i++) {
+				r = _fire(compos[i], slot, sender, args, direction);
+				
+				!found && (found = r);
+			}
+		}
+		
+		return found;
+	}; // _fire()
+
+	_hasSlot = function (ctr, slot, direction, isActive) {
+		if (ctr == null) {
+			return false;
+		}
+		var slots = ctr.slots;
+		if (slots != null && slots[slot] != null) {
+			if (typeof slots[slot] === 'string') {
+				slots[slot] = ctr[slots[slot]];
+			}
+			if (typeof slots[slot] === 'function') {
+				if (isActive === true) {
+					if (slots.__disabled == null || slots.__disabled[slot] !== true) {
+						return true;
+					}
+				} else {
+					return true;
+				}
+			}
+		}
+		if (direction === -1 && ctr.parent != null) {
+			return _hasSlot(ctr.parent, slot, direction);
+		}
+		if (direction === 1 && ctr.components != null) {
+			for (var i = 0, length = ctr.components.length; i < length; i++) {
+				if (_hasSlot(ctr.components[i], slot, direction)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}; 
+}());

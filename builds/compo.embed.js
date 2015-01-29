@@ -9,12 +9,14 @@ var Compo = exports.Compo = (function(mask){
 	// import /src/compo/events.deco.js
 	// import /src/compo/pipes.js
 	
+	// import /src/keyboard/Handler.js
+	// import /src/touch/Handler.js
+
 	// import /src/compo/anchor.js
 	// import /src/compo/Compo.js
-	// import /src/compo/TouchHandler.js
-	// import /src/compo/signals.js
 	
-
+	// import /src/signal/exports.js
+	
 	// import /src/DomLite.js
 	// import /src/jcompo/jCompo.js
 	

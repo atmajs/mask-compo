@@ -6,25 +6,25 @@ var dom_addEventListener,
 	
 (function(){
 
-	dom_addEventListener = function(element, event, listener) {
+	dom_addEventListener = function(el, event, fn, param, ctr) {
 	
-		if (TouchHandler.supports(event) === true) {
-			TouchHandler.on(element, event, listener);
+		if (TouchHandler.supports(event)) {
+			TouchHandler.on(el, event, fn);
 			return;
 		}
-		
-		
+		if (KeyboardHandler.supports(event, param)) {
+			KeyboardHandler.attach(el, event, param, fn, ctr);
+			return;
+		}
 		// allows custom events - in x-signal, for example
 		if (domLib != null) 
-			return domLib(element).on(event, listener);
-			
+			return domLib(el).on(event, fn);
 		
-		if (element.addEventListener != null) 
-			return element.addEventListener(event, listener, false);
+		if (el.addEventListener != null) 
+			return el.addEventListener(event, fn, false);
 		
-		if (element.attachEvent) 
-			element.attachEvent('on' + event, listener);
-		
+		if (el.attachEvent) 
+			el.attachEvent('on' + event, fn);
 	};
 
 	node_tryDispose = function(node){
