@@ -9,7 +9,7 @@ UTest({
 			.eq_('text', 'Hello');
 	},
 	
-	'emptyAndDispose' () {
+	'!emptyAndDispose' () {
 		var $div = $('<div/>');
 		var arr = [1, 2];
 		var model = {

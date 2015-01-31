@@ -20,7 +20,7 @@ var compo_dispose,
 		Anchor.removeCompo(compo);
 	
 		var compos = compo.components;
-		if (compo != null) {
+		if (compos != null) {
 			var i = compos.length;
 			while ( --i > -1 ) {
 				compo_dispose(compos[i]);
