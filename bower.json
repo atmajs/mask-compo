@@ -1,0 +1,14 @@
+{
+  "name": "-",
+  "version": "0.0.0",
+  "homepage": "https://github.com/atmajs/mask-compo",
+  "authors": [
+    "Alex Kit <source.kit@gmail.com>"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "includejs": "~0.9.10",
+    "jquery": "~2.1.3",
+    "maskjs": "~0.12.5"
+  }
+}

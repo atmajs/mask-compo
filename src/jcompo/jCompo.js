@@ -45,42 +45,39 @@ function domLib_initialize(){
 			'afterMask'
 		].forEach(function(method, index){
 			
-			domLib.fn[method] = function(template, model, controller, ctx){
-				
+			domLib.fn[method] = function(template, model, ctr, ctx){
 				if (this.length === 0) {
 					// if DEBUG
 					log_warn('<jcompo> $.', method, '- no element was selected(found)');
 					// endif
 					return this;
 				}
-				
 				if (this.length > 1) {
 					// if DEBUG
 					log_warn('<jcompo> $.', method, ' can insert only to one element. Fix is comming ...');
 					// endif
 				}
-				
-				if (controller == null) {
-					controller = index < 2
+				if (ctr == null) {
+					ctr = index < 2
 						? this.compo()
 						: this.parent().compo()
 						;
 				}
 				
 				var isUnsafe = false;
-				if (controller == null) {
-					controller = {};
+				if (ctr == null) {
+					ctr = {};
 					isUnsafe = true;
 				}
 				
 				
-				if (controller.components == null) {
-					controller.components = [];
+				if (ctr.components == null) {
+					ctr.components = [];
 				}
 				
-				var compos = controller.components,
+				var compos = ctr.components,
 					i = compos.length,
-					fragment = mask.render(template, model, ctx, null, controller);
+					fragment = mask.render(template, model, ctx, null, ctr);
 				
 				var self = this[jQ_Methods[index]](fragment),
 					imax = compos.length;

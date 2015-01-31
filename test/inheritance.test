@@ -106,37 +106,53 @@ UTest({
 		var c = new C('-');
 		eq_(c.name, '_-A-B-C');
 	},
-	'should inherit template via merging': function(){
-		var A = Compo({
-			template: 'section > span > @body'
-		});
-		var B = Compo(A, {
-			template: '@body > em > "B"'
-		});
-		mask.registerHandler('b', B);
-		
-		var dom = mask.render('b').firstChild;
-		$(dom)
-			.eq_('prop', 'tagName', 'SECTION')
-			.find('span > em')
-			.eq_('length', 1)
-			.eq_('html', 'B');
+	'inherit templates': {
+		'merge `template` properties': function(){
+			var A = Compo({
+				template: 'section > span > @body'
+			});
+			var B = Compo(A, {
+				template: '@body > em > "B"'
+			});
+			mask.registerHandler('b', B);
+			
+			return UTest.domtest(mask.render('b'), `
+				filter (section) > find ('span > em') {
+					text B;
+				}
+			`);
+		},
+		'merge `template` with default `nodes`' () {
+			mask.registerHandler('foo', Compo({
+				template: 'section > @body;'
+			}))
+			mask.registerHandler('bar', Compo('foo', {
+				nodes: mask.parse('@body > em > "Hello"')
+			}));
+			
+			return UTest.domtest(mask.render('bar'), `
+				find('section') {
+					html ('<em>Hello</em>');
+				}
+			`);
+		},
+		'merge `template` with inlined `nodes`' () {
+			mask.registerHandler('foo', Compo({
+				template: 'section > @body;'
+			}))
+			mask.registerHandler('bar', Compo('foo', {
+				name: 'Baz'
+			}));
+			
+			return UTest.domtest(mask.render(`
+				bar > @body > span > '~[:$c.name]'
+			`), `
+				find('section') {
+					html ('<span>Baz</span>');
+				}
+			`);
+		}
 	},
-	
-	'should join template and nodes': function(){
-		mask.registerHandler('foo', Compo({
-			template: 'section > @body;'
-		}))
-		mask.registerHandler('bar', Compo('foo', {
-			nodes: mask.parse('@body > em > "Hello"')
-		}));
-		
-		var dom = mask.render('bar').firstChild;
-		
-		eq_(dom.tagName, 'SECTION');
-		eq_(dom.innerHTML, '<em>Hello</em>');
-	},
-	
 	'should call the onRenderStart/onRenderEnd functions': function(){
 		mask.registerHandler('foo', Compo({
 			onRenderStart: function(){

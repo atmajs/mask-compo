@@ -7,7 +7,7 @@
  * MIT license
  * http://opensource.org/licenses/MIT
  *
- * (c) 2012, 2014 Atma.js and other contributors
+ * (c) 2012, 2015 Atma.js and other contributors
  */
 // end:source /src/license.txt
 // source /src/umd-head.js
@@ -201,6 +201,7 @@
 	var obj_getProperty,
 		obj_setProperty,
 		obj_extend,
+		obj_extendMany,
 		obj_create;
 	(function(){
 		obj_getProperty = function(obj, path){
@@ -238,6 +239,14 @@
 			
 			for(var key in b){
 				a[key] = b[key];
+			}
+			return a;
+		};
+		obj_extendMany = function(a){
+			var imax = arguments.length,
+				i = 1;
+			for(; i<imax; i++) {
+				a = obj_extend(a, arguments[i]);
 			}
 			return a;
 		};
@@ -305,6 +314,13 @@
 	}());
 	// end:source /src/fn.js
 	// source /src/class.js
+	/**
+	 * ([...Base], Proto)
+	 * Base: Function | Object
+	 * Proto: Object {
+	 *    constructor: ?Function
+	 *    ...
+	 */
 	var class_create;
 	(function(){
 		class_create = function () {
@@ -323,7 +339,7 @@
 			while ( --i > -1 ) {
 				x = args[i];
 				if (typeof x === 'function') {
-					if (Ctor == null && BaseCtor == null) 
+					if (BaseCtor == null) 
 						BaseCtor = x;
 					
 					x = x.prototype;
@@ -341,18 +357,246 @@
 			Proto.Parent = Parent
 			
 			if (Ctor == null)  {
+				Ctor = BaseCtor == null
+					? function(){}
+					: function(){
+						return BaseCtor.apply(this, _Array_slice.call(arguments));
+					};
+			}
+			else if (BaseCtor) {
+				var _Ctor = Ctor;
 				Ctor = function(){
-					var args = _Array_slice.call(arguments);
-					if (BaseCtor)
-						return BaseCtor.apply(this, args);
+					var args = _Array_slice.call(arguments)
+					var x = BaseCtor.apply(this, args);
+					if (x !== void 0) 
+						return x;
+					return _Ctor.apply(this, args);
 				};
 			}
 			
+			Proto.constructor = Ctor;
 			Ctor.prototype = Proto;
 			return Ctor;
 		};
 	}());
 	// end:source /src/class.js
+	
+	// source /src/class/Dfr.js
+	var class_Dfr;
+	(function(){
+		class_Dfr = function(){};
+		class_Dfr.prototype = {
+			_isAsync: true,
+			_done: null,
+			_fail: null,
+			_always: null,
+			_resolved: null,
+			_rejected: null,
+			
+			defer: function(){
+				this._rejected = null;
+				this._resolved = null;
+				return this;
+			},
+			isResolved: function(){
+				return this._resolved != null;
+			},
+			isRejected: function(){
+				return this._rejected != null;
+			},
+			isBusy: function(){
+				return this._resolved == null && this._rejected == null;
+			},
+			resolve: function() {
+				var done = this._done,
+					always = this._always
+					;
+				
+				this._resolved = arguments;
+				
+				dfr_clearListeners(this);
+				arr_callOnce(done, this, arguments);
+				arr_callOnce(always, this, [ this ]);
+				
+				return this;
+			},
+			reject: function() {
+				var fail = this._fail,
+					always = this._always
+					;
+				
+				this._rejected = arguments;
+				
+				dfr_clearListeners(this);
+				arr_callOnce(fail, this, arguments);
+				arr_callOnce(always, this, [ this ]);	
+				return this;
+			},
+			then: function(filterSuccess, filterError){
+				return this.pipe(filterSuccess, filterError);
+			},
+			done: function(callback) {
+				if (this._rejected != null) 
+					return this;
+				return dfr_bind(
+					this,
+					this._resolved,
+					this._done || (this._done = []),
+					callback
+				);
+			},
+			fail: function(callback) {
+				if (this._resolved != null) 
+					return this;
+				return dfr_bind(
+					this,
+					this._rejected,
+					this._fail || (this._fail = []),
+					callback
+				);
+			},
+			always: function(callback) {
+				return dfr_bind(
+					this,
+					this._rejected || this._resolved,
+					this._always || (this._always = []),
+					callback
+				);
+			},
+			pipe: function(mix /* ..methods */){
+				var dfr;
+				if (typeof mix === 'function') {
+					dfr = new class_Dfr;
+					var done_ = mix,
+						fail_ = arguments.length > 1
+							? arguments[1]
+							: null;
+						
+					this
+						.done(delegate(dfr, 'resolve', done_))
+						.fail(delegate(dfr, 'reject',  fail_))
+						;
+					return dfr;
+				}
+				
+				dfr = mix;
+				var imax = arguments.length,
+					done = imax === 1,
+					fail = imax === 1,
+					i = 0, x;
+				while( ++i < imax ){
+					x = arguments[i];
+					switch(x){
+						case 'done':
+							done = true;
+							break;
+						case 'fail':
+							fail = true;
+							break;
+						default:
+							console.error('Unsupported pipe channel', arguments[i])
+							break;
+					}
+				}
+				done && this.done(dfr.resolveDelegate());
+				fail && this.fail(dfr.rejectDelegate());
+				
+				function pipe(dfr, method) {
+					return function(){
+						dfr[method].apply(dfr, arguments);
+					};
+				}
+				function delegate(dfr, name, fn) {
+					
+					return function(){
+						if (fn != null) {
+							var override = fn.apply(this, arguments);
+							if (override != null) {
+								if (isDeferred(override) === true) {
+									override.pipe(dfr);
+									return;
+								}
+								
+								dfr[name](override)
+								return;
+							}
+						}
+						dfr[name].apply(dfr, arguments);
+					};
+				}
+				
+				return this;
+			},
+			pipeCallback: function(){
+				var self = this;
+				return function(error){
+					if (error != null) {
+						self.reject(error);
+						return;
+					}
+					var args = _Array_slice.call(arguments, 1);
+					fn_apply(self.resolve, self, args);
+				};
+			}
+		};
+		
+		class_Dfr.run = function(fn, ctx){
+			var dfr = new class_Dfr();
+			if (ctx == null) 
+				ctx = dfr;
+			
+			fn.call(ctx, dfr.resolveDelegate(), dfr.rejectDelegate(), dfr);
+			return dfr;
+		};
+		
+		// PRIVATE
+		
+		function dfr_bind(dfr, arguments_, listeners, callback){
+			if (callback == null) 
+				return dfr;
+			
+			if ( arguments_ != null) 
+				fn_apply(callback, dfr, arguments_);
+			else 
+				listeners.push(callback);
+			
+			return dfr;
+		}
+		
+		function dfr_clearListeners(dfr) {
+			dfr._done = null;
+			dfr._fail = null;
+			dfr._always = null;
+		}
+		
+		function arr_callOnce(arr, ctx, args) {
+			if (arr == null) 
+				return;
+			
+			var imax = arr.length,
+				i = -1,
+				fn;
+			while ( ++i < imax ) {
+				fn = arr[i];
+				
+				if (fn) 
+					fn_apply(fn, ctx, args);
+			}
+			arr.length = 0;
+		}
+		function isDeferred(x){
+			if (x == null || typeof x !== 'object') 
+				return false;
+			
+			if (x instanceof class_Dfr) 
+				return true;
+			
+			return typeof x.done === 'function'
+				&& typeof x.fail === 'function'
+				;
+		}
+	}());
+	// end:source /src/class/Dfr.js
 	
 	// source /src/refs.js
 	var _Array_slice = Array.prototype.slice,
@@ -701,18 +945,21 @@
 			arr_remove(bin[event], fn);
 		};
 		listeners_emit = function(event){
-		
 			var fns = bin[event];
-			if (fns == null) 
-				return;
-			
+			if (fns == null) {
+				return false;
+			}
 			var imax = fns.length,
 				i = -1,
 				args = _Array_slice.call(arguments, 1)
 				;
-				
-			while ( ++i < imax) 
+			if (imax === 0) {
+				return false;
+			}
+			while ( ++i < imax) {
 				fns[i].apply(null, args);
+			}
+			return true;
 		};
 		
 		// === private
@@ -729,7 +976,8 @@
 		parser_warn,
 		log,
 		log_warn,
-		log_error;
+		log_error,
+		log_errorNode;
 		
 	(function(){
 		
@@ -741,16 +989,23 @@
 		
 		parser_error = function(msg, str, i, token, state, file){
 			var error = createMsg('error', msg, str, i, token, state, file);
-			
+			if (listeners_emit('error', error))
+				return;
 			log_error(error.message);
-			log_warn(error.stack);
-			listeners_emit('error', error);
+			log_warn('\n' + error.stack);
 		};
 		parser_warn = function(msg, str, i, token, state, file){
 			var error = createMsg('warn', msg, str, i, token, state, file);
+			if (listeners_emit('error', error))
+				return;
 			log_warn(error.message);
-			log(error.stack);
-			listeners_emit('error', error);
+			log('\n' + error.stack);
+		};
+		
+		log_errorNode = function(message){
+			return parser_parse(
+				'div style="background:red;color:white;">tt>"' + message + '"'
+			);
 		};
 		
 		if (typeof console === 'undefined') {
@@ -789,8 +1044,7 @@
 				.join('\n');
 		}
 		function inherit(Ctor, Base){
-			if (Object.create) 
-				Ctor.prototype = Object.create(Base.prototype);
+			Ctor.prototype = obj_create(Base.prototype);
 		}
 		function createMsg(type, msg, str, index, token, state, filename){
 			msg += formatToken(token)
@@ -884,7 +1138,7 @@
 					
 					if (i + 1 === line) {
 						str += '\n' + repeat(' ', lineNumberLength + 1);
-						str += lines[i].substring(0, row - 2).replace(/[^\s]/g, ' ');
+						str += lines[i].substring(0, row - 1).replace(/[^\s]/g, ' ');
 						str += '^';
 					}
 				}
@@ -910,11 +1164,302 @@
 		function splitLines(str, index) {
 			var lines = str.substring(0, index).split('\n'),
 				line = lines.length,
-				row = index + 1 - lines.slice(0, line - 2).join('\n').length;
+				row = index + 1 - lines.slice(0, line - 1).join('\n').length;
+			if (line > 1) {
+				// remote trailing newline
+				row -= 1;
+			}
 			return [str.split('\n'), line, row];
 		}
 	}());
 	// end:source /src/util/reporters.js
+	// source /src/util/path.js
+	var path_getDir,
+		path_getFile,
+		path_getExtension,
+		path_resolveCurrent,
+		path_normalize,
+		path_win32Normalize,
+		path_resolveUrl,
+		path_combine,
+		path_isRelative
+		;
+	(function(){
+		var isWeb = true;
+		
+		path_getDir = function(path) {
+			return path.substring(0, path.lastIndexOf('/') + 1);
+		};
+		path_getFile = function(path) {
+			path = path
+				.replace('file://', '')
+				.replace(/\\/g, '/')
+				.replace(/\?[^\n]+$/, '');
+			
+			if (/^\/\w+:\/[^\/]/i.test(path)){
+				// win32 drive
+				return path.substring(1);
+			}
+			return path;
+		};
+		path_getExtension = function(path) {
+			var query = path.indexOf('?');
+			if (query !== -1) {
+				return path_getExtension(path.substring(0, query));
+			}
+			var i = path.lastIndexOf('.');
+			return i === -1
+				? ''
+				: path.substring(i + 1);
+		};
+		path_resolveCurrent = function() {
+			if (document == null) {
+				return typeof module === 'undefined'
+					? '' 
+					: path_win32Normalize(module.parent.filename);
+			}
+			var location = window
+				.location
+				.pathname
+				.replace(/\/[^\/]+\.\w+$/, '');
+			
+			return location[location.length - 1] === '/'
+				? location
+				: location + '/';
+		};
+		path_normalize = function(path) {
+			return path
+				.replace(/\\/g, '/')
+				// remove double slashes, but not near protocol
+				.replace(/([^:\/])\/{2,}/g, '$1/')
+				.replace(/\.\//g, '')
+				;
+		};
+		path_win32Normalize = function(path){
+			path = path_normalize(path);
+			if (path.substring(0, 5) === 'file:')
+				return path;
+			
+			return 'file:///' + path;
+		};
+		path_resolveUrl = function(url, base) {
+			if (rgx_PROTOCOL.test(url)) 
+				return path_collapse(url);
+			
+			if (url.substring(0, 2) === './') 
+				url = url.substring(2);
+			
+			
+			if (url[0] === '/' && __cfg.path) {
+				url = __cfg.path + url.substring(1);
+				if (rgx_PROTOCOL.test(url)) 
+					return path_collapse(url);
+			}
+			if (url[0] === '/') {
+				if (isWeb === false || __cfg.lockedToFolder === true) {
+					url = url.substring(1);
+				}
+			} else if (base != null) {
+				url = base + url;
+			}
+		
+			return path_collapse(url);
+		};
+		path_isRelative = function(path) {
+			var c = path.charCodeAt(0);
+			switch (c) {
+				case 47:
+					// /
+					return false;
+				case 102:
+				case 104:
+					// f || h
+					return rgx_PROTOCOL.test(path) === false;
+			}
+			return true;
+		};
+		
+		path_combine = function() {
+			var out = '',
+				imax = arguments.length,
+				i = -1, x;
+			while ( ++i < imax ){
+				x = arguments[i];
+				if (!x)  continue;
+				
+				x = path_normalize(x);
+				if (out === '') {
+					out = x;
+					continue;
+				}
+				if (out[out.length - 1] !== '/') {
+					out += '/'
+				}
+				if (x[0] === '/') {
+					x = x.substring(1);
+				}
+				out += x;
+			}
+			return out;
+		};
+		
+		var rgx_PROTOCOL = /^(file|https?):/i,
+			rgx_SUB_DIR  = /([^\/]+\/)?\.\.\//;
+		
+		function path_collapse(url) {
+			while (url.indexOf('../') !== -1) {
+				url = url.replace(rgx_SUB_DIR, '');
+			}
+			return url.replace(/\/\.\//g, '/');
+		}
+		
+	}());
+		
+	
+	// end:source /src/util/path.js
+	// source /src/util/resource/file.js
+	var file_get,
+		file_getScript;
+	(function(){
+		file_get = function(path, ctr){
+			return get(xhr_get, path, ctr);
+		};
+		file_getScript = function(path, ctr){
+			return get(script_get, path, ctr);
+		};
+		
+		function get(fn, path, ctr) {
+			path = path_resolveUrl(path, ctr);
+	
+			var dfr = Cache[path];
+			if (dfr !== void 0) {
+				return dfr;
+			}
+			dfr = new class_Dfr;
+			fn(path, dfr.pipeCallback());
+			return dfr;
+		}
+		
+		var Cache = {};
+		
+		
+		// source ./transports/xhr.js
+		var xhr_get;
+		(function(){
+			xhr_get = function(path, cb){
+				var xhr = new XMLHttpRequest();
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState !== 4)
+						return;
+					
+					var res = xhr.responseText, err;
+					if (xhr.status !== 200) {
+						err = {
+							status: xhr.status,
+							content: res
+						};
+						log_warn('File error', path, xhr.status);
+					}
+					cb(err, res);
+				};
+		
+				xhr.open('GET', path, true);
+				xhr.send();
+			};
+		}());
+		// end:source ./transports/xhr.js
+		// source ./transports/script.js
+		var script_get;
+		(function(){
+			script_get = function(path, cb){
+				var res = new Resource(path)
+					.done(function(exports){
+						cb(null, exports);
+					})
+					.fail(function(err){
+						cb(err);
+					});
+					
+				ScriptStack.load(res);
+			};
+			
+			var Resource = class_create(class_Dfr, {
+				exports: null,
+				url: null,
+				state: 0,
+				constructor: function(url){
+					this.url = url;
+				},
+				load: function(){
+					if (this.state !== 0) {
+						return this;
+					}
+					this.state = 1;
+					global.module = {};
+					
+					var self = this;
+					embedScript(this.url, function(event){
+						self.state = 4;
+						if (event && event.type === 'error') {
+							self.reject(event);
+							return;
+						}
+						self.resolve(self.exports = global.module.exports);
+					});
+					return this;
+				}
+			});
+			var ScriptStack;
+			(function() {
+				ScriptStack = {
+					load: function(resource) {
+						_stack.push(resource);
+						process();
+					}
+				};
+				
+				var _stack = [];
+				
+				function process() {
+					if (_stack.length === 0) 
+						return;
+					
+					var res = _stack[0];
+					if (res.state !== 0) 
+						return;
+					
+					res
+						.load()
+						.always(process);
+				}
+			})();
+			
+			var embedScript;
+			(function(){
+				embedScript = function (url, callback) {
+					var tag = document.createElement('script');
+					tag.type = 'text/javascript';
+					tag.src = url;
+					if ('onreadystatechange' in tag) {
+						tag.onreadystatechange = function() {
+							(this.readyState === 'complete' || this.readyState === 'loaded') && callback();
+						};
+					} else {
+						tag.onload = tag.onerror = callback;
+					}
+					if (_head === void 0) {
+						_head = document.getElementsByTagName('head')[0];
+					}
+					_head.appendChild(tag);
+				};
+				var _head;
+			}());
+			
+			
+		}());
+		// end:source ./transports/script.js
+	}());
+	// end:source /src/util/resource/file.js
     
 	// source /src/custom/exports.js
 	var custom_Utils,
@@ -1002,8 +1547,7 @@
 		// source ./tag.js
 		(function(repository){
 			
-			customTag_register = function(name, Handler){
-				
+			customTag_register = function(name, Handler){		
 				if (Handler != null && typeof Handler === 'object') {
 					//> static
 					Handler.__Ctor = wrapStatic(Handler);
@@ -2975,7 +3519,7 @@
 			index,
 			length
 			;
-			
+		
 		function parse_For(expr) {
 			// /([\w_$]+)((\s*,\s*([\w_$]+)\s*\))|(\s*\))|(\s+))(of|in)\s+([\w_$\.]+)/
 			
@@ -3250,25 +3794,24 @@
 	// end:source 5.switch.js
 	// source 6.include.js
 	(function(){
-		
 		custom_Statements['include'] = {
 			
-			render: function(node, model, ctx, container, controller, childs){
+			render: function(node, model, ctx, container, ctr, childs){
 				
 				var arguments_ = ExpressionUtil.evalStatements(node.expression);
 					
 				var resource;
 				
-				while(controller != null){
+				while(ctr != null){
 					
-					resource = controller.resource;
+					resource = ctr.resource;
 					if (resource != null) 
 						break;
 					
-					controller = controller.parent;
+					ctr = ctr.parent;
 				}
 				
-				var ctr = new IncludeController(controller),
+				var ctr = new IncludeController(ctr),
 					resume = Compo.pause(ctr, ctx);
 				
 				
@@ -3307,13 +3850,11 @@
 	
 	// end:source 6.include.js
 	// source 7.import.js
-	
-	
 	custom_Statements['import'] = {
-		render: function(node, model, ctx, container, controller, childs){
+		render: function(node, model, ctx, container, ctr, elements){
 			
 			var expr = node.expression,
-				args = ExpressionUtil.evalStatements(expr, model, ctx, controller),
+				args = ExpressionUtil.evalStatements(expr, model, ctx, ctr),
 				name = args[0]
 				;
 			if (typeof name !== 'string') {
@@ -3323,25 +3864,23 @@
 		
 			while (true) {
 				
-				if (controller.compoName === 'include') 
+				if (ctr.compoName === 'include') 
 					break;
 				
-				controller = controller.parent;
+				ctr = ctr.parent;
 				
-				if (controller == null)
+				if (ctr == null)
 					break;
 			}
 			
-			
-			
-			if (controller == null) 
+			if (ctr == null) 
 				return;
 			
-			var nodes = controller.templates[name];
+			var nodes = ctr.templates[name];
 			if (nodes == null) 
 				return;
 			
-			builder_build(parser_parse(nodes), model, ctx, container, controller, childs);
+			builder_build(parser_parse(nodes), model, ctx, container, ctr, elements);
 		}
 	};
 	// end:source 7.import.js
@@ -3408,7 +3947,7 @@
 		parser_ensureTemplateFunction,
 		parser_setInterpolationQuotes,
 		parser_cleanObject,
-		
+		parser_ObjectLexer,
 		
 		// deprecate
 		Parser
@@ -3433,20 +3972,18 @@
 		var cursor_groupEnd,
 			cursor_quoteEnd,
 			cursor_refEnd,
+			cursor_tokenEnd,
 			cursor_skipWhitespace,
 			cursor_goToWhitespace
 			;
-		
 		(function(){
 			
-			cursor_groupEnd = function(str, i, imax, startCode, endCode){
-				
+			cursor_groupEnd = function(str, i, imax, startCode, endCode){		
 				var count = 0,
 					start = i,
 					c;
 				for( ; i < imax; i++){
 					c = str.charCodeAt(i);
-					
 					if (c === 34 || c === 39) {
 						// "|'
 						i = cursor_quoteEnd(
@@ -3457,12 +3994,10 @@
 						);
 						continue;
 					}
-					
 					if (c === startCode) {
 						count++;
 						continue;
 					}
-					
 					if (c === endCode) {
 						if (--count === -1) 
 							return i;
@@ -3475,8 +4010,7 @@
 			cursor_refEnd = function(str, i, imax){
 				var c;
 				while (i < imax){
-					c = str.charCodeAt(i);
-					
+					c = str.charCodeAt(i);			
 					if (c === 36 || c === 95) {
 						// $ _
 						i++;
@@ -3488,11 +4022,30 @@
 						i++;
 						continue;
 					}
-					
 					break;
 				}
 				return i;
-			}
+			};
+			
+			cursor_tokenEnd = function(str, i, imax){
+				var c;
+				while (i < imax){
+					c = str.charCodeAt(i);
+					if (c === 36 || c === 95 || c === 58) {
+						// $ _ :
+						i++;
+						continue;
+					}
+					if ((48 <= c && c <= 57) ||		// 0-9
+						(65 <= c && c <= 90) ||		// A-Z
+						(97 <= c && c <= 122)) {	// a-z
+						i++;
+						continue;
+					}
+					break;
+				}
+				return i;
+			};
 			
 			cursor_quoteEnd = function(str, i, imax, char_){
 				var start = i;
@@ -3502,7 +4055,7 @@
 						return i;
 					i++;
 				}
-				parser_warn('Quote was not closed', str, start);
+				parser_warn('Quote was not closed', str, start - 1);
 				return imax;
 			};
 			
@@ -3616,9 +4169,491 @@
 			};
 		}
 		// end:source ./function.js
+		// source ./object/ObjectLexer.js
+		var ObjectLexer;
+		(function(){
+			
+			// source ./compile.js
+			var _compile;
+			(function(){
+				_compile = function(str, i, imax){
+					if (i === void 0) {
+						i = 0;
+						imax = str.length;
+					}
+					
+					var tokens = [],
+						c, optional, ref, start;
+					outer: for(; i < imax; i++) {
+						start = i;
+						c = str.charCodeAt(i);
+						optional = false;
+						if (63 === c) {
+							optional = true;
+							start = ++i;
+							c = str.charCodeAt(i);
+						}
+						switch(c) {
+							case 32 /* */:
+								tokens.push(new token_Whitespace(optional, i));
+								continue;
+							case 34:
+							case 39 /*'"*/:
+								i = cursor_quoteEnd(str, i + 1, imax, c === 34 ? '"' : "'");
+								tokens.push(
+									new token_String(
+										_compile(str, start + 1, i)
+									)
+								);
+								continue;
+							case 36 /*$*/:
+								start = ++i;
+								var isExtended = false;
+								if (c === str.charCodeAt(i)) {
+									isExtended = true;
+									start = ++i;
+								}
+								i = cursor_tokenEnd(str, i, imax);
+								
+								var name = str.substring(start, i);
+								if (optional === false && isExtended === false) {
+									tokens.push(new token_Var(name));
+									i--;
+									continue;
+								}
+								
+								c = str.charCodeAt(i);
+								if (c === 91 /*[*/) {
+									i = compileArray(name, tokens, str, i, imax, optional);
+									continue;
+								}
+								if (c === 40 /*(*/) {
+									i = compileExtendedVar(name, tokens, str, i, imax);
+									continue;
+								}
+								if (c === 60 /*<*/ ) {
+									i = compileCustomVar(name, tokens, str, i, imax);
+									continue;
+								}
+								throw_('Unexpected extended type');
+								continue;
+							
+							case 40 /*(*/:
+								if (optional === true) {
+									i = compileGroup(optional, tokens, str, i, imax);
+									continue;
+								}
+								/* fall through */
+							case 44 /*,*/:
+							case 41 /*)*/:
+							case 91 /*[*/:
+							case 93 /*]*/:
+							case 123 /*{*/:
+							case 125 /*}*/:
+								tokens.push(new token_Punctuation(String.fromCharCode(c)));
+								continue;
+						}
+						
+						while(i < imax) {
+							c = str.charCodeAt(++i);
+							if (c > 32 && c !== 34 && c !== 39 && c !== 36 && c !== 44) {
+								continue;
+							}
+							tokens.push(new token_Const(str.substring(start, i)));
+							--i;
+							continue outer;
+						}
+					}
+					
+					var jmax = tokens.length,
+						j = -1,
+						orGroup = jmax > 1,
+						x;
+					while(orGroup === true && ++j < jmax) {
+						x = tokens[j];
+						if (x instanceof token_Group === false || x.optional !== true) {
+							orGroup = false;
+						}
+					}
+					if (orGroup === true) {
+						tokens = [ new token_OrGroup(tokens) ];
+					}
+					
+					return tokens;
+				};
+				
+				function compileArray(name, tokens, str, i, imax, optional){
+					var start = ++i;
+					i = cursor_groupEnd(str, i, imax, 91, 93);
+					var innerTokens = _compile(str, start, i);
+					
+					i++;
+					if (str.charCodeAt(i) !== 40 /*(*/) 
+						throw_('Punctuation group expected');
+					
+					start = ++i;
+					i = cursor_groupEnd(str, i, imax, 40, 41)
+					var delimiter = str.substring(start, i);
+					tokens.push(
+						new token_Array(
+							name
+							, innerTokens
+							, new token_Punctuation(delimiter)
+							, optional
+						)
+					);
+					return i;
+				}
+				function compileExtendedVar(name, tokens, str, i, imax){
+					var start = ++i;
+					i = cursor_groupEnd(str, i, imax, 40, 41);
+					tokens.push(
+						new token_ExtendedVar(name, str.substring(start, i))
+					);
+					return i;
+				}
+				function compileCustomVar(name, tokens, str, i, imax) {
+					var start = ++i;
+					i = cursor_tokenEnd(str, i, imax);
+					tokens.push(
+						new token_CustomVar(name, str.substring(start, i))
+					);
+					return i;
+				}
+				function compileGroup(optional, tokens, str, i, imax) {
+					var start = ++i;
+					i = cursor_groupEnd(str, start, imax, 40, 41);
+					tokens.push(
+						new token_Group(_compile(str, start, i), optional)
+					);
+					return i;
+				}
+				
+				function throw_(msg) {
+					throw Error('Lexer pattern: ' + msg);
+				}
+			}());
+			// end:source ./compile.js
+			// source ./consume.js
+			var _consume;
+			(function() {
+				_consume = function(tokens, str, index, length, out, isOptional){
+					var index_ = index;
+					var imax = tokens.length,
+						i = 0, token, start;
+					for(; i < imax; i++) {
+						token = tokens[i];
+						start = index;
+						index = token.consume(str, index, length, out);
+						if (index === start) {
+							if (token.optional === false) {
+								if (isOptional !== true) {
+									var msg = 'Token of type `' + token.name + '`';
+									if (token.token) {
+										msg += ' Did you mean: `' + token.token + '`?';
+									}
+									parser_error(msg, str, index);
+								}
+								return index_;
+							}
+							return index;
+						}
+					}
+					return index;
+				};
+			}());
+			// end:source ./consume.js
+			// source ./tokens.js
+			var token_Const,
+				token_Var,
+				token_String,
+				token_Whitespace,
+				token_Array,
+				token_Punctuation,
+				token_ExtendedVar,
+				token_CustomVar,
+				token_Group,
+				token_OrGroup;
+			(function(){
+				
+				token_Whitespace = create('Whitespace', {
+					constructor: function(optional){
+						this.optional = optional;
+					},
+					consume: cursor_skipWhitespace
+				});
+				token_Const = create('Const', {
+					constructor: function(str) {
+						this.token = str;
+					},
+					consume: function(str, i, imax){
+						var end = i + this.token.length;
+						str = str.substring(i, end);
+						return  str === this.token ? end : i;
+					}
+				});
+				token_Var = create('Var', {
+					constructor: function(name){
+						this.token = name;
+						this.setter = generateSetter(name);
+					},
+					consume: function(str, i, imax, out) {
+						var end = cursor_tokenEnd(str, i, imax);
+						if (end === i) 
+							return i;
+						
+						this.setter(out, str.substring(i, end));
+						return end;
+					}
+				});
+				token_ExtendedVar = create('ExtendedVar', {
+					constructor: function(name, rgx){
+						this.token = rgx;
+						this.setter = generateSetter(name);
+						if (rgx === '*') {
+							this.consume = this.consumeAll;
+							return;
+						}
+						this.rgx = new RegExp(rgx, 'g');
+					},
+					consumeAll: function(str, i, imax, out){
+						this.setter(out, str.substring(i));
+						return imax;
+					},
+					consume: function(str, i, imax, out) {
+						this.rgx.lastIndex = i;
+						var match = this.rgx.exec(str);
+						if (match == null) 
+							return i;
+						
+						var x = match[0];
+						this.setter(out, x);
+						return i + x.length;
+					}
+				});
+				(function(){
+					token_CustomVar = create('CustomVar', {
+						constructor: function(name, consumer) {
+							this.fn = Consumers[consumer];
+							this.token = name;
+							this.setter = generateSetter(name);
+						},
+						consume: function(str, i, imax, out) {
+							var start = i;
+							
+							var c;
+							for (; i < imax; i++){
+								c = str.charCodeAt(i);
+								if (c === 36 || c === 95 || c === 58) {
+									// $ _ :
+									continue;
+								}
+								if ((48 <= c && c <= 57) ||		// 0-9
+									(65 <= c && c <= 90) ||		// A-Z
+									(97 <= c && c <= 122)) {	// a-z
+									continue;
+								}
+								if (this.fn(c) === true) {
+									continue;
+								}
+								break;
+							}
+							if (i === start) 
+								return i;
+							
+							this.setter(out, str.substring(start, i));
+							return i;
+						}
+					});
+					
+					var Consumers = {
+						accessor: function(c){
+							if (c === 46 /*.*/) {
+								return true;
+							}
+							return false;
+						}
+					};
+				}());
+				
+				token_String = create('String', {
+					constructor: function(tokens){
+						this.tokens = tokens;
+					},
+					consume: function(str, i, imax, out) {
+						var c = str.charCodeAt(i);
+						if (c !== 34 && c !== 39) 
+							return i;
+						
+						var end = cursor_quoteEnd(str, i + 1, imax, c === 34 ? '"' : "'");
+						if (this.tokens.length === 1) {
+							var $var = this.tokens[0];
+							out[$var.token] = str.substring(i + 1, end);
+						} else {
+							throw Error('Not implemented');
+						}
+						return ++end;
+					}
+				});
+				token_Array = create('Array', {
+					constructor: function(name, tokens, delim, optional) {
+						this.token = name;
+						this.delim = delim;
+						this.tokens = tokens;
+						this.optional = optional;
+					},
+					consume: function(str, i, imax, out){
+						var obj, end, arr;
+						while(true) {
+							obj = {};
+							end = _consume(this.tokens, str, i, imax, obj, this.optional);
+							
+							if (i === end) {
+								if (arr == null) 
+									return i;
+								throw Error('Next item expected');
+							}
+							if (arr == null) 
+								arr = [];
+							arr.push(obj);
+							i = end;
+							
+							end = this.delim.consume(str, i, imax);
+							if (i === end) 
+								break;
+							i = end;
+						}
+						out[this.token] = arr;
+						return i;
+					}
+				});
+				token_Punctuation = create('Punc', {
+					constructor: function(str){
+						this.before = new token_Whitespace(true);
+						this.delim = new token_Const(str);
+						this.after = new token_Whitespace(true);
+						this.token = str;
+					},
+					consume: function(str, i, imax){
+						var start = this.before.consume(str, i, imax);
+						var end = this.delim.consume(str, start, imax);
+						if (start === end) {
+							return i;
+						}
+						return this.after.consume(str, end, imax);
+					}
+				});
+				token_Group = create('Group', {
+					constructor: function(tokens, optional) {
+						this.optional = optional;
+						this.tokens = tokens;
+					},
+					consume: function(str, i, imax, out){
+						return _consume(this.tokens, str, i, imax, out, this.optional);
+					}
+				});
+				token_OrGroup = create('OrGroup', {
+					constructor: function(groups) {
+						this.groups = groups,
+						this.length = groups.length;
+					},
+					consume: function(str, i, imax, out) {
+						var start = i,
+							j = 0;
+						for(; j < this.length; j++) {
+							i = this.groups[j].consume(str, i, imax, out);
+							if (i !== start) 
+								return i;
+						}
+						return i;
+					}
+				});
+				
+				function generateSetter(name) {
+					return new Function('obj', 'val', 'obj.' + name + '= val;');
+				}
+				function create(name, Proto) {
+					var Ctor = Proto.constructor;
+					Proto.name = name;
+					Proto.optional = false;
+					Proto.token = null;
+					Ctor.prototype = Proto;
+					return Ctor;
+				}
+			}());
+			// end:source ./tokens.js
+			
+			ObjectLexer = function(pattern){
+				if (arguments.length === 1 && typeof pattern === 'string') {
+					return ObjectLexer_single(pattern);
+				}
+				return ObjectLexer_sequance(Array.prototype.slice.call(arguments));
+			};
+			
+			function ObjectLexer_single (pattern){
+				var tokens = _compile(pattern);
+				return function(str, i, imax, out, optional){
+					return _consume(tokens, str, i, imax, out, optional);
+				};	
+			}
+		
+			var ObjectLexer_sequance;
+			(function(){
+				ObjectLexer_sequance = function(args) {
+					var jmax = args.length,
+						j = -1;
+					while( ++j < jmax ) {
+						args[j] = __createConsumer(args[j]);
+					}
+					return function(str, i, imax, out, optional){
+						var start;
+						j = -1;
+						while( ++j < jmax ) {
+							start = i;
+							i = __consume(args[j], str, i, imax, out, optional);
+							if (i === start) 
+								return start;
+						}
+						return i;
+					}
+				};
+				function __consume(x, str, i, imax, out, optional) {
+					if (typeof x === 'function') {
+						return x(str, i, imax, out, optional);
+					}
+					return __consumeOptionals(x, str, i, imax, out, optional);
+				}
+				function __consumeOptionals(arr, str, i, imax, out, optional) {
+					var start = i,
+						jmax = arr.length,
+						j = -1;
+					while( ++j < jmax ){
+						i = arr[j](str, i, imax, out, true);
+						if (start !== i) 
+							return i;
+					}
+					if (optional !== true) {
+						// notify
+						arr[0](str, start, imax, out, optional);
+					}
+					return start;
+				}
+				function __createConsumer(mix) {
+					if (typeof mix === 'string') {
+						return ObjectLexer_single(mix);
+					}
+					// else Array<string>
+					var i = mix.length;
+					while(--i > -1) mix[i] = ObjectLexer_single(mix[i]);
+					return mix;
+				}
+			}());
+			
+		}());
+		// end:source ./object/ObjectLexer.js
 		// source ./parsers/var.js
 		(function(){
-			custom_Parsers['var'] = function(template, index, length, parent){
+			custom_Parsers['var'] = function(str, index, length, parent){
 				var node = new Node('var', parent),
 					start,
 					c;
@@ -3632,15 +4667,15 @@
 					token,
 					key;
 				while(true) {
-					if (index < length && (c = template.charCodeAt(index)) < 33) {
+					if (index < length && (c = str.charCodeAt(index)) < 33) {
 						index++;
 						continue;
 					}
 					
 					if (state === go_varName) {
 						start = index;
-						index = cursor_refEnd(template, index, length);
-						key = template.substring(start, index);
+						index = cursor_refEnd(str, index, length);
+						key = str.substring(start, index);
 						state = go_assign;
 						continue;
 					}
@@ -3650,7 +4685,7 @@
 							// =
 							parser_error(
 								'Assignment expected'
-								, template
+								, str
 								, index
 								, c
 								, 'var'
@@ -3669,16 +4704,16 @@
 							case 123:
 							case 91:
 								// { [
-								index = cursor_groupEnd(template, index, length, c, c + 2);
+								index = cursor_groupEnd(str, index, length, c, c + 2);
 								break;
 							case 39:
 							case 34:
 								// ' "
-								index = cursor_quoteEnd(template, index, length, c === 39 ? "'" : '"')
+								index = cursor_quoteEnd(str, index, length, c === 39 ? "'" : '"')
 								break;
 							default:
 								while (index < length) {
-									c = template.charCodeAt(index);
+									c = str.charCodeAt(index);
 									if (c === 44 || c === 59) {
 										//, ;
 										break;
@@ -3689,7 +4724,7 @@
 								break;
 						}
 						index++;
-						node.attr[key] = template.substring(start, index);
+						node.attr[key] = str.substring(start, index);
 						state = go_next;
 						continue;
 					}
@@ -3703,7 +4738,7 @@
 						break;
 					}
 				}
-				return [node, index];
+				return [node, index, 0];
 			};
 			
 			function stingify(){
@@ -3719,90 +4754,6 @@
 			}
 		}());
 		// end:source ./parsers/var.js
-		// source ./parsers/slot.js
-		(function(){
-			
-			function create(Ctor){
-				return function(str, i, imax, parent) {
-					var start = str.indexOf('{', i) + 1,
-						head = parseHead(
-							str.substring(i, start - 1)
-						),
-						end = cursor_groupEnd(str, start, imax, 123, 125),
-						body = str.substring(start, end)
-						;
-					
-					return [ new Ctor(head, body, parent), end + 1 ];
-				};
-			}
-			
-			function parseHead(head) {
-				var parts = /(\w+)\s*\(([^\)]*)\)/.exec(head);
-				if (parts == null) {
-					log_error('`slot` has invalid head syntax', head);
-					return null;
-				}
-				var arr = [ parts[1] ];
-				arr = arr.concat(
-					parts[2].replace(/\s/g, '').split(',')
-				);
-				return arr;
-			}
-			
-			function Handler(head, body, parent) {
-				this.name = head.shift();
-				this.args = head;
-				this.body = body;
-				this.fn = this.compile();
-				this.parent	= parent;
-			}
-			Handler.prototype = {
-				type: Dom.COMPONENT,
-				controller: null,
-				elements: null,
-				model: null,
-				stringify: function(){
-					return this.tagName
-						+ this.name
-						+ '('
-						+ this.args.join(',')
-						+ ') {'
-						+ this.body
-						+ '}'
-						;
-				},
-				compile: function(){
-					var arr = _Array_slice.call(this.args);
-					arr.push(this.body);
-					
-					return new (Function.bind.apply(Function, [null].concat(arr)));
-				},
-				render: function() {}
-			};
-			
-			var Slot = class_create(Handler, {
-				tagName: 'slot',
-				render: function(model, ctx, container, ctr) {
-					var slots = ctr.slots;
-					if (slots == null) {
-						slots = ctr.slots = {};
-					}
-					slots[this.name] = this.fn;
-				}
-			});
-			var Event = class_create(Handler, {
-				tagName: 'event',
-				render: function(model, ctx, container, ctr) {
-					this.fn = this.fn.bind(ctr);
-					Compo.Dom.addEventListener(container, this.name, this.fn);
-				}
-			});
-			
-			custom_Parsers['slot' ] =  create(Slot);
-			custom_Parsers['event'] =  create(Event);
-			
-		}());
-		// end:source ./parsers/slot.js
 		// source ./parsers/style.js
 		(function(){
 			custom_Parsers['style'] =  function(str, i, imax, parent){
@@ -3819,7 +4770,7 @@
 					return [null, end + 1];
 				}
 				
-				return [ new Style(attr, css, parent), end + 1 ];
+				return [ new Style(attr, css, parent), end + 1, 0 ];
 			};
 			
 			function Style(attr, css, parent) {
@@ -3860,7 +4811,10 @@
 				
 				getStyle: function(model, ctx, el, ctr){
 					return is_Function(this.content)
-						? this.content('node', model, ctx, el, ctr)
+						? (arguments.length === 0
+						   ? this.content()
+						   : this.content('node', model, ctx, el, ctr)
+						)
 						: this.content;
 				}
 			};
@@ -3920,7 +4874,268 @@
 			}());
 		}());
 		// end:source ./parsers/style.js
-	
+		// source ./parsers/import.js
+		(function(){	
+			custom_Parsers['import'] = function(str, i, imax, parent){
+				var obj = {
+					exports: null,
+					alias: null,
+					path: null
+				};
+				var end = lex_(str, i, imax, obj);
+				return [ new ImportNode(parent, obj),  end, 0 ];
+			};
+			custom_Tags['import:base'] = function(node){
+				var base = path_normalize(ExpressionUtil.eval(node.expression));
+				if (base != null && base[base.length - 1] !== '/') {
+					base += '/';
+				}
+				Module.cfg('base', base);
+			};
+			
+			
+			var lex_ = ObjectLexer(
+				[ 'from "$path"'
+				, '* as $alias from "$path"'
+				, '$$exports[$name?( as $alias)](,) from "$path"'
+				]
+			);
+			
+			var ImportNode = class_create({
+				type: Dom.COMPONENT,
+				tagName: 'import',
+				constructor: function(parent, data){
+					this.dependency = Module.createDependency(data);
+					this.parent = parent;
+				},
+				controller: function(node, model, ctx, el, ctr){
+					var siblings = node.parent.nodes;
+					var nodes = [],
+						imports = [];
+					var imax = siblings.length,
+						i = 0, x;
+					for (; i < imax; i++) {
+						x = siblings[i];
+						
+						siblings[i] = null;
+						if (x.tagName === 'import') {
+							imports.push(x.dependency);
+							continue;
+						}
+						nodes.push(x);
+					}
+					return new ImportsHandler(imports, nodes, ctr);
+				}
+			});
+			var ImportsHandler = custom_Tags['imports'] = class_create({
+				compoName: 'imports',
+				constructor: function(deps, nodes, owner){
+					this.deps = deps;
+					this.parent = owner;
+					this.base = Module.resolveLocation(owner);
+					this.nodes = nodes;
+				},
+				load: function(cb){
+					var self = this,
+						imax = this.deps.length,
+						await = imax,
+						i = imax;
+					while( --i > -1 ) {
+						this.deps[i].load(this, done);
+					}
+					function done(err) {
+						if (--await !== 0)
+							return;
+						cb();
+					}
+				},
+				renderStart: function(model, ctx, container, ctr, elements){
+					var resume = Compo.pause(this, ctx);
+					var self = this;
+					this.load(function(){
+						var nodes = self.nodes || [],
+							deps = self.deps;
+						var imax = deps.length,
+							i = -1;
+						while( ++i < imax ) {
+							var x = deps[i].getEmbeddableNodes();
+							if (x != null) {
+								if (is_Array(x) === false) 
+									x = [ x ];
+								
+								nodes = x.concat(nodes);
+							}
+						}
+						self.nodes = nodes;
+						resume();
+					})
+				},
+				getHandler: function(name) {
+					//logger.log('Get'.red, name.bold.cyan);
+				}
+			});
+			
+		}());
+		// end:source ./parsers/import.js
+		// source ./parsers/define.js
+		(function(){
+			custom_Parsers['define'] = function(str, i, imax, parent){
+				var obj = {
+					'name': null,
+					'extends': null
+				};
+				var node = new DefineNode('define', parent);
+				var end = lex_(str, i, imax, node);
+				return [ node,  end, go_tag ];
+			};
+			var lex_ = ObjectLexer(
+				'$name'
+				, '?( extends $$extends[?("$path")?($$compo<accessor>)](,))'
+				, '{'
+			);
+			var DefineNode = class_create(Dom.Node, {
+				'name': null,
+				'extends': null,
+				
+				'controller': function(node, model, ctx, el, ctr){
+					
+					var Ctor = Define.create(node, model, ctr);
+					customTag_register(
+						node.name, Ctor
+					);
+					return new EmptyNode;
+				},
+				stringify: function(indent){
+					var extends_ = this['extends'],
+						str = '';
+					if (extends_ && extends_.length !== 0) {
+						str = ' extends ';
+						var imax = extends_.length,
+							i = -1, x;
+						while( ++i < imax ){
+							str += extends_[i].compo;
+							if (i < imax - 1) 
+								str += ', ';
+						}
+					}
+					return 'define '
+						+ this.name
+						+ str
+						+ '{'
+						+ mask_stringify(this.nodes, ++indent)
+						+ '}'
+						;
+				},
+			});
+			var EmptyNode = class_create({
+				render: fn_doNothing
+			});
+		}());
+		// end:source ./parsers/define.js
+		// source ./parsers/handlers.js
+		(function(){	
+			function create(Ctor){
+				return function(str, i, imax, parent) {
+					var start = str.indexOf('{', i) + 1,
+						head = parseHead(
+							str.substring(i, start - 1)
+						),
+						end = cursor_groupEnd(str, start, imax, 123, 125),
+						body = str.substring(start, end)
+						;
+					
+					return [ new Ctor(head, body, parent), end + 1, 0 ];
+				};
+			}	
+			function parseHead(head) {
+				var parts = /(\w+)\s*\(([^\)]*)\)/.exec(head);
+				if (parts == null) {
+					log_error('`slot` has invalid head syntax', head);
+					return null;
+				}
+				var arr = [ parts[1] ];
+				arr = arr.concat(
+					parts[2].replace(/\s/g, '').split(',')
+				);
+				return arr;
+			}	
+			function Handler(head, body, parent) {
+				this.name = head.shift();
+				this.args = head;
+				this.body = body;
+				this.parent	= parent;
+				this.fn = this.compile();
+			}
+			Handler.prototype = {
+				type: Dom.COMPONENT,
+				controller: null,
+				elements: null,
+				model: null,
+				stringify: function(){
+					return this.tagName
+						+ ' '
+						+ this.name
+						+ '('
+						+ this.args.join(',')
+						+ ') {'
+						+ this.body
+						+ '}'
+						;
+				},
+				compile: function(){
+					var arr = _Array_slice.call(this.args);
+					arr.push(this.body);			
+					return new (Function.bind.apply(Function, [null].concat(arr)));
+				},
+				render: function() {}
+			};
+			
+			var Slot = class_create(Handler, {
+				tagName: 'slot',
+				render: function(model, ctx, el, ctr) {
+					var slots = ctr.slots;
+					if (slots == null) {
+						slots = ctr.slots = {};
+					}
+					slots[this.name] = this.fn;
+				}
+			});
+			var Event = class_create(Handler, {
+				tagName: 'event',
+				render: function(model, ctx, el, ctr) {
+					this.fn = this.fn.bind(ctr);
+					Compo.Dom.addEventListener(el, this.name, this.fn);
+				}
+			});
+			var Fn = class_create(Handler, {
+				tagName: 'function',
+				render: function(model, ctx, el, ctr) {
+					ctr[this.name] = this.fn;
+				}
+			});
+			var Script = class_create(Handler, {
+				tagName: 'script',
+				render: function(model, ctx, el, ctr){
+					if (this.attr.src != null) {
+						var script = document.createElement('script');
+						for(var key in this.attr) {
+							script.addAttribute(key, this.attr[key]);
+						}
+						el.appendChild(script);
+						return;
+					}
+					this.fn.call(ctr);
+				}
+			});
+			
+			custom_Parsers['slot' ] = create(Slot);
+			custom_Parsers['event'] = create(Event);
+			custom_Parsers['script'] = create(Script);
+			custom_Parsers['function'] = create(Fn);
+			
+		}());
+		// end:source ./parsers/handlers.js
+		
 		var go_tag = 2,
 			state_tag = 3,
 			state_attr = 5,
@@ -3952,10 +5167,9 @@
 					nextC;
 	
 				outer: while (true) {
-	
-					if (index < length && (c = template.charCodeAt(index)) < 33) {
+					
+					while (index < length && (c = template.charCodeAt(index)) < 33) {
 						index++;
-						continue;
 					}
 	
 					// COMMENTS
@@ -3974,10 +5188,9 @@
 						if (nextC === 42) {
 							// block (*)
 							index = template.indexOf('*/', index + 2) + 2;
-							
 							if (index === 1) {
 								// if DEBUG
-								log_warn('<mask:parse> block comment has no end');
+								parser_warn('Block comment has no ending', template, index);
 								// endif
 								index = length;
 							}
@@ -4027,14 +5240,26 @@
 							//	: new Node(token, current);
 							
 							if (custom_Parsers[token] != null) {
-								var tuple = custom_Parsers[token](template, index, length, current);
-								var node = tuple[0];
+								var tuple = custom_Parsers[token](
+									template
+									, index
+									, length
+									, current
+								);
+								var node = tuple[0],
+									nextState = tuple[2];
+									
+								index = tuple[1];
+								state = nextState === 0
+									? go_tag
+									: nextState;
+								token = null;
 								if (node != null) {
 									current.appendChild(node);
+									if (nextState !== 0) {
+										current  = node;
+									}
 								}
-								index = tuple[1];
-								state = go_tag;
-								token = null;
 								continue;
 							}
 							
@@ -4144,7 +5369,7 @@
 							index++;
 						}
 						if (index === -1) {
-							parser_warn('Literal has no ending', template, start);
+							parser_warn('Literal has no ending', template, start - 1);
 							index = length;
 						}
 						
@@ -4291,8 +5516,6 @@
 					}
 	
 					token = template.substring(start, index);
-	
-					
 					if (token === '') {
 						parser_warn('String expected', template, index, c, state);
 						break;
@@ -4396,7 +5619,7 @@
 		parser_ensureTemplateFunction = Parser.ensureTemplateFunction;
 		parser_cleanObject = Parser.cleanObject;
 		parser_setInterpolationQuotes = Parser.setInterpolationQuotes;
-		
+		parser_ObjectLexer = ObjectLexer;
 		parser_parseAttr = function(str, start, end){
 			var attr = {},
 				i = start,
@@ -4443,6 +5666,208 @@
 	}(Dom.Node, Dom.TextNode, Dom.Fragment, Dom.Component));
 	
 	// end:source /src/parse/parser.js
+	// source /src/formatter/stringify.js
+	var mask_stringify;
+	(function() {
+	
+		//settings (Number | Object) - Indention Number (0 - for minification)
+		mask_stringify = function(input, settings) {
+			if (input == null) 
+				return '';
+			
+			if (typeof input === 'string') 
+				input = mask.parse(input);
+			
+			if (settings == null) {
+				_indent = 0;
+				_minimize = true;
+			} else  if (typeof settings === 'number'){
+				_indent = settings;
+				_minimize = _indent === 0;
+			} else{
+				_indent = settings && settings.indent || 4;
+				_minimize = _indent === 0 || settings && settings.minimizeAttributes;
+			}
+	
+			return run(input);
+		};
+	
+	
+		var _minimize,
+			_indent;
+	
+		function doindent(count) {
+			var output = '';
+			while (count--) {
+				output += ' ';
+			}
+			return output;
+		}
+	
+	
+	
+		function run(node, indent, output) {
+			var outer, i;
+			
+			if (indent == null) 
+				indent = 0;
+				
+			if (output == null) {
+				outer = true;
+				output = [];
+			}
+	
+			var index = output.length;
+			if (node.type === Dom.FRAGMENT)
+				node = node.nodes;
+			
+			if (node instanceof Array) {
+				for (i = 0; i < node.length; i++) {
+					processNode(node[i], indent, output);
+				}
+			} else {
+				processNode(node, indent, output);
+			}
+	
+	
+			var spaces = doindent(indent);
+			for (i = index; i < output.length; i++) {
+				output[i] = spaces + output[i];
+			}
+	
+			if (outer) 
+				return output.join(_indent === 0 ? '' : '\n');
+		}
+	
+		function processNode(node, currentIndent, output) {
+			if (typeof node.stringify === 'function') {
+				output.push(node.stringify(_indent));
+				return;
+			}
+			if (typeof node.content === 'string') {
+				output.push(wrapString(node.content));
+				return;
+			}
+	
+			if (typeof node.content === 'function'){
+				output.push(wrapString(node.content()));
+				return;
+			}
+	
+			if (isEmpty(node)) {
+				output.push(processNodeHead(node) + ';');
+				return;
+			}
+	
+			if (isSingle(node)) {
+				var next = _minimize ? '>' : ' > ';
+				output.push(processNodeHead(node) + next);
+				run(getSingle(node), _indent, output);
+				return;
+			}
+	
+			output.push(processNodeHead(node) + '{');
+			run(node.nodes, _indent, output);
+			output.push('}');
+			return;
+		}
+	
+		function processNodeHead(node) {
+			var tagName = node.tagName,
+				_id, _class;
+	
+			if (node.attr != null) {
+				_id = node.attr.id || '',
+				_class = node.attr['class'] || '';
+			}
+	
+	
+			if (typeof _id === 'function')
+				_id = _id();
+			
+			if (typeof _class === 'function')
+				_class = _class();
+			
+	
+			if (_id) {
+				_id = _id.indexOf(' ') !== -1
+					? ''
+					: '#' + _id
+					;
+			}
+	
+			if (_class) 
+				_class = '.' + _class.split(' ').join('.');
+			
+	
+			var attr = '';
+			for (var key in node.attr) {
+				if (key === 'id' || key === 'class') {
+					// the properties was not deleted as this template can be used later
+					continue;
+				}
+				var value = node.attr[key];
+	
+				if (typeof value === 'function')
+					value = value();
+				
+	
+				if (key !== value && (_minimize === false || /[^\w_$\-\.]/.test(value)))
+					value = wrapString(value);
+				
+	
+				attr += ' ' + key;
+				
+				if (key !== value)
+					attr += '=' + value;
+			}
+	
+			if (tagName === 'div' && (_id || _class)) 
+				tagName = '';
+			
+			var expr = '';
+			if (node.expression) 
+				expr = '(' + node.expression + ')';
+				
+			return tagName
+				+ _id
+				+ _class
+				+ attr
+				+ expr;
+		}
+	
+	
+		function isEmpty(node) {
+			return node.nodes == null || (node.nodes instanceof Array && node.nodes.length === 0);
+		}
+	
+		function isSingle(node) {
+			return node.nodes && (node.nodes instanceof Array === false || node.nodes.length === 1);
+		}
+	
+		function getSingle(node) {
+			if (node.nodes instanceof Array) 
+				return node.nodes[0];
+			
+			return node.nodes;
+		}
+	
+		function wrapString(str) {
+			
+			if (str.indexOf("'") === -1) 
+				return "'" + str.trim() + "'";
+			
+			if (str.indexOf('"') === -1) 
+				return '"' + str.trim() + '"';
+			
+	
+			return '"' + str.replace(/"/g, '\\"').trim() + '"';
+		}
+	
+	
+	}());
+	
+	// end:source /src/formatter/stringify.js
 	// source /src/build/builder.dom.js
 	var builder_componentID = 0,
 		builder_build;
@@ -4609,12 +6034,62 @@
 		}());
 		// end:source ./type.textNode.js
 		// source ./type.node.js
-		
-		var build_node = (function(){
+		var build_node;
+		(function(){
+			build_node = function build_node(node, model, ctx, container, ctr, children){
+				
+				var tagName = node.tagName,
+					attr = node.attr;
+				
+				var el = el_create(tagName);
+				if (el == null) 
+					return;
+				
+				if (children != null){
+					children.push(el);
+					attr['x-compo-id'] = ctr.ID;
+				}
+				
+				// ++ insert el into container before setting attributes, so that in any
+				// custom util parentNode is available. This is for mask.node important
+				// http://jsperf.com/setattribute-before-after-dom-insertion/2
+				if (container != null) {
+					container.appendChild(el);
+				}
+				
+				var key,
+					value;
+				for (key in attr) {
+					/* if !SAFE
+					if (_Object_hasOwnProp.call(attr, key) === false) {
+						continue;
+					}
+					*/
+				
+					if (is_Function(attr[key])) {
+						value = attr[key]('attr', model, ctx, el, ctr, key);
+						if (value instanceof Array) {
+							value = value.join('');
+						}
+					} else {
+						value = attr[key];
+					}
+				
+					// null or empty string will not be handled
+					if (value) {
+						if (is_Function(custom_Attributes[key])) {
+							custom_Attributes[key](node, value, model, ctx, el, ctr, container);
+						} else {
+							el.setAttribute(key, value);
+						}
+					}
+				}
+				return el;
+			};
 			
-			var el_create = (function(doc){
-				return function(name){
-					
+			var el_create;
+			(function(doc){
+				el_create = function(name){			
 					// if DEBUG
 					try {
 					// endif
@@ -4627,61 +6102,6 @@
 					// endif
 				};
 			}(document));
-			
-			return function build_node(node, model, ctx, container, controller, childs){
-				
-				var tagName = node.tagName,
-					attr = node.attr;
-				
-				var tag = el_create(tagName);
-				if (tag == null) 
-					return;
-				
-				if (childs != null){
-					childs.push(tag);
-					attr['x-compo-id'] = controller.ID;
-				}
-				
-				// ++ insert tag into container before setting attributes, so that in any
-				// custom util parentNode is available. This is for mask.node important
-				// http://jsperf.com/setattribute-before-after-dom-insertion/2
-				if (container != null) {
-					container.appendChild(tag);
-				}
-				
-				var key,
-					value;
-				for (key in attr) {
-				
-					/* if !SAFE
-					if (_Object_hasOwnProp.call(attr, key) === false) {
-						continue;
-					}
-					*/
-				
-					if (is_Function(attr[key])) {
-						value = attr[key]('attr', model, ctx, tag, controller, key);
-						if (value instanceof Array) {
-							value = value.join('');
-						}
-				
-					} else {
-						value = attr[key];
-					}
-				
-					// null or empty string will not be handled
-					if (value) {
-						if (is_Function(custom_Attributes[key])) {
-							custom_Attributes[key](node, value, model, ctx, tag, controller, container);
-						} else {
-							tag.setAttribute(key, value);
-						}
-					}
-				}
-		
-				return tag;
-			}
-			
 		}());
 		// end:source ./type.node.js
 		// source ./type.component.js
@@ -4716,7 +6136,6 @@
 					;
 				return fn(handler, node, model, ctx, container, ctr, children);
 			}
-			
 			
 			// PRIVATE
 			
@@ -5079,7 +6498,9 @@
 			
 			var scripts = _Array_slice.call(document.getElementsByTagName('script')),
 				script,
-				found = false;
+				found = false,
+				ready = false,
+				await = 0;
 				
 			imax = scripts.length;
 			i = -1;
@@ -5090,21 +6511,44 @@
 				if (script.getAttribute('data-run') !== 'true') 
 					continue;
 				
-				var fragment = builder_build(
-					parser_parse(script.textContent), model, {}, null, ctr
-				);
-				script.parentNode.insertBefore(fragment, script);
 				found = true;
+				var ctx = {};
+				var fragment = builder_build(
+					parser_parse(script.textContent), model, ctx, null, ctr
+				);
+				if (ctx.async === true) {
+					await++;
+					ctx.done(insertDelegate(fragment, script, resumer));
+					continue;
+				}
+				script.parentNode.insertBefore(fragment, script);
 			}
+			ready = true;
 			if (found === false) {
 				log_warn("No blocks found: <script type='text/mask' data-run='true'>...</script>");
 			}
-			if (is_Function(ctr.renderEnd)) {
-				ctr.renderEnd(container, model);
+			if (await === 0) {
+				flush();
 			}
-			Compo.signal.emitIn(ctr, 'domInsert');
+			function resumer(){
+				if (--await === 0 && ready)
+					flush();
+			}
+			function flush() {
+				if (is_Function(ctr.renderEnd)) {
+					ctr.renderEnd(container, model);
+				}
+				Compo.signal.emitIn(ctr, 'domInsert');
+			}
+			
 			return ctr;
 		};
+		function insertDelegate(fragment, script, done) {
+			return function(){
+				script.parentNode.insertBefore(fragment, script);
+				done();
+			};
+		}
 	}());
 	// end:source /src/feature/run.js
 	// source /src/feature/merge.js
@@ -5129,24 +6573,36 @@
 			dom_NODE = Dom.NODE,
 			dom_TEXTNODE = Dom.TEXTNODE,
 			dom_FRAGMENT = Dom.FRAGMENT,
-			dom_STATEMENT = Dom.STATEMENT
+			dom_STATEMENT = Dom.STATEMENT,
+			dom_COMPONENT = Dom.COMPONENT
 			;
 		
 		function _merge(node, contents, tmplNode, clonedParent){
 			if (node == null) 
 				return null;
 			
-			if (is_Array(node)) 
-				return _mergeArray(node, contents, tmplNode, clonedParent);
-			
-			switch(node.type){
-				case dom_TEXTNODE:
-					return _cloneTextNode(node, contents, tmplNode);
-				case dom_NODE:
-				case dom_STATEMENT:
-					return _mergeNode(node, contents, tmplNode, clonedParent);
-				case dom_FRAGMENT:
-					return _mergeFragment(node, contents, tmplNode, clonedParent);
+			var fn;
+			if (is_Array(node)) {
+				fn = _mergeArray;
+			} else {
+				switch(node.type){
+					case dom_TEXTNODE:
+						fn = _cloneTextNode;
+						break;
+					case dom_NODE:
+					case dom_STATEMENT:
+						fn = _mergeNode;
+						break;
+					case dom_FRAGMENT:
+						fn = _mergeFragment;
+						break;
+					case dom_COMPONENT:
+						fn = _mergeComponent;
+						break;
+				}
+			}
+			if (fn !== void 0) {
+				return fn(node, contents, tmplNode, clonedParent);
 			}
 			log_warn('Uknown type', node.type);
 			return null;
@@ -5182,6 +6638,15 @@
 			fragment.parent = clonedParent;
 			fragment.nodes = _mergeArray(frag.nodes, contents, tmplNode, fragment);
 			return fragment;
+		}
+		function _mergeComponent(node, contents, tmplNode, clonedParent) {
+			if (node.nodes == null) 
+				return node;
+			
+			var cloned = new Dom.Component;
+			obj_extend(cloned, node);
+			cloned.nodes = _merge(cloned.nodes, contents, tmplNode, clonedParent);
+			return cloned;
 		}
 		function _mergeNode(node, contents, tmplNode, clonedParent){
 			var tagName = node.tagName;
@@ -5285,16 +6750,22 @@
 		
 		function _cloneNode(node, contents, tmplNode, clonedParent){
 			var tagName = node.tagName || node.compoName;
-			if (':template' === tagName) {
-				var id = interpolate_str_(node.attr.id, contents, tmplNode);
-				Mask.templates.register(id, node.nodes);
-				return null;
+			switch (tagName) {
+				case ':template':
+					var id = interpolate_str_(node.attr.id, contents, tmplNode);
+					Mask.templates.register(id, node.nodes);
+					return null;
+				case ':import':
+					var id = interpolate_str_(node.attr.id, contents, tmplNode),
+						nodes = Mask.templates.resolve(node, id);
+					return _merge(nodes, contents, tmplNode, clonedParent);
+				case 'define':
+				case 'function':
+				case 'var':
+				case 'import':
+					return node;
 			}
-			if (':import' === tagName) {
-				var id = interpolate_str_(node.attr.id, contents, tmplNode),
-					nodes = Mask.templates.resolve(node, id);
-				return _merge(nodes, contents, tmplNode, clonedParent);
-			}
+			
 			var outnode = {
 				type: node.type,
 				tagName: tagName,
@@ -5601,6 +7072,432 @@
 		}
 	}());
 	// end:source /src/feature/optimize.js
+	// source /src/feature/Module.js
+	var Module;
+	(function(){
+		Module = {
+			createModule: function(path, ctr) {
+				var ext = path_getExtension(path);
+				if (ext === '') {
+					ext = 'mask';
+					path += '.mask';
+				}
+				if (path_isRelative(path)) {
+					path = path_combine(trav_getLocation(ctr), path);
+				}
+				
+				path = path_normalize(path);
+				if (_cache[path] != null) 
+					return _cache[path];
+				
+				return (_cache[path] = new (ctor_get(ext))(path));
+			},
+			registerModule: function(path, nodes) {
+				var module;
+				if (Module.isMask(path)) {
+					module = new _MaskModule(path);
+					
+					module.state = 1;
+					module._handle(nodes, function(){
+						module.resolve();
+					});
+				}
+				
+				_cache[path] = module;
+			},
+			createDependency: function(data){
+				return new Dependency(data);
+			},
+			isMask: function(path){
+				var ext = path_getExtension(path);
+				return ext === '' || ext === 'mask';
+			},
+			cfg: function(name, val){
+				_Configs[name](val);
+			},
+			resolveLocation: trav_getLocation,
+			
+		};
+		
+		custom_Tags['module'] = function(node, model, ctx, container, ctr) {
+			var path = path_resolveUrl(node.attr.path, trav_getLocation(ctr));
+			Module.registerModule(path, node.nodes);
+		};
+		
+		var Resolver;
+		(function(){
+			Resolver = function (node, model, ctx, container, ctr) {
+				var name = node.tagName;
+				while(ctr != null) {
+					if (is_Function(ctr.getHandler)) {
+						var x = ctr.getHandler(name);
+						if (x != null) 
+							return x;
+					}
+					ctr = ctr.parent;
+				}
+				log_error('Imported component not found:', name);
+				return null;
+			};
+		}());
+		var Dependency = class_create({
+			constructor: function(data){
+				this.path = data.path;
+				this.exports = data.exports;
+				this.alias = data.alias;
+				if (Module.isMask(this.path) === true) {
+					this.eachExport(function(name, alias){
+						var compoName = alias || name;
+						if (compoName === '*') 
+							return;
+						
+						var current = mask.getHandler(compoName);
+						if (current && current !== Resolver) {
+							throw Error('Component was already registered before:' + compoName);
+						}
+						mask.registerHandler(compoName, Resolver);
+					});
+				}
+			},
+			eachExport: function(fn){
+				var alias = this.alias;
+				if (alias != null) {
+					fn('*', alias);
+				}
+				var exports = this.exports;
+				if (exports != null) {
+					var imax = exports.length,
+						i = -1, x;
+					while(++i < imax) {
+						x = exports[i];
+						fn(x.name, x.alias);
+					}
+				}
+			},
+			load: function(owner, cb){
+				var self = this;
+				this.module = Module.createModule(this.path, owner);
+				this.module
+					.load()
+					.fail(cb)
+					.done(function(module){
+						self.eachExport(function(name, alias){
+							self.module.register(owner, name, alias);
+						});
+						cb(null, self);
+					});
+			},
+			getEmbeddableNodes: function(){
+				var module = this.module;
+				if (module == null || module.type !== 'mask') {
+					return null;
+				}
+				if (this.alias != null || this.exports != null) 
+					return null;
+				
+				return module.nodes || module._erroredExport();
+			}
+		});
+		var _Module = class_create(class_Dfr, {
+			type: null,
+			path: null,
+			location: null,
+			exports: null,
+			state: 0,
+			constructor: function(path) {
+				this.path = path;
+				this.location = path_getDir(path);
+			},
+			load: function(){
+				if (this.state === 0) {
+					this.state = 1;
+					
+					var self = this;
+					this
+						._load(this.path)
+						.fail(function(err){
+							self.reject(self.error = err);
+						})
+						.done(function(mix){
+							self._preproc(mix, function(exports){
+								self.exports = exports;
+								self.resolve(self);
+							});
+						})
+				}
+				return this;
+			},
+			get: function(name, model, ctr) {
+				if (this.exports == null) 
+					return this._erroredExport();
+				if ('*' === name) 
+					return this.exports;
+				
+				return this._get(name, model, ctr);
+			},
+			getHandler: fn_doNothing,
+			register: null,
+			
+			_preproc: function(mix, next){
+				next(mix);
+			},
+			_load: null,
+			_get: null,
+			_erroredExport: fn_doNothing
+		});
+		
+		
+		var _cache = {},
+			_base;
+		
+		var _Configs = {
+			base: function(path){
+				_base = path;
+			}
+		};
+		
+		var _MaskModule = class_create(_Module, {
+			_load: file_get,
+			_handle: function(ast, next){
+				this.imports = [];
+				this.defines = {};
+				this.exports = [];
+				this.nodes = ast;
+				
+				var imports = this.imports,
+					nodes 	= this.exports,
+					defines = this.defines,
+					type = ast.type,
+					arr = ast;
+					
+				if (type === Dom.FRAGMENT) {
+					arr = ast.nodes;
+				} else if (type != null) {
+					arr = [ ast ];
+				}
+				
+				var imax = arr.length,
+					i = -1, x, name;
+				while( ++i < imax ){
+					x = arr[i];
+					name = x.tagName;
+					if ('define' === name) {
+						defines[x.name] = Define.create(x);
+						continue;
+					}
+					if ('import' === name) {
+						imports.push(x.dependency);
+						continue;
+					}
+					
+					if ('module' === name) {
+						var path = path_resolveUrl(x.attr.path, this.location);
+						Module.registerModule(path, x.nodes);
+						continue;
+					}
+					
+					nodes.push(x);
+				}
+				imax = imports.length;
+				i = -1;
+				var count = imports.length;
+				var await = function(){
+					if (--count > 0) 
+						return;
+					next(nodes);
+				};
+				
+				if (count === 0) {
+					await();
+					return;
+				}
+				
+				while( ++i < imax ) {
+					this.imports[i].load(this, await);
+				}
+			},
+			_preproc: function(str, next) {
+				this._handle(
+					parser_parse(str), next
+				);
+			},
+			_get: function(name, model, ctr){
+				var node = this.defines[name];
+				if (node != null) {
+					return new Dom.Component(name, ctr, node);
+				}
+				var node = jmask(this.exports).filter(name).get(0);
+				if (node == null) {
+					log_error('Export not found', name);
+					return log_errorNode(
+						'Error: Export not found; ' + name
+					);
+				}
+				return node;
+			},
+			_erroredExport: function(message){
+				var msg = (message || '') + '; Resource: ' + this.path;
+				if (this.error) {
+					msg += '; Status: ' + this.error.status;
+				}
+				return log_errorNode(msg);
+			},
+			register: function(ctr, name, alias){
+				var self = this;
+				var compoName = alias || name;
+				var compo = {
+					resource: {
+						location: this.location
+					},
+					getHandler: this.getHandler.bind(this),
+					nodes: this.get(name, null, ctr)
+				};
+				ctr.getHandler = mask_getHandlerDelegate(
+					compoName
+					, compo
+					, ctr.getHandler
+				);
+			},
+			//getHandler: function(name){
+			//	var imax = this.imports.length,
+			//		i = -1, x;
+			//	while (++i < imax) {
+			//		
+			//		x = this.imports[i].getHandler(name);
+			//		if (x != null) 
+			//			return x;
+			//	}
+			//	return null;
+			//},
+			type: 'mask',
+			nodes: null,
+			modules: null,
+			defines: null
+		});
+		var _ScriptModule = class_create(_Module, {
+			_load: function(path){
+				var fn = __cfg.getScript || file_getScript;
+				return fn(path);
+			},
+			_get: function(name) {
+				return obj_getProperty(this.exports || {}, name);
+			},
+			register: function(ctr, name, alias) {
+				var prop = alias || name;
+				var obj = this.get(name);
+				if (obj == null) {
+					log_error('Property is undefined', name);
+					return;
+				}
+				if (ctr.scope == null) {
+					ctr.scope = {};
+				}
+				obj_setProperty(ctr.scope, prop, obj);
+			},
+			type: 'js'
+		});
+		
+		function ctor_get(ext) {
+			if ('mask' === ext) 
+				return _MaskModule;
+			
+			return _ScriptModule;
+		}
+		function trav_getLocation(ctr) {
+			while(ctr != null) {
+				if (ctr.location) {
+					return ctr.location;
+				}
+				if (ctr.resource && ctr.resource.location) {
+					return ctr.resource.location;
+				}
+				ctr = ctr.parent;
+			}
+			return _base || path_resolveCurrent();
+		}
+		function mask_getHandlerDelegate(compoName, compo, next) {
+			return function(name) {
+				if (name === compoName) 
+					return compo;
+				if (next != null) 
+					return next(name);
+				
+				return null;
+			}
+		}
+	}());
+	// end:source /src/feature/Module.js
+	// source /src/feature/Define.js
+	var Define;
+	(function(){
+		Define = {
+			create: function(node, model, ctr){
+				return compo_fromNode(node, model, ctr);
+			}
+		};
+		
+		function compo_prototype(nodes) {
+			var Proto = {
+				template: nodes,
+				meta: {
+					template: 'merge'
+				},
+				renderStart: function(){
+					Compo.prototype.renderStart.apply(this, arguments);
+					if (this.nodes === this.template) {
+						this.nodes = mask.merge(this.nodes, [], this);
+					}
+				}
+			};
+			var imax = nodes.length,
+				i = 0, x;
+			for(; i<imax; i++) {
+				x = nodes[i];
+				if (x.tagName === 'function') {
+					Proto[x.name] = x.fn;
+					x.render = null;
+				}
+			}
+			return Proto;
+		}
+		function compo_extends(extends_, model, ctr) {
+			var args = [];
+			if (extends_ == null) 
+				return args;
+			
+			var imax = extends_.length,
+				i = -1,
+				await = 0, x;
+			while( ++i < imax ){
+				x = extends_[i];
+				if (x.compo) {
+					var compo = custom_Tags[x.compo];
+					if (compo != null) {
+						args.unshift(compo);
+						continue;
+					}
+					var obj = ExpressionUtil.eval(x.compo, model, null, ctr);
+					if (obj != null) {
+						args.unshift(obj);
+						continue;
+					}
+					log_error('Nor component, nor scoped data is resolved:', x.compo);
+					continue;
+				}
+			}
+			return args;
+		}
+		function compo_fromNode(node, model, ctr) {
+			var name = node.name,
+				Proto = compo_prototype(node.nodes),
+				args = compo_extends(node['extends'], model, ctr)
+				;
+			
+			args.push(Proto);
+			return Compo.apply(null, args);
+		}
+	}());
+	// end:source /src/feature/Define.js
 	// source /src/feature/TreeWalker.js
 	var mask_TreeWalker;
 	(function(){
@@ -5847,6 +7744,24 @@
 				
 				return builder_build(template, model, ctx, container, controller);
 			},
+			
+			renderAsync: function(template, model, ctx, container, ctr) {
+				if (ctx == null) {
+					ctx = {};
+				}
+				var dom = mask.render(template, model, ctx, container, ctr),
+					dfr = new class_Dfr;
+				
+				if (ctx.async === true) {
+					ctx.done(function(){
+						dfr.resolve(dom);
+					});
+				} else {
+					dfr.resolve(dom);
+				}
+				
+				return dfr;
+			},
 	
 			/* deprecated, renamed to parse */
 			compile: parser_parse,
@@ -5858,7 +7773,7 @@
 			 * Create MaskDOM from Mask markup
 			 **/
 			parse: parser_parse,
-	
+			stringify: mask_stringify,
 			build: builder_build,
 			
 			/*
@@ -6076,10 +7991,17 @@
 				Function: is_Function,
 				String: is_String,
 				ArrayLike: is_ArrayLike,
+				Array: is_ArrayLike,
+				Object: is_Object
 			},
 			
 			'class': {
-				create: class_create
+				create: class_create,
+				Deferred: class_Dfr
+			},
+			
+			parser: {
+				ObjectLexer: parser_ObjectLexer
 			},
 			
 			on: listeners_on,
@@ -6141,222 +8063,7 @@
 	
 	// end:source /src/mask.js
 	
-	// source /src/formatter/stringify.lib.js
-	(function(mask){
 	
-	
-		// source stringify.js
-		
-		var mask_stringify;
-		
-		(function() {
-			
-				
-			//settings (Number | Object) - Indention Number (0 - for minification)
-			mask_stringify = function(input, settings) {
-				if (input == null) 
-					return '';
-				
-				if (typeof input === 'string') 
-					input = mask.parse(input);
-				
-				if (settings == null) {
-					_indent = 0;
-					_minimize = true;
-				} else  if (typeof settings === 'number'){
-					_indent = settings;
-					_minimize = _indent === 0;
-				} else{
-					_indent = settings && settings.indent || 4;
-					_minimize = _indent === 0 || settings && settings.minimizeAttributes;
-				}
-		
-				return run(input);
-			};
-		
-		
-			var _minimize,
-				_indent,
-				Dom = mask.Dom;
-		
-			function doindent(count) {
-				var output = '';
-				while (count--) {
-					output += ' ';
-				}
-				return output;
-			}
-		
-		
-		
-			function run(node, indent, output) {
-				var outer, i;
-				
-				if (indent == null) 
-					indent = 0;
-					
-				if (output == null) {
-					outer = true;
-					output = [];
-				}
-		
-				var index = output.length;
-				if (node.type === Dom.FRAGMENT)
-					node = node.nodes;
-				
-				if (node instanceof Array) {
-					for (i = 0; i < node.length; i++) {
-						processNode(node[i], indent, output);
-					}
-				} else {
-					processNode(node, indent, output);
-				}
-		
-		
-				var spaces = doindent(indent);
-				for (i = index; i < output.length; i++) {
-					output[i] = spaces + output[i];
-				}
-		
-				if (outer) 
-					return output.join(_indent === 0 ? '' : '\n');
-			}
-		
-			function processNode(node, currentIndent, output) {
-				if (typeof node.stringify === 'function') {
-					output.push(node.stringify(_minimize));
-					return;
-				}
-				if (typeof node.content === 'string') {
-					output.push(wrapString(node.content));
-					return;
-				}
-		
-				if (typeof node.content === 'function'){
-					output.push(wrapString(node.content()));
-					return;
-				}
-		
-				if (isEmpty(node)) {
-					output.push(processNodeHead(node) + ';');
-					return;
-				}
-		
-				if (isSingle(node)) {
-					var next = _minimize ? '>' : ' > ';
-					output.push(processNodeHead(node) + next);
-					run(getSingle(node), _indent, output);
-					return;
-				}
-		
-				output.push(processNodeHead(node) + '{');
-				run(node.nodes, _indent, output);
-				output.push('}');
-				return;
-			}
-		
-			function processNodeHead(node) {
-				var tagName = node.tagName,
-					_id, _class;
-		
-				if (node.attr != null) {
-					_id = node.attr.id || '',
-					_class = node.attr['class'] || '';
-				}
-		
-		
-				if (typeof _id === 'function')
-					_id = _id();
-				
-				if (typeof _class === 'function')
-					_class = _class();
-				
-		
-				if (_id) {
-					_id = _id.indexOf(' ') !== -1
-						? ''
-						: '#' + _id
-						;
-				}
-		
-				if (_class) 
-					_class = '.' + _class.split(' ').join('.');
-				
-		
-				var attr = '';
-				for (var key in node.attr) {
-					if (key === 'id' || key === 'class') {
-						// the properties was not deleted as this template can be used later
-						continue;
-					}
-					var value = node.attr[key];
-		
-					if (typeof value === 'function')
-						value = value();
-					
-		
-					if (key !== value && (_minimize === false || /[^\w_$\-\.]/.test(value)))
-						value = wrapString(value);
-					
-		
-					attr += ' ' + key;
-					
-					if (key !== value)
-						attr += '=' + value;
-				}
-		
-				if (tagName === 'div' && (_id || _class)) 
-					tagName = '';
-				
-				var expr = '';
-				if (node.expression) 
-					expr = '(' + node.expression + ')';
-					
-				return tagName
-					+ _id
-					+ _class
-					+ attr
-					+ expr;
-			}
-		
-		
-			function isEmpty(node) {
-				return node.nodes == null || (node.nodes instanceof Array && node.nodes.length === 0);
-			}
-		
-			function isSingle(node) {
-				return node.nodes && (node.nodes instanceof Array === false || node.nodes.length === 1);
-			}
-		
-			function getSingle(node) {
-				if (node.nodes instanceof Array) 
-					return node.nodes[0];
-				
-				return node.nodes;
-			}
-		
-			function wrapString(str) {
-				
-				if (str.indexOf("'") === -1) 
-					return "'" + str.trim() + "'";
-				
-				if (str.indexOf('"') === -1) 
-					return '"' + str.trim() + '"';
-				
-		
-				return '"' + str.replace(/"/g, '\\"').trim() + '"';
-			}
-		
-		
-		}());
-		
-		// end:source stringify.js
-	
-		mask.stringify = mask_stringify;
-	
-	}(Mask));
-	
-	// end:source /src/formatter/stringify.lib.js
 
 	/*** Libraries ***/
 	// source /ref-mask-compo/lib/compo.embed.js
@@ -6587,25 +8294,25 @@
 			
 		(function(){
 		
-			dom_addEventListener = function(element, event, listener) {
+			dom_addEventListener = function(el, event, fn, param, ctr) {
 			
-				if (TouchHandler.supports(event) === true) {
-					TouchHandler.on(element, event, listener);
+				if (TouchHandler.supports(event)) {
+					TouchHandler.on(el, event, fn);
 					return;
 				}
-				
-				
+				if (KeyboardHandler.supports(event, param)) {
+					KeyboardHandler.attach(el, event, param, fn, ctr);
+					return;
+				}
 				// allows custom events - in x-signal, for example
 				if (domLib != null) 
-					return domLib(element).on(event, listener);
-					
+					return domLib(el).on(event, fn);
 				
-				if (element.addEventListener != null) 
-					return element.addEventListener(event, listener, false);
+				if (el.addEventListener != null) 
+					return el.addEventListener(event, fn, false);
 				
-				if (element.attachEvent) 
-					element.attachEvent('on' + event, listener);
-				
+				if (el.attachEvent) 
+					el.attachEvent('on' + event, fn);
 			};
 		
 			node_tryDispose = function(node){
@@ -7079,7 +8786,6 @@
 		(function(mask_merge){
 			
 			compo_inherit = function(Proto, Extends){
-				
 				var imax = Extends.length,
 					i = imax,
 					ctors = [],
@@ -7096,7 +8802,6 @@
 						ctors.push(x);
 						x = x.prototype;
 					}
-					
 					inherit_(Proto, x, 'node');
 				}
 				
@@ -7107,8 +8812,13 @@
 						ctors.unshift(Proto.constructor);
 					
 					Proto.constructor = joinFns_(ctors);
-					
 				}
+				var meta = Proto.meta;
+				if (meta == null) 
+					meta = Proto.meta = {};
+				
+				if (meta.template == null) 
+					meta.template = 'merge';
 			};
 			
 			function inherit_(target, source, name){
@@ -7118,10 +8828,12 @@
 				if ('node' === name) {
 					var targetNodes = target.template || target.nodes,
 						sourceNodes = source.template || source.nodes;
-					if (targetNodes == null || sourceNodes == null) {
-						target.template = targetNodes || sourceNodes;
-					} else {
-						target.nodes = mask.merge(sourceNodes, targetNodes, target);
+					target.template = targetNodes == null || sourceNodes == null
+						? (targetNodes || sourceNodes)
+						: (mask.merge(sourceNodes, targetNodes, target));
+					
+					if (target.nodes != null) {
+						target.nodes = target.template;
 					}
 				}
 				
@@ -7677,15 +9389,34 @@
 		(function(){
 			
 			// source ./utils.js
-			function event_bind(el, type, mix){
-				el.addEventListener(type, mix, false);
-			}
-			function event_unbind(el, type, mix) {
-				el.removeEventListener(type, mix, false);
-			}
+			var event_bind,
+				event_unbind,
+				event_getCode;
+			(function(){
+				
+				event_bind = function (el, type, mix){
+					el.addEventListener(type, mix, false);
+				};
+				event_unbind = function (el, type, mix) {
+					el.removeEventListener(type, mix, false);
+				};	
+				
+				event_getCode = function(event){
+					var code = event.keyCode || event.which;
+					
+					if (code >= 96 && code <= 105) {
+						// numpad digits
+						return code - 48;
+					}
+					
+					return code;
+				};
+				
+			}());
+			
 			// end:source ./utils.js
-			// source ./codes.js
-			var CODES, SHIFT_NUMS;
+			// source ./const.js
+			var CODES, SHIFT_NUMS, MODS;
 			
 			CODES = {
 				"backspace": 8,
@@ -7771,7 +9502,58 @@
 			  "/": "?",
 			  "\\": "|"
 			};
-			// end:source ./codes.js
+			
+			MODS = {
+				'16': 'shiftKey',
+				'17': 'ctrlKey',
+				'18': 'altKey',
+			};
+			// end:source ./const.js
+			// source ./filters.js
+			var filter_isKeyboardInput,
+				filter_skippedInput,
+				filter_skippedComponent,
+				filter_skippedElement;
+			(function(){
+				filter_skippedInput = function(event, code){
+					if (event.ctrlKey || event.altKey) 
+						return false;
+					return filter_isKeyboardInput(event.target);
+				};
+				
+				filter_skippedComponent = function(compo){
+					if (compo.$ == null || compo.$.length === 0) {
+						return false;
+					}
+					return filter_skippedElement(compo.$.get(0));
+				};
+				filter_skippedElement = function(el) {
+					if (document.contains(el) === false) 
+						return false;
+					
+					if (el.style.display === 'none')
+						return false;
+					
+					var disabled = el.disabled;
+					if (disabled === true) 
+						return false;
+					
+					return true;
+				};
+				filter_isKeyboardInput = function (el) {
+					var tag = el.tagName;
+					if ('TEXTAREA' === tag) {
+						return true;
+					}
+					if ('INPUT' !== tag) {
+						return false;
+					}
+					return TYPELESS_INPUT.indexOf(' ' + el.type + ' ') === -1;
+				};
+				
+				var TYPELESS_INPUT = ' button submit checkbox file hidden image radio range reset ';
+			}());
+			// end:source ./filters.js
 			// source ./Hotkey.js
 			var Hotkey;
 			(function(){
@@ -7779,20 +9561,19 @@
 					on: function(combDef, fn, compo) {
 						if (handler == null) init();
 						
-						var codes = IComb.parse(combDef);
-						var comb = Key.create(codes);
-						if (comb == null) {
-							comb = new Comb(codes)
-						}
-						
-						comb.init('keydown', fn, compo);
+						var comb = IComb.create(
+							combDef
+							, 'keydown'
+							, fn
+							, compo
+						);
 						handler.attach(comb);
 					},
 					off: function(fn){
 						handler.off(fn);
 					},
 					handleEvent: function(event){
-						handler.handle(event.type, event.which, event);
+						handler.handle(event.type, event_getCode(event), event);
 					},
 					reset: function(){
 						handler.reset();
@@ -7810,11 +9591,11 @@
 			// source ./IComb.js
 			var IComb;
 			(function(){
-				IComb = function(codes){
-					this.codes = codes;
+				IComb = function(set){
+					this.set = set;
 				};
 				IComb.parse = function (str) {
-					var parts = combination.split(','),
+					var parts = str.split(','),
 						combs = [],
 						imax = parts.length,
 						i = 0;
@@ -7823,16 +9604,26 @@
 					}
 					return combs;
 				};
+				IComb.create = function (def, type, fn, ctx) {
+					var codes = IComb.parse(def);
+					var comb = Key.create(codes);
+					if (comb == null) {
+						comb = new KeySequance(codes)
+					}
+					comb.init(type, fn, ctx);
+					return comb;
+				};
 				IComb.prototype = {
-					codes: null,
 					type: null,
 					ctx: null,
+					set: null,
 					fn: null,
 					init: function(type, fn, ctx){
 						this.type = type;
 						this.ctx = ctx;
 						this.fn = fn;
-					}
+					},
+					tryCall: null
 				};
 				
 				function parseSingle(str) {
@@ -7851,123 +9642,116 @@
 						}
 						out[i] = code;
 					}
-					return out.sort();
+					return {
+						last: out[imax - 1],
+						keys: out.sort()
+					};
 				}
 			}());
 			// end:source ./IComb.js
 			// source ./Key.js
 			var Key;
 			(function(){
-				Key = function(key, mods, type, fn, ctx){
-					this.type = type;
-					this.mods = mods;
-					this.key = key;
-					this.ctx = ctx;
-					this.fn = fn;
-				};
-				
-				Key.prototype = {
-					complexity: 'key',
-					type: null,
-					mods: null,
-					key: null,
-					ctx: null,
-					fn: null,
-					tryCall: function(event){
-						if (event.type !== this.type || event.which !== this.key) {
-							return Comb_MATCH_FAIL;
+				Key = class_create(IComb, {
+					constructor: function(set, key, mods){
+						this.key = key;
+						this.mods = mods;
+					},
+					tryCall: function(event, codes, lastCode){
+						if (event.type !== this.type || lastCode !== this.key) {
+							return Key_MATCH_FAIL;
 						}
-						if (this.mods) {
-							for (var key in this.mods){
-								if (event[key] !== this.mods) 
-									return Comb_MATCH_FAIL;
-							}
+						
+						for (var key in this.mods){
+							if (event[key] !== this.mods[key]) 
+								return Key_MATCH_FAIL;
 						}
+						
 						this.fn.call(this.ctx, event);
+						return Key_MATCH_OK;
 					}
+				});
+				
+				Key.create = function(set){
+					if (set.length !== 1) 
+						return null;
+					var keys = set[0].keys,
+						i = keys.length,
+						mods = {
+							shiftKey: false,
+							ctrlKey: false,
+							altKey: false
+						};
+					
+					var key, mod, hasMod;
+					while(--i > -1){
+						if (MODS.hasOwnProperty(keys[i]) === false) {
+							if (key != null) 
+								return null;
+							key = keys[i];
+							continue;
+						}
+						mods[MODS[keys[i]]] = true;
+						hasMod = true;
+					}
+					return new Key(set, key, mods);
 				};
 				
 			}());
 			// end:source ./Key.js
-			// source ./KeyComb.js
-			var Comb,
-				Comb_MATCH_OK = 1,
-				Comb_MATCH_FAIL = 2,
-				Comb_MATCH_WAIT = 3,
-				Comb_MATCH_NEXT = 4;
+			// source ./KeySequance.js
+			var KeySequance,
+				Key_MATCH_OK = 1,
+				Key_MATCH_FAIL = 2,
+				Key_MATCH_WAIT = 3,
+				Key_MATCH_NEXT = 4;
 			
 			(function(){
-				Comb = function(combination, type, fn, ctx){
-					this.fn = fn;
-					this.ctx = ctx;
-					this.type = type;
-					this.parts = [];
-					this.index = 0;
-					var combs = combination.split(','),
-						imax = combs.length,
-						i = 0;
-					for(; i < imax; i++){
-						this.parts[i] = parse(combs[i]);
-					}
-				};
-				Comb.prototype = {
-					complexity: 'comb',
-					tryCall: function(event, codes){
-						console.log('try Call', this.parts, codes, event.metaKey, event.key);
-						var matched = this.check_(codes, event.which);
-						if (matched === Comb_MATCH_OK) {
+				KeySequance = class_create(IComb, {
+					index: 0,
+					tryCall: function(event, codes, lastCode){
+						var matched = this.check_(codes, lastCode);
+						if (matched === Key_MATCH_OK) {
 							this.index = 0;
 							this.fn.call(this.ctx, event);
-							event.preventDefault();
 						}
 						return matched;
 					},
 					fail_: function(){
 						this.index = 0;
-						return Comb_MATCH_FAIL;
+						return Key_MATCH_FAIL;
 					},
 					check_: function(codes, lastCode){
-						var current = this.parts[this.index];
+						var current = this.set[this.index],
+							keys = current.keys,
+							last = current.last;
+					
 						var l = codes.length;
-						if (l < current.length) 
-							return Comb_MATCH_WAIT;
-						if (l > current.length) 
+						if (l < keys.length) 
+							return Key_MATCH_WAIT;
+						if (l > keys.length) 
 							return this.fail_();
 						
+						if (last !== lastCode) {
+							return this.fail_();
+						}
 						while (--l > -1) {
-							if (current[l] !== codes[l]) 
+							if (keys[l] !== codes[l]) 
 								return this.fail_();
 						}
-						if (this.index < this.parts.length - 1) {
+						if (this.index < this.set.length - 1) {
 							this.index++;
-							return Comb_MATCH_NEXT;
+							return Key_MATCH_NEXT;
 						}
 						this.index = 0;
-						return Comb_MATCH_OK;
+						return Key_MATCH_OK;
 					}
-				};
-				function parse(str) {
-					var keys = str.split('+'),
-						imax = keys.length,
-						i = 0,
-						out = [], x, code;
-					for(; i < imax; i++){
-						x = keys[i].trim();
-						code = CODES[x];
-						if (code === void 0) {
-							if (x.length !== 1) 
-								throw Error('Unexpected sequence. Use `+` sign to define the sequence:' + x)
-							
-							code = x.toUpperCase().charCodeAt(0);
-						}
-						out[i] = code;
-					}
-					return out.sort();
-				}
+				});
+				
 			}());
 			
 			
-			// end:source ./KeyComb.js
+			// end:source ./KeySequance.js
 			// source ./CombHandler.js
 			var CombHandler;
 			(function(){
@@ -7996,18 +9780,29 @@
 						if (this.combs.length === 0) {
 							return;
 						}
+						if (this.filter_(event, code)) {
+							return;
+						}
 						if (type === 'keydown') {
-							if (this.add(code)) {
-								this.emit(type, event);
+							if (this.add_(code)) {
+								this.emit_(type, event, code);
 							}
 							return;
 						}
 						if (type === 'keyup') {
-							this.emit(type, event);
-							this.remove(code);
+							this.emit_(type, event, code);
+							this.remove_(code);
 						}
 					},
-					add: function(code){
+					handleEvent: function(event){
+						var code = event_getCode(event),
+							type = event.type;
+						this.handle(type, code, event);
+					},
+					reset: function(){
+						this.keys.length = 0;
+					},
+					add_: function(code){
 						var imax = this.keys.length,
 							i = 0, x;
 						for(; i < imax; i++){
@@ -8023,7 +9818,7 @@
 						this.keys.push(code);
 						return true;
 					},
-					remove: function(code){
+					remove_: function(code){
 						var i = this.keys.length;
 						while(--i > -1){
 							if (this.keys[i] === code) {
@@ -8032,7 +9827,7 @@
 							}
 						}
 					},
-					emit: function(type, event){
+					emit_: function(type, event, lastCode){
 						var next = false,
 							combs = this.combs,
 							imax = combs.length,
@@ -8042,8 +9837,11 @@
 							if (x.type !== type) 
 								continue;
 							
-							stat = x.tryCall(event, this.keys);
-							if (stat === Comb_MATCH_WAIT || stat === Comb_MATCH_NEXT) {
+							stat = x.tryCall(event, this.keys, lastCode);
+							if (Key_MATCH_OK === stat || stat === Key_MATCH_NEXT) {
+								event.preventDefault();
+							}
+							if (stat === Key_MATCH_WAIT || stat === Key_MATCH_NEXT) {
 								next = true;
 							}
 						}
@@ -8051,18 +9849,47 @@
 							//-this.keys.length = 0;
 						}
 					},
-					reset: function(){
-						this.keys.length = 0;
+					filter_: function(event, code){
+						return filter_skippedInput(event, code);
 					}
 				};
 			}());
 			// end:source ./CombHandler.js
 			
 			KeyboardHandler = {
-				on: function(comb, fn, ctx){
-					if (ctx == null || ctx === document || ctx === document.body || ctx === window) {
-						Hotkey.on(comb, fn);
+				supports: function(event, param){
+					if (param == null) 
+						return false;
+					switch(event){
+						case 'press':
+						case 'keypress':
+						case 'keydown':
+						case 'keyup':
+						case 'hotkey':
+						case 'shortcut':
+							return true;
 					}
+					return false;
+				},
+				on: function(el, type, def, fn){
+					if (type === 'keypress' || type === 'press') {
+						type = 'keydown';
+					}
+					var comb = IComb.create(def, type, fn);
+					if (comb instanceof Key) {
+						event_bind(el, type, function (event) {
+							var code = event_getCode(event);
+							var r = comb.tryCall(event, null, code);
+							if (r === Key_MATCH_OK) 
+								event.preventDefault();
+						});
+						return;
+					}
+					
+					var handler = new CombHandler;
+					event_bind(el, 'keydown', handler);
+					event_bind(el, 'keyup', handler);
+					handler.attach(comb);
 				},
 				hotkeys: function(compo, hotkeys){
 					var fns = [], fn, comb;
@@ -8076,6 +9903,24 @@
 							Hotkey.off(hotkeys[comb]);
 						}
 					});
+				},
+				attach: function(el, type, comb, fn, ctr){
+					if (filter_isKeyboardInput(el)) {
+						this.on(el, type, comb, fn);
+					}
+					var x = ctr;
+					while(x && x.slots == null) {
+						x = x.parent;
+					}
+					if (x == null) {
+						log_error('Slot-component not found:', comb);
+						return;
+					}
+					var hotkeys = x.hotkeys;
+					if (hotkeys == null) {
+						hotkeys = x.hotkeys = {};
+					}
+					hotkeys[comb] = fn;
 				}
 			};
 		}());
@@ -8448,10 +10293,10 @@
 					return compo;
 				},
 			
-				initialize: function(compo, model, ctx, container, parent) {
+				initialize: function(mix, model, ctx, container, parent) {
+					if (mix == null)
+						throw Error('Undefined is not a component');
 					
-					var compoName;
-			
 					if (container == null){
 						if (ctx && ctx.nodeType != null){
 							container = ctx;
@@ -8461,38 +10306,45 @@
 							model = null;
 						}
 					}
-			
-					if (typeof compo === 'string'){
-						compoName = compo;
-						
-						compo = mask.getHandler(compoName);
-						if (!compo){
-							log_error('Compo not found:', compo);
+					var node;
+					function createNode(compo) {
+						node = {
+							controller: compo,
+							type: Dom.COMPONENT
+						};
+					}
+					if (typeof mix === 'string'){
+						if (/^[^\s]+$/.test(mix)) {
+							var compo = mask.getHandler(mix);
+							if (compo == null)
+								throw Error('Component not found: ' + mix);
+							
+							createNode(compo);
+						} else {
+							createNode(Compo({
+								template: mix
+							}));
 						}
 					}
-			
-					var node = {
-						controller: compo,
-						type: Dom.COMPONENT,
-						tagName: compoName
-					};
-			
-					if (parent == null && container != null)
+					else if (typeof mix === 'function') {
+						createNode(mix);
+					}
+					
+					if (parent == null && container != null) {
 						parent = Anchor.resolveCompo(container);
+					}
+					if (parent == null){
+						parent = new Compo();
+					}
 					
-					if (parent == null)
-						parent = new Dom.Component();
-					
-			
 					var dom = mask.render(node, model, ctx, null, parent),
 						instance = parent.components[parent.components.length - 1];
 			
 					if (container != null){
 						container.appendChild(dom);
-			
 						Compo.signal.emitIn(instance, 'domInsert');
 					}
-			
+					
 					return instance;
 				},
 			
@@ -8932,258 +10784,285 @@
 		}());
 		
 		// end:source /src/compo/Compo.js
-		// source /src/compo/signals.js
-		(function() {
-			/**
-			 *	Mask Custom Attribute
-			 *	Bind Closest Controller Handler Function to dom event(s)
-			 */
-			mask.registerAttrHandler(
-				'x-signal'
-				, 'client'
-				, function(node, attrValue, model, ctx, el, ctr) {
 		
-				var arr = attrValue.split(';'),
-					signals = '',
-					imax = arr.length,
-					i = -1,
-					x;
-				
-				while ( ++i < imax ) {
-					x = arr[i].trim();
-					if (x === '') 
-						continue;
-					
-					var i_colon = x.indexOf(':'),
-						event = x.substring(0, i_colon),
-						handler = x.substring(i_colon + 1).trim(),
-						Handler = _createListener(ctr, handler)
-						;
-		
-					// if DEBUG
-					!event && log_error('Signal: event type is not set', attrValue);
-					// endif
-		
-					if (Handler) {
-		
-						signals += ',' + handler + ',';
-						dom_addEventListener(el, event, Handler);
-					}
-		
-					// if DEBUG
-					!Handler && log_warn('No slot found for signal', handler, ctr);
-					// endif
-				}
-				
-				if (signals !== '') 
-					el.setAttribute('data-signals', signals);
-			});
+		// source /src/signal/exports.js
+		(function(){
 			
-			_createAttr('click');
-			_createAttr('change');
-			_createAttr('keypress');
-			_createAttr('keydown');
-			_createAttr('keyup');
-			_createAttr('mousedown');
-			_createAttr('mouseup');
-			_createAttr('tap', 'click');
-			function _createAttr (type, event) {
-				mask.registerAttrHandler('x-' + type
-					, 'client'
-					, _addSignalDelegate(event || type)
-				);
-			}
-			
-			function _addSignalDelegate(type) {
-				return function(node, attrValue, model, ctx, el, ctr){
-					_bind(el, type, attrValue.trim(), ctr);
-				};
-			}
-			function _bind(el, event, handler, ctr) {
-				var Handler = _createListener(ctr, handler);
-				if (Handler == null) {
-					log_warn('No slot found for signal', handler, ctr);
-					return;
-				}
-				dom_addEventListener(el, event, Handler);
-			}
-			
-			// @param sender - event if sent from DOM Event or CONTROLLER instance
-			function _fire(controller, slot, sender, args, direction) {
+			// source ./utils.js
+			var _hasSlot,
+				_fire;
 				
-				if (controller == null) 
-					return false;
-				
-				var found = false,
-					fn = controller.slots != null && controller.slots[slot];
+			(function(){
+				// @param sender - event if sent from DOM Event or CONTROLLER instance
+				_fire = function (ctr, slot, sender, args, direction) {
+					if (ctr == null) 
+						return false;
 					
-				if (typeof fn === 'string') 
-					fn = controller[fn];
-				
-				if (typeof fn === 'function') {
-					found = true;
-					
-					var isDisabled = controller.slots.__disabled != null && controller.slots.__disabled[slot];
-		
-					if (isDisabled !== true) {
-		
-						var result = args == null
-								? fn.call(controller, sender)
-								: fn.apply(controller, [sender].concat(args));
-		
-						if (result === false) {
-							return true;
-						}
+					var found = false,
+						fn = ctr.slots != null && ctr.slots[slot];
 						
-						if (result != null && typeof result === 'object' && result.length != null) {
-							args = result;
-						}
-					}
-				}
-		
-				if (direction === -1 && controller.parent != null) {
-					return _fire(controller.parent, slot, sender, args, direction) || found;
-				}
-		
-				if (direction === 1 && controller.components != null) {
-					var compos = controller.components,
-						imax = compos.length,
-						i = 0,
-						r;
-					for (; i < imax; i++) {
-						r = _fire(compos[i], slot, sender, args, direction);
+					if (typeof fn === 'string') 
+						fn = ctr[fn];
+					
+					if (typeof fn === 'function') {
+						found = true;
 						
-						!found && (found = r);
-					}
-				}
-				
-				return found;
-			}
-		
-			function _hasSlot(controller, slot, direction, isActive) {
-				if (controller == null) {
-					return false;
-				}
-		
-				var slots = controller.slots;
-		
-				if (slots != null && slots[slot] != null) {
-					if (typeof slots[slot] === 'string') {
-						slots[slot] = controller[slots[slot]];
-					}
-		
-					if (typeof slots[slot] === 'function') {
-						if (isActive === true) {
-							if (slots.__disabled == null || slots.__disabled[slot] !== true) {
+						var isDisabled = ctr.slots.__disabled != null && ctr.slots.__disabled[slot];
+						if (isDisabled !== true) {
+			
+							var result = args == null
+								? fn.call(ctr, sender)
+								: fn.apply(ctr, [ sender ].concat(args));
+			
+							if (result === false) {
 								return true;
 							}
-						} else {
-							return true;
+							if (result != null && typeof result === 'object' && result.length != null) {
+								args = result;
+							}
 						}
 					}
-				}
-		
-				if (direction === -1 && controller.parent != null) {
-					return _hasSlot(controller.parent, slot, direction);
-				}
-		
-				if (direction === 1 && controller.components != null) {
-					for (var i = 0, length = controller.components.length; i < length; i++) {
-						if (_hasSlot(controller.components[i], slot, direction)) {
-							return true;
-						}
-		
-					}
-				}
-				return false;
-			}
-		
-			function _createListener(controller, slot) {
-		
-				if (_hasSlot(controller, slot, -1) === false) {
-					return null;
-				}
-		
-				return function(event) {
-					var args = arguments.length > 1 ? _Array_slice.call(arguments, 1) : null;
-					
-					_fire(controller, slot, event, args, -1);
-				};
-			}
-		
-			function __toggle_slotState(controller, slot, isActive) {
-				var slots = controller.slots;
-				if (slots == null || slots.hasOwnProperty(slot) === false) {
-					return;
-				}
-		
-				if (slots.__disabled == null) {
-					slots.__disabled = {};
-				}
-		
-				slots.__disabled[slot] = isActive === false;
-			}
-		
-			function __toggle_slotStateWithChilds(controller, slot, isActive) {
-				__toggle_slotState(controller, slot, isActive);
-		
-				if (controller.components != null) {
-					for (var i = 0, length = controller.components.length; i < length; i++) {
-						__toggle_slotStateWithChilds(controller.components[i], slot, isActive);
-					}
-				}
-			}
-		
-			function __toggle_elementsState(controller, slot, isActive) {
-				if (controller.$ == null) {
-					log_warn('Controller has no elements to toggle state');
-					return;
-				}
-		
-				domLib() 
-					.add(controller.$.filter('[data-signals]')) 
-					.add(controller.$.find('[data-signals]')) 
-					.each(function(index, node) {
-						var signals = node.getAttribute('data-signals');
 			
-						if (signals != null && signals.indexOf(slot) !== -1) {
-							node[isActive === true ? 'removeAttribute' : 'setAttribute']('disabled', 'disabled');
-						}
-					});
-			}
-		
-			function _toggle_all(controller, slot, isActive) {
-		
-				var parent = controller,
-					previous = controller;
-				while ((parent = parent.parent) != null) {
-					__toggle_slotState(parent, slot, isActive);
-		
-					if (parent.$ == null || parent.$.length === 0) {
-						// we track previous for changing elements :disable state
-						continue;
+					if (direction === -1 && ctr.parent != null) {
+						return _fire(ctr.parent, slot, sender, args, direction) || found;
 					}
-		
-					previous = parent;
+			
+					if (direction === 1 && ctr.components != null) {
+						var compos = ctr.components,
+							imax = compos.length,
+							i = 0,
+							r;
+						for (; i < imax; i++) {
+							r = _fire(compos[i], slot, sender, args, direction);
+							
+							!found && (found = r);
+						}
+					}
+					
+					return found;
+				}; // _fire()
+			
+				_hasSlot = function (ctr, slot, direction, isActive) {
+					if (ctr == null) {
+						return false;
+					}
+					var slots = ctr.slots;
+					if (slots != null && slots[slot] != null) {
+						if (typeof slots[slot] === 'string') {
+							slots[slot] = ctr[slots[slot]];
+						}
+						if (typeof slots[slot] === 'function') {
+							if (isActive === true) {
+								if (slots.__disabled == null || slots.__disabled[slot] !== true) {
+									return true;
+								}
+							} else {
+								return true;
+							}
+						}
+					}
+					if (direction === -1 && ctr.parent != null) {
+						return _hasSlot(ctr.parent, slot, direction);
+					}
+					if (direction === 1 && ctr.components != null) {
+						for (var i = 0, length = ctr.components.length; i < length; i++) {
+							if (_hasSlot(ctr.components[i], slot, direction)) {
+								return true;
+							}
+						}
+					}
+					return false;
+				}; 
+			}());
+			
+			// end:source ./utils.js
+			// source ./toggle.js
+			var _toggle_all,
+				_toggle_single;
+			(function(){
+				_toggle_all = function (ctr, slot, isActive) {
+			
+					var parent = ctr,
+						previous = ctr;
+					while ((parent = parent.parent) != null) {
+						__toggle_slotState(parent, slot, isActive);
+			
+						if (parent.$ == null || parent.$.length === 0) {
+							// we track previous for changing elements :disable state
+							continue;
+						}
+			
+						previous = parent;
+					}
+			
+					__toggle_slotStateWithChilds(ctr, slot, isActive);
+					__toggle_elementsState(previous, slot, isActive);
+				};
+			
+				_toggle_single = function(ctr, slot, isActive) {
+					__toggle_slotState(ctr, slot, isActive);
+			
+					if (!isActive && (_hasSlot(ctr, slot, -1, true) || _hasSlot(ctr, slot, 1, true))) {
+						// there are some active slots; do not disable elements;
+						return;
+					}
+					__toggle_elementsState(ctr, slot, isActive);
+				};
+				
+			
+				function __toggle_slotState(ctr, slot, isActive) {
+					var slots = ctr.slots;
+					if (slots == null || slots.hasOwnProperty(slot) === false) {
+						return;
+					}
+					var disabled = slots.__disabled;
+					if (disabled == null) {
+						disabled = slots.__disabled = {};
+					}
+					disabled[slot] = isActive === false;
 				}
-		
-				__toggle_slotStateWithChilds(controller, slot, isActive);
-				__toggle_elementsState(previous, slot, isActive);
-		
-			}
-		
-			function _toggle_single(controller, slot, isActive) {
-				__toggle_slotState(controller, slot, isActive);
-		
-				if (!isActive && (_hasSlot(controller, slot, -1, true) || _hasSlot(controller, slot, 1, true))) {
-					// there are some active slots; do not disable elements;
-					return;
+			
+				function __toggle_slotStateWithChilds(ctr, slot, isActive) {
+					__toggle_slotState(ctr, slot, isActive);
+					
+					var compos = ctr.components;
+					if (compos != null) {
+						var imax = compos.length,
+							i = 0;
+						for(; i < imax; i++) {
+							__toggle_slotStateWithChilds(compos[i], slot, isActive);
+						}
+					}
 				}
-				__toggle_elementsState(controller, slot, isActive);
-			}
-		
-		
-		
+			
+				function __toggle_elementsState(ctr, slot, isActive) {
+					if (ctr.$ == null) {
+						log_warn('Controller has no elements to toggle state');
+						return;
+					}
+			
+					domLib() 
+						.add(ctr.$.filter('[data-signals]')) 
+						.add(ctr.$.find('[data-signals]')) 
+						.each(function(index, node) {
+							var signals = node.getAttribute('data-signals');
+				
+							if (signals != null && signals.indexOf(slot) !== -1) {
+								node[isActive === true ? 'removeAttribute' : 'setAttribute']('disabled', 'disabled');
+							}
+						});
+				}
+			
+				
+			
+			}());
+			// end:source ./toggle.js
+			// source ./attributes.js
+			(function(){
+				
+				_create('signal');
+				
+				_createEvent('change');
+				_createEvent('click');
+				_createEvent('tap', 'click');
+			
+				_createEvent('keypress');
+				_createEvent('keydown');
+				_createEvent('keyup');
+				_createEvent('mousedown');
+				_createEvent('mouseup');
+				
+				_createEvent('press', 'keydown');
+				_createEvent('shortcut', 'keydown');
+				
+				function _createEvent(name, type) {
+					_create(name, type || name);
+				}
+				function _create(name, asEvent) {
+					mask.registerAttrHandler('x-' + name, 'client', function(node, attrValue, model, ctx, el, ctr){
+						_attachListener(el, ctr, attrValue, asEvent);
+					});
+				}
+				
+				function _attachListener(el, ctr, definition, asEvent) {
+					var arr = definition.split(';'),
+						signals = '',
+						imax = arr.length,
+						i = -1,
+						x;
+					
+					var i_colon,
+						i_param,
+						event,
+						mix,
+						param,
+						name,
+						fn;
+						
+					while ( ++i < imax ) {
+						x = arr[i].trim();
+						if (x === '') 
+							continue;
+						
+						mix = param = name = null;
+						
+						i_colon = x.indexOf(':');
+						if (i_colon !== -1) {
+							mix = x.substring(0, i_colon);
+							i_param = mix.indexOf('(');
+							if (i_param !== -1) {
+								param = mix.substring(i_param + 1, mix.lastIndexOf(')'));
+								mix = mix.substring(0, i_param);
+								
+								// if DEBUG
+								param === '' && log_error('Not valid signal parameter');
+								// endif
+							}
+							x = x.substring(i_colon + 1).trim();
+						}
+						
+						name = x;
+						fn = _createListener(ctr, name);
+						
+						if (asEvent == null) {
+							event = mix;
+						} else {
+							event = asEvent;
+							param = mix;
+						}
+						
+						if (!event) {
+							log_error('Signal: Eventname is not set', arr[i]);
+						}
+						if (!fn) {
+							log_warn('Slot not found:', name);
+							continue;
+						}
+						
+						signals += ',' + name + ',';
+						dom_addEventListener(el, event, fn, param, ctr);
+					}
+					
+					if (signals !== '') {
+						var attr = el.getAttribute('data-signals');
+						el.setAttribute('data-signals', attr + signals);
+					}
+				}
+				
+				function _createListener (ctr, slot) {
+					if (_hasSlot(ctr, slot, -1) === false) {
+						return null;
+					}
+					return function(event) {
+						var args = arguments.length > 1
+							? _Array_slice.call(arguments, 1)
+							: null;
+						_fire(ctr, slot, event, args, -1);
+					};
+				}
+			}());
+			// end:source ./attributes.js
+			
 			obj_extend(Compo, {
 				signal: {
 					toggle: _toggle_all,
@@ -9235,10 +11114,9 @@
 				}
 		
 			});
-		
+			
 		}());
-		
-		// end:source /src/compo/signals.js
+		// end:source /src/signal/exports.js
 		
 		// source /src/DomLite.js
 		/*
@@ -9622,42 +11500,39 @@
 					'afterMask'
 				].forEach(function(method, index){
 					
-					domLib.fn[method] = function(template, model, controller, ctx){
-						
+					domLib.fn[method] = function(template, model, ctr, ctx){
 						if (this.length === 0) {
 							// if DEBUG
 							log_warn('<jcompo> $.', method, '- no element was selected(found)');
 							// endif
 							return this;
 						}
-						
 						if (this.length > 1) {
 							// if DEBUG
 							log_warn('<jcompo> $.', method, ' can insert only to one element. Fix is comming ...');
 							// endif
 						}
-						
-						if (controller == null) {
-							controller = index < 2
+						if (ctr == null) {
+							ctr = index < 2
 								? this.compo()
 								: this.parent().compo()
 								;
 						}
 						
 						var isUnsafe = false;
-						if (controller == null) {
-							controller = {};
+						if (ctr == null) {
+							ctr = {};
 							isUnsafe = true;
 						}
 						
 						
-						if (controller.components == null) {
-							controller.components = [];
+						if (ctr.components == null) {
+							ctr.components = [];
 						}
 						
-						var compos = controller.components,
+						var compos = ctr.components,
 							i = compos.length,
-							fragment = mask.render(template, model, ctx, null, controller);
+							fragment = mask.render(template, model, ctx, null, ctr);
 						
 						var self = this[jQ_Methods[index]](fragment),
 							imax = compos.length;
@@ -11052,10 +12927,14 @@
 					set: function(x) {
 						if (x === currentVal) 
 							return;
+						var oldVal = currentVal;
+						
 						currentVal = x;
 						var i = 0,
 							imax = cbs.length,
 							mutators = getSelfMutators(x);
+							
+						
 						if (mutators != null) {
 							for(; i < imax; i++) {
 								objMutator_addObserver(
@@ -11072,6 +12951,8 @@
 						for (i = 0; i < imax; i++) {
 							cbs[i](x);
 						}
+						
+						obj_sub_notifyListeners(obj, property, oldVal)
 					},
 					configurable: true,
 					enumerable : true
@@ -11117,44 +12998,78 @@
 					enumerable : true
 				});
 			}
+			function obj_sub_notifyListeners(obj, path, oldVal) {
+				var obs = obj[prop_OBS];
+				if (obs == null) 
+					return;
+				for(var prop in obs) {
+					if (prop.indexOf(path + '.') !== 0) 
+						continue;
+					
+					var cbs = obs[prop].slice(0),
+						imax = cbs.length,
+						i = 0, oldProp, cb;
+					if (imax === 0) 
+						continue;
+					
+					var val = obj_getProperty(obj, prop);
+					for (i = 0; i < imax; i++) {
+						cb = cbs[i];
+						obj_removeObserver(obj, prop, cb);
+						
+						if (oldVal != null && typeof oldVal === 'object') {
+							oldProp = prop.substring(path.length + 1);
+							obj_removeObserver(oldVal, oldProp, cb);
+						}
+					}
+					for (i = 0; i < imax; i++){
+						cbs[i](val);
+					}
+					for (i = 0; i < imax; i++){
+						obj_addObserver(obj, prop, cbs[i]);
+					}
+				}
+			}
 			
 			function obj_crumbRebindDelegate(obj) {
 				return function(path, oldValue){
+					obj_crumbRebind(obj, path, oldValue);
+				};
+			}
+			function obj_crumbRebind(obj, path, oldValue) {
+				var obs = obj[prop_OBS];
+				if (obs == null) 
+					return;
+				
+				for (var prop in obs) {
+					if (prop.indexOf(path) !== 0) 
+						continue;
 					
-					var observers = obj[prop_OBS];
-					if (observers == null) 
-						return;
+					var cbs = obs[prop].slice(0),
+						imax = cbs.length,
+						i = 0;
 					
-					for (var property in observers) {
+					if (imax === 0) 
+						continue;
+					
+					var val = obj_getProperty(obj, prop),
+						cb, oldProp;
+					
+					for (i = 0; i < imax; i++) {
+						cb = cbs[i];
+						obj_removeObserver(obj, prop, cb);
 						
-						if (property.indexOf(path) !== 0) 
-							continue;
-						
-						var listeners = observers[property].slice(0),
-							imax = listeners.length,
-							i = 0;
-						
-						if (imax === 0) 
-							continue;
-						
-						var val = obj_getProperty(obj, property),
-							cb, oldProp;
-						
-						for (i = 0; i < imax; i++) {
-							cb = listeners[i];
-							obj_removeObserver(obj, property, cb);
-							
-							oldProp = property.substring(path.length);
+						if (oldValue != null && typeof oldValue === 'object') {
+							oldProp = prop.substring(path.length);
 							obj_removeObserver(oldValue, oldProp, cb);
 						}
-						for (i = 0; i < imax; i++){
-							listeners[i](val);
-						}
-						
-						for (i = 0; i < imax; i++){
-							obj_addObserver(obj, property, listeners[i]);
-						}
-						
+					}
+					for (i = 0; i < imax; i++){
+						cbs[i](val);
+					}
+					
+					for (i = 0; i < imax; i++){
+						obj_addObserver(obj, prop, cbs[i]);
 					}
 				}
 			}
@@ -14038,8 +15953,13 @@
 		
 		custom_Tags['define']  = Define;
 		
-		function Define(){}
+		function Define(node){
+			this.name = node.name;
+			this['extends'] = node['extends'];
+		}
 		Define.prototype = {
+			'name': null,
+			'extends': null,
 			$meta: {
 				serializeNodes: true
 			},
@@ -14048,16 +15968,26 @@
 		};
 		
 		function define(){
-			var name;
-			for(name in this.attr) break;
-			
 			var nodes = this.nodes;
-			mask.registerHandler(name, Compo({
+			var Proto = {
 				renderStart: function(){
 					this.nodes = mask.merge(nodes, this.nodes || [], this);
+					if (this.onRenderStart != null) 
+						this.onRenderStart.apply(this, arguments);
 				}
-			}));
+			};
+			var imax = nodes.length,
+				i = 0, x;
+			for(; i<imax; i++) {
+				x = nodes[i];
+				if (x.tagName === 'function') {
+					Proto[x.name] = x.fn;
+					x.render = null;
+				}
+			}
+			mask.registerHandler(this.name, Compo(Proto));
 		}
+		
 	}(Mask));
 	// end:source /src/handlers/define.js
 	// source /src/handlers/template.js

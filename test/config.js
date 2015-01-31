@@ -1,12 +1,13 @@
 module.exports = {
     suites: {
-        
         browser: {
             exec: 'dom',
+            env: [
+              '/.import/mask.js'
+            ],
             $config: {
                 $before: function(done){
                     include
-                        .js('/.import/mask.js::Mask')
                         .load('/lib/compo.embed.js::Source')
                         .done(function(resp){
                             mask.plugin(resp.load.Source);

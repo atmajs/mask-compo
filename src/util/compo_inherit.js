@@ -2,7 +2,6 @@ var compo_inherit;
 (function(mask_merge){
 	
 	compo_inherit = function(Proto, Extends){
-		
 		var imax = Extends.length,
 			i = imax,
 			ctors = [],
@@ -19,7 +18,6 @@ var compo_inherit;
 				ctors.push(x);
 				x = x.prototype;
 			}
-			
 			inherit_(Proto, x, 'node');
 		}
 		
@@ -30,8 +28,13 @@ var compo_inherit;
 				ctors.unshift(Proto.constructor);
 			
 			Proto.constructor = joinFns_(ctors);
-			
 		}
+		var meta = Proto.meta;
+		if (meta == null) 
+			meta = Proto.meta = {};
+		
+		if (meta.template == null) 
+			meta.template = 'merge';
 	};
 	
 	function inherit_(target, source, name){
@@ -41,10 +44,13 @@ var compo_inherit;
 		if ('node' === name) {
 			var targetNodes = target.template || target.nodes,
 				sourceNodes = source.template || source.nodes;
-				
 			target.template = targetNodes == null || sourceNodes == null
 				? (targetNodes || sourceNodes)
 				: (mask.merge(sourceNodes, targetNodes, target));
+			
+			if (target.nodes != null) {
+				target.nodes = target.template;
+			}
 		}
 		
 		var mix, type, fnAutoCall, hasFnOverrides = false;
