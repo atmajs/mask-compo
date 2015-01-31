@@ -19,11 +19,13 @@ var compo_dispose,
 		
 		Anchor.removeCompo(compo);
 	
-		var compos = compo.components,
-			i = compos == null ? 0 : compos.length;
-		while ( --i > -1 ) {
-			compo_dispose(compos[i]);
-		}
+		var compos = compo.components;
+		if (compo != null) {
+			var i = compos.length;
+			while ( --i > -1 ) {
+				compo_dispose(compos[i]);
+			}
+		}	
 	};
 	
 	compo_detachChild = function(childCompo){

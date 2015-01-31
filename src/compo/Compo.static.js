@@ -10,34 +10,7 @@ obj_extend(Compo, {
 		classProto.Construct = Ctor;
 		return Class(classProto);
 	},
-
-	/* obsolete */
-	render: function(compo, model, ctx, container) {
-
-		compo_ensureTemplate(compo);
-
-		var elements = [];
-
-		mask.render(
-			compo.tagName == null ? compo.nodes : compo,
-			model,
-			ctx,
-			container,
-			compo,
-			elements
-		);
-
-		compo.$ = domLib(elements);
-
-		if (compo.events != null) 
-			Events_.on(compo, compo.events);
-		
-		if (compo.compos != null) 
-			Children_.select(compo, compo.compos);
-		
-		return compo;
-	},
-
+	
 	initialize: function(mix, model, ctx, container, parent) {
 		if (mix == null)
 			throw Error('Undefined is not a component');
@@ -163,7 +136,6 @@ obj_extend(Compo, {
 
 	},
 
-	//pipes: Pipes,
 	pipe: Pipes.pipe,
 	
 	resource: function(compo){

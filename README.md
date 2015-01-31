@@ -451,7 +451,7 @@ var B = mask.Compo(A, {
 				// very basic sample, usually it would be much greater encapsulation
 				mask.registerHandler(':foo', mask.Compo({
 					meta: {
-						nodes: 'merge'
+						template: 'merge'
 					},
 					template: 'h4 > @title;'
 				});
@@ -560,4 +560,4 @@ var B = mask.Compo(A, {
 		
 
 ----
-(c) 2014 MIT
+:copyright: The Atma.js Project - 2015 - MIT
