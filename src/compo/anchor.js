@@ -1,73 +1,56 @@
-
 /**
  *	Get component that owns an element
  **/
-
-var Anchor = (function(){
-
-	var _cache = {};
-
-	return {
+var Anchor;
+(function(){
+	Anchor =  {
 		create: function(compo){
-			if (compo.ID == null){
+			var id = compo.ID;
+			if (id == null){
 				log_warn('Component should have an ID');
 				return;
 			}
-
-			_cache[compo.ID] = compo;
+			_cache[id] = compo;
 		},
-		resolveCompo: function(element){
-			if (element == null){
+		resolveCompo: function(el, silent){
+			if (el == null)
 				return null;
-			}
-
-			var findID, currentID, compo;
+			
+			var ownerId, id, compo;
 			do {
-
-				currentID = element.getAttribute('x-compo-id');
-
-
-				if (currentID) {
-
-					if (findID == null) {
-						findID = currentID;
+				id = el.getAttribute('x-compo-id');
+				if (id != null) {
+					if (ownerId == null) {
+						ownerId = id;
 					}
-
-					compo = _cache[currentID];
-
+					compo = _cache[id];
 					if (compo != null) {
 						compo = Compo.find(compo, {
 							key: 'ID',
-							selector: findID,
+							selector: ownerId,
 							nextKey: 'components'
 						});
-
-						if (compo != null) {
+						if (compo != null) 
 							return compo;
-						}
 					}
-
 				}
-
-				element = element.parentNode;
-
-			}while(element && element.nodeType === 1);
-
+				el = el.parentNode;
+			}while(el != null && el.nodeType === 1);
 
 			// if DEBUG
-			findID && log_warn('No controller for ID', findID);
+			ownerId && silent !== true && log_warn('No controller for ID', ownerId);
 			// endif
 			return null;
 		},
 		removeCompo: function(compo){
-			if (compo.ID == null){
-				return;
-			}
-			delete _cache[compo.ID];
+			var id = compo.ID;
+			if (id != null) 
+				_cache[id] = void 0;
 		},
 		getByID: function(id){
 			return _cache[id];
 		}
 	};
 
+	var _cache = {};
 }());

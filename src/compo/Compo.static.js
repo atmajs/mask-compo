@@ -153,7 +153,9 @@ obj_extend(Compo, {
 	},
 	
 	plugin: function(source){
+		// if DEBUG
 		eval(source);
+		// endif
 	},
 	
 	Dom: {

@@ -9,7 +9,7 @@ function domLib_initialize(){
 		if (this.length === 0)
 			return null;
 		
-		var compo = Anchor.resolveCompo(this[0]);
+		var compo = Anchor.resolveCompo(this[0], true);
 
 		return selector == null
 			? compo

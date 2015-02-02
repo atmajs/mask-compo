@@ -47,9 +47,10 @@ var selector_parse,
 	};
 	
 	selector_match = function(node, selector, type) {
+		if (node == null) 
+			return false;
 		
 		if (is_String(selector)) {
-			
 			if (type == null) 
 				type = Dom[node.compoName ? 'CONTROLLER' : 'SET'];
 			

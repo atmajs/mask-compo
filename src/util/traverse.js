@@ -3,6 +3,8 @@ var find_findSingle,
 (function(){
 	
 	find_findSingle = function(node, matcher) {
+		if (node == null) 
+			return null;
 		
 		if (is_Array(node)) {
 			var imax = node.length,
