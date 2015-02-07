@@ -1,6 +1,6 @@
 // source /src/license.txt
 /*!
- * MaskJS v0.12.5
+ * MaskJS v0.12.6
  * Part of the Atma.js Project
  * http://atmajs.com/
  *
@@ -1466,6 +1466,7 @@
 		custom_Statements,
 		custom_Attributes,
 		custom_Tags,
+		custom_Tags_global,
 		custom_Tags_defs,
 		
 		custom_Parsers,
@@ -1475,7 +1476,8 @@
 		customUtil_$utils,
 		customUtil_register,
 		
-		customTag_register
+		customTag_register,
+		customTag_registerResolver
 		;
 		
 	(function(){
@@ -1538,6 +1540,7 @@
 		custom_Statements 	= {};
 		custom_Attributes 	= obj_create(HtmlAttr);
 		custom_Tags 		= obj_create(HtmlTags);
+		custom_Tags_global 	= obj_create(HtmlTags);
 		custom_Parsers 		= obj_create(HtmlTags);
 		
 		// use on server to define reserved tags and its meta info
@@ -1545,7 +1548,7 @@
 		
 		
 		// source ./tag.js
-		(function(repository){
+		(function(repository, global){
 			
 			customTag_register = function(name, Handler){		
 				if (Handler != null && typeof Handler === 'object') {
@@ -1556,6 +1559,37 @@
 				repository[name] = Handler;
 			};
 			
+			customTag_registerResolver = function(name){
+				var Ctor = repository[name];
+				if (Ctor === Resolver) 
+					return;
+				
+				if (Ctor != null) 
+					global[name] = Ctor;
+				
+				repository[name] = Resolver;
+			};
+			
+			var Resolver;
+			(function(){
+				Resolver = function (node, model, ctx, container, ctr) {
+					var name = node.tagName, x;
+					while(ctr != null) {
+						if (is_Function(ctr.getHandler)) {
+							x = ctr.getHandler(name);
+							if (x != null) 
+								return x;
+						}
+						ctr = ctr.parent;
+					}
+					x = global[name];
+					if (x != null) 
+						return x;
+					
+					log_error('Component not found:', name);
+					return null;
+				};
+			}());
 			
 			function wrapStatic(proto) {
 				function Ctor(node, parent) {
@@ -1574,7 +1608,7 @@
 				return Ctor;
 			}
 			
-		}(custom_Tags));
+		}(custom_Tags, custom_Tags_global));
 		// end:source ./tag.js
 		// source ./util.js
 		(function(repository) {
@@ -3947,10 +3981,7 @@
 		parser_ensureTemplateFunction,
 		parser_setInterpolationQuotes,
 		parser_cleanObject,
-		parser_ObjectLexer,
-		
-		// deprecate
-		Parser
+		parser_ObjectLexer
 		;
 	
 	(function(Node, TextNode, Fragment, Component) {
@@ -4885,8 +4916,8 @@
 				var end = lex_(str, i, imax, obj);
 				return [ new ImportNode(parent, obj),  end, 0 ];
 			};
-			custom_Tags['import:base'] = function(node){
-				var base = path_normalize(ExpressionUtil.eval(node.expression));
+			custom_Tags['import:base'] = function(node, model, ctx, el, ctr){
+				var base = path_normalize(ExpressionUtil.eval(node.expression, model, ctx, ctr));
 				if (base != null && base[base.length - 1] !== '/') {
 					base += '/';
 				}
@@ -5144,482 +5175,470 @@
 			state_literal = 8,
 			go_up = 9
 			;
+		
+		parser_ensureTemplateFunction = ensureTemplateFunction;
+		parser_ObjectLexer = ObjectLexer;
+		
+		/** @out : nodes */
+		parser_parse = function(template) {
 	
+			var current = new Fragment(),
+				fragment = current,
+				state = go_tag,
+				last = state_tag,
+				index = 0,
+				length = template.length,
+				classNames,
+				token,
+				key,
+				value,
+				next,
+				c, // charCode
+				start,
+				nextC;
 	
-		Parser = {
+			outer: while (true) {
+				
+				while (index < length && (c = template.charCodeAt(index)) < 33) {
+					index++;
+				}
 	
-			/** @out : nodes */
-			parse: function(template) {
-	
-				var current = new Fragment(),
-					fragment = current,
-					state = go_tag,
-					last = state_tag,
-					index = 0,
-					length = template.length,
-					classNames,
-					token,
-					key,
-					value,
-					next,
-					c, // charCode
-					start,
-					nextC;
-	
-				outer: while (true) {
-					
-					while (index < length && (c = template.charCodeAt(index)) < 33) {
+				// COMMENTS
+				if (c === 47) {
+					// /
+					nextC = template.charCodeAt(index + 1);
+					if (nextC === 47){
+						// inline (/)
 						index++;
-					}
-	
-					// COMMENTS
-					if (c === 47) {
-						// /
-						nextC = template.charCodeAt(index + 1);
-						if (nextC === 47){
-							// inline (/)
-							index++;
-							while (c !== 10 && c !== 13 && index < length) {
-								// goto newline
-								c = template.charCodeAt(++index);
-							}
-							continue;
+						while (c !== 10 && c !== 13 && index < length) {
+							// goto newline
+							c = template.charCodeAt(++index);
 						}
-						if (nextC === 42) {
-							// block (*)
-							index = template.indexOf('*/', index + 2) + 2;
-							if (index === 1) {
-								// if DEBUG
-								parser_warn('Block comment has no ending', template, index);
-								// endif
-								index = length;
-							}
-							
-							
-							continue;
-						}
-					}
-	
-					if (last === state_attr) {
-						if (classNames != null) {
-							current.attr['class'] = ensureTemplateFunction(classNames);
-							classNames = null;
-						}
-						if (key != null) {
-							current.attr[key] = key;
-							key = null;
-							token = null;
-						}
-					}
-	
-					if (token != null) {
-	
-						if (state === state_attr) {
-	
-							if (key == null) {
-								key = token;
-							} else {
-								value = token;
-							}
-	
-							if (key != null && value != null) {
-								if (key !== 'class') {
-									current.attr[key] = value;
-								} else {
-									classNames = classNames == null ? value : classNames + ' ' + value;
-								}
-	
-								key = null;
-								value = null;
-							}
-	
-						} else if (last === state_tag) {
-	
-							//next = custom_Tags[token] != null
-							//	? new Component(token, current, custom_Tags[token])
-							//	: new Node(token, current);
-							
-							if (custom_Parsers[token] != null) {
-								var tuple = custom_Parsers[token](
-									template
-									, index
-									, length
-									, current
-								);
-								var node = tuple[0],
-									nextState = tuple[2];
-									
-								index = tuple[1];
-								state = nextState === 0
-									? go_tag
-									: nextState;
-								token = null;
-								if (node != null) {
-									current.appendChild(node);
-									if (nextState !== 0) {
-										current  = node;
-									}
-								}
-								continue;
-							}
-							
-							
-							next = new Node(token, current);
-							
-							current.appendChild(next);
-							current = next;
-							state = state_attr;
-	
-						} else if (last === state_literal) {
-	
-							next = new TextNode(token, current);
-							current.appendChild(next);
-							
-							if (current.__single === true) {
-								do {
-									current = current.parent;
-								} while (current != null && current.__single != null);
-							}
-							state = go_tag;
-	
-						}
-	
-						token = null;
-					}
-	
-					if (index >= length) {
-						if (state === state_attr) {
-							if (classNames != null) {
-								current.attr['class'] = ensureTemplateFunction(classNames);
-							}
-							if (key != null) {
-								current.attr[key] = key;
-							}
-						}
-						c = null;
-						break;
-					}
-	
-					if (state === go_up) {
-						current = current.parent;
-						while (current != null && current.__single != null) {
-							current = current.parent;
-						}
-						if (current == null) {
-							current = fragment;
-							parser_warn('Unexpected tag closing', template, index - 1);
-						}
-						state = go_tag;
-					}
-	
-					switch (c) {
-					case 123:
-						// {
-						last = state;
-						state = go_tag;
-						index++;
 						continue;
-					case 62:
-						// >
-						last = state;
-						state = go_tag;
-						index++;
-						current.__single = true;
-						continue;
-					case 59:
-						// ;
-						if (current.nodes != null) {
-							// skip ; , when node is not a single tag (else goto 125)
-							index++;
-							continue;
-						}
-						/* falls through */
-					case 125:
-						// ;}
-						if (c === 125 && (state === state_tag || state === state_attr)) {
-							// single tag was not closed with `;` but closing parent
-							index--;
-						}
-						index++;
-						last = state;
-						state = go_up;
-						continue;
-					case 39:
-					case 34:
-						// '"
-						// Literal - could be as textnode or attribute value
-						if (state === go_attrVal) {
-							state = state_attr;
-						} else {
-							last = state = state_literal;
-						}
-						index++;
-	
-						var isEscaped = false,
-							isUnescapedBlock = false,
-							_char = c === 39 ? "'" : '"';
-	
-						start = index;
-	
-						while ((index = template.indexOf(_char, index)) > -1) {
-							if (template.charCodeAt(index - 1) !== 92 /*'\\'*/ ) {
-								break;
-							}
-							isEscaped = true;
-							index++;
-						}
-						if (index === -1) {
-							parser_warn('Literal has no ending', template, start - 1);
+					}
+					if (nextC === 42) {
+						// block (*)
+						index = template.indexOf('*/', index + 2) + 2;
+						if (index === 1) {
+							// if DEBUG
+							parser_warn('Block comment has no ending', template, index);
+							// endif
 							index = length;
 						}
 						
-						if (index === start) {
-							nextC = template.charCodeAt(index + 1);
-							if (nextC === 124 || nextC === c) {
-								// | (obsolete) or triple quote
-								isUnescapedBlock = true;
-								start = index + 2;
-								index = template.indexOf((nextC === 124 ? '|' : _char) + _char + _char, start);
-	
-								if (index === -1) 
-									index = length;
-							}
-						}
-	
-						token = template.substring(start, index);
-						if (isEscaped === true) {
-							token = token.replace(__rgxEscapedChar[_char], _char);
-						}
 						
-						if (state !== state_attr || key !== 'class') 
-							token = ensureTemplateFunction(token);
-							
-						index += isUnescapedBlock ? 3 : 1;
 						continue;
 					}
+				}
 	
-					if (state === go_tag) {
-						last = state_tag;
-						state = state_tag;
-						//next_Type = Dom.NODE;
-						
-						if (c === 46 /* . */ || c === 35 /* # */ ) {
-							token = 'div';
-							continue;
-						}
-						
-						//-if (c === 58 || c === 36 || c === 64 || c === 37) {
-						//	// : /*$ @ %*/
-						//	next_Type = Dom.COMPONENT;
-						//}
-						
+				if (last === state_attr) {
+					if (classNames != null) {
+						current.attr['class'] = ensureTemplateFunction(classNames);
+						classNames = null;
 					}
+					if (key != null) {
+						current.attr[key] = key;
+						key = null;
+						token = null;
+					}
+				}
 	
-					else if (state === state_attr) {
-						if (c === 46) {
-							// .
-							index++;
-							key = 'class';
-							state = go_attrHeadVal;
+				if (token != null) {
+	
+					if (state === state_attr) {
+	
+						if (key == null) {
+							key = token;
+						} else {
+							value = token;
 						}
-						
-						else if (c === 35) {
-							// #
-							index++;
-							key = 'id';
-							state = go_attrHeadVal;
+	
+						if (key != null && value != null) {
+							if (key !== 'class') {
+								current.attr[key] = value;
+							} else {
+								classNames = classNames == null ? value : classNames + ' ' + value;
+							}
+	
+							key = null;
+							value = null;
 						}
+	
+					} else if (last === state_tag) {
+	
+						//next = custom_Tags[token] != null
+						//	? new Component(token, current, custom_Tags[token])
+						//	: new Node(token, current);
 						
-						else if (c === 61) {
-							// =;
-							index++;
-							state = go_attrVal;
-							
-							if (last === state_tag && key == null) {
-								parser_warn('Unexpected tag assignment', template, index, c, state);
+						if (custom_Parsers[token] != null) {
+							var tuple = custom_Parsers[token](
+								template
+								, index
+								, length
+								, current
+							);
+							var node = tuple[0],
+								nextState = tuple[2];
+								
+							index = tuple[1];
+							state = nextState === 0
+								? go_tag
+								: nextState;
+							token = null;
+							if (node != null) {
+								current.appendChild(node);
+								if (nextState !== 0) {
+									current  = node;
+								}
 							}
 							continue;
 						}
 						
-						else if (c === 40) {
-							// (
-							start = 1 + index;
-							index = 1 + cursor_groupEnd(template, start, length, c, 41 /* ) */);
-							current.expression = template.substring(start, index - 1);
-							current.type = Dom.STATEMENT;
-							continue;
-						}
 						
-						else {
-	
-							if (key != null) {
-								token = key;
-								continue;
-							}
-						}
-					}
-	
-					if (state === go_attrVal || state === go_attrHeadVal) {
-						last = state;
+						next = new Node(token, current);
+						
+						current.appendChild(next);
+						current = next;
 						state = state_attr;
+	
+					} else if (last === state_literal) {
+	
+						next = new TextNode(token, current);
+						current.appendChild(next);
+						
+						if (current.__single === true) {
+							do {
+								current = current.parent;
+							} while (current != null && current.__single != null);
+						}
+						state = go_tag;
+	
 					}
 	
+					token = null;
+				}
 	
+				if (index >= length) {
+					if (state === state_attr) {
+						if (classNames != null) {
+							current.attr['class'] = ensureTemplateFunction(classNames);
+						}
+						if (key != null) {
+							current.attr[key] = key;
+						}
+					}
+					c = null;
+					break;
+				}
 	
-					/* TOKEN */
+				if (state === go_up) {
+					current = current.parent;
+					while (current != null && current.__single != null) {
+						current = current.parent;
+					}
+					if (current == null) {
+						current = fragment;
+						parser_warn('Unexpected tag closing', template, index - 1);
+					}
+					state = go_tag;
+				}
 	
-					var isInterpolated = null;
+				switch (c) {
+				case 123:
+					// {
+					last = state;
+					state = go_tag;
+					index++;
+					continue;
+				case 62:
+					// >
+					last = state;
+					state = go_tag;
+					index++;
+					current.__single = true;
+					continue;
+				case 59:
+					// ;
+					if (current.nodes != null) {
+						// skip ; , when node is not a single tag (else goto 125)
+						index++;
+						continue;
+					}
+					/* falls through */
+				case 125:
+					// ;}
+					if (c === 125 && (state === state_tag || state === state_attr)) {
+						// single tag was not closed with `;` but closing parent
+						index--;
+					}
+					index++;
+					last = state;
+					state = go_up;
+					continue;
+				case 39:
+				case 34:
+					// '"
+					// Literal - could be as textnode or attribute value
+					if (state === go_attrVal) {
+						state = state_attr;
+					} else {
+						last = state = state_literal;
+					}
+					index++;
+	
+					var isEscaped = false,
+						isUnescapedBlock = false,
+						_char = c === 39 ? "'" : '"';
 	
 					start = index;
-					while (index < length) {
 	
-						c = template.charCodeAt(index);
-	
-						if (c === interp_code_START && template.charCodeAt(index + 1) === interp_code_OPEN) {
-							isInterpolated = true;
-							++index;
-							do {
-								// goto end of template declaration
-								c = template.charCodeAt(++index);
-							}
-							while (c !== interp_code_CLOSE && index < length);
-						}
-	
-						// if DEBUG
-						if (c === 0x0027 || c === 0x0022 || c === 0x002F || c === 0x003C || c === 0x002C) {
-							// '"/<,
-							parser_warn('', template, index, c, state);
-							break outer;
-						}
-						// endif
-	
-	
-						if (last !== go_attrVal && (c === 46 || c === 35)) {
-							// .#
-							// break on .# only if parsing attribute head values
+					while ((index = template.indexOf(_char, index)) > -1) {
+						if (template.charCodeAt(index - 1) !== 92 /*'\\'*/ ) {
 							break;
 						}
-	
-						if (c < 33 ||
-							c === 61 ||
-							c === 62 ||
-							c === 59 ||
-							c === 40 ||
-							c === 123 ||
-							c === 125) {
-							// =>;({}
-							break;
-						}
-	
-	
+						isEscaped = true;
 						index++;
+					}
+					if (index === -1) {
+						parser_warn('Literal has no ending', template, start - 1);
+						index = length;
+					}
+					
+					if (index === start) {
+						nextC = template.charCodeAt(index + 1);
+						if (nextC === 124 || nextC === c) {
+							// | (obsolete) or triple quote
+							isUnescapedBlock = true;
+							start = index + 2;
+							index = template.indexOf((nextC === 124 ? '|' : _char) + _char + _char, start);
+	
+							if (index === -1) 
+								index = length;
+						}
 					}
 	
 					token = template.substring(start, index);
-					if (token === '') {
-						parser_warn('String expected', template, index, c, state);
-						break;
+					if (isEscaped === true) {
+						token = token.replace(__rgxEscapedChar[_char], _char);
 					}
 					
-					if (isInterpolated === true) {
-						if (state === state_tag) {
-							parser_warn('Invalid interpolation (in tag name)'
+					if (state !== state_attr || key !== 'class') 
+						token = ensureTemplateFunction(token);
+						
+					index += isUnescapedBlock ? 3 : 1;
+					continue;
+				}
+	
+				if (state === go_tag) {
+					last = state_tag;
+					state = state_tag;
+					//next_Type = Dom.NODE;
+					
+					if (c === 46 /* . */ || c === 35 /* # */ ) {
+						token = 'div';
+						continue;
+					}
+					
+					//-if (c === 58 || c === 36 || c === 64 || c === 37) {
+					//	// : /*$ @ %*/
+					//	next_Type = Dom.COMPONENT;
+					//}
+					
+				}
+	
+				else if (state === state_attr) {
+					if (c === 46) {
+						// .
+						index++;
+						key = 'class';
+						state = go_attrHeadVal;
+					}
+					
+					else if (c === 35) {
+						// #
+						index++;
+						key = 'id';
+						state = go_attrHeadVal;
+					}
+					
+					else if (c === 61) {
+						// =;
+						index++;
+						state = go_attrVal;
+						
+						if (last === state_tag && key == null) {
+							parser_warn('Unexpected tag assignment', template, index, c, state);
+						}
+						continue;
+					}
+					
+					else if (c === 40) {
+						// (
+						start = 1 + index;
+						index = 1 + cursor_groupEnd(template, start, length, c, 41 /* ) */);
+						current.expression = template.substring(start, index - 1);
+						current.type = Dom.STATEMENT;
+						continue;
+					}
+					
+					else {
+	
+						if (key != null) {
+							token = key;
+							continue;
+						}
+					}
+				}
+	
+				if (state === go_attrVal || state === go_attrHeadVal) {
+					last = state;
+					state = state_attr;
+				}
+	
+	
+	
+				/* TOKEN */
+	
+				var isInterpolated = null;
+	
+				start = index;
+				while (index < length) {
+	
+					c = template.charCodeAt(index);
+	
+					if (c === interp_code_START && template.charCodeAt(index + 1) === interp_code_OPEN) {
+						isInterpolated = true;
+						++index;
+						do {
+							// goto end of template declaration
+							c = template.charCodeAt(++index);
+						}
+						while (c !== interp_code_CLOSE && index < length);
+					}
+	
+					// if DEBUG
+					if (c === 0x0027 || c === 0x0022 || c === 0x002F || c === 0x003C || c === 0x002C) {
+						// '"/<,
+						parser_warn('', template, index, c, state);
+						break outer;
+					}
+					// endif
+	
+	
+					if (last !== go_attrVal && (c === 46 || c === 35)) {
+						// .#
+						// break on .# only if parsing attribute head values
+						break;
+					}
+	
+					if (c < 33 ||
+						c === 61 ||
+						c === 62 ||
+						c === 59 ||
+						c === 40 ||
+						c === 123 ||
+						c === 125) {
+						// =>;({}
+						break;
+					}
+	
+	
+					index++;
+				}
+	
+				token = template.substring(start, index);
+				if (token === '') {
+					parser_warn('String expected', template, index, c, state);
+					break;
+				}
+				
+				if (isInterpolated === true) {
+					if (state === state_tag) {
+						parser_warn('Invalid interpolation (in tag name)'
+							, template
+							, index
+							, token
+							, state);
+						break;
+					}
+					if (state === state_attr) {
+						if (key === 'id' || last === go_attrVal) {
+							token = ensureTemplateFunction(token);
+						}
+						else if (key !== 'class') {
+							// interpolate class later
+							parser_warn('Invalid interpolation (in attr name)'
 								, template
 								, index
 								, token
 								, state);
 							break;
 						}
-						if (state === state_attr) {
-							if (key === 'id' || last === go_attrVal) {
-								token = ensureTemplateFunction(token);
-							}
-							else if (key !== 'class') {
-								// interpolate class later
-								parser_warn('Invalid interpolation (in attr name)'
-									, template
-									, index
-									, token
-									, state);
-								break;
-							}
-						}
 					}
 				}
+			}
 	
-				if (c !== c) {
-					parser_warn('IndexOverflow'
-						, template
-						, index
-						, c
-						, state
-					);
-				}
+			if (c !== c) {
+				parser_warn('IndexOverflow'
+					, template
+					, index
+					, c
+					, state
+				);
+			}
 	
-				// if DEBUG
-				var parent = current.parent;
-				if (parent != null &&
-					parent !== fragment &&
-					parent.__single !== true &&
-					current.nodes != null) {
-					parser_warn('Tag was not closed: ' + current.tagName, template)
-				}
-				// endif
+			// if DEBUG
+			var parent = current.parent;
+			if (parent != null &&
+				parent !== fragment &&
+				parent.__single !== true &&
+				current.nodes != null) {
+				parser_warn('Tag was not closed: ' + current.tagName, template)
+			}
+			// endif
 	
-				
-				var nodes = fragment.nodes;
-				return nodes != null && nodes.length === 1
-					? nodes[0]
-					: fragment
-					;
-			},
 			
-			// obsolete
-			cleanObject: function(obj) {
-				if (obj instanceof Array) {
-					for (var i = 0; i < obj.length; i++) {
-						this.cleanObject(obj[i]);
-					}
-					return obj;
-				}
-				delete obj.parent;
-				delete obj.__single;
+			var nodes = fragment.nodes;
+			return nodes != null && nodes.length === 1
+				? nodes[0]
+				: fragment
+				;
+		};
 	
-				if (obj.nodes != null) {
-					this.cleanObject(obj.nodes);
+		parser_cleanObject = function(mix) {
+			if (is_Array(mix)) {
+				for (var i = 0; i < mix.length; i++) {
+					parser_cleanObject(mix[i]);
 				}
-	
-				return obj;
-			},
-			setInterpolationQuotes: function(start, end) {
-				if (!start || start.length !== 2) {
-					log_error('Interpolation Start must contain 2 Characters');
-					return;
-				}
-				if (!end || end.length !== 1) {
-					log_error('Interpolation End must be of 1 Character');
-					return;
-				}
-	
-				interp_code_START = start.charCodeAt(0);
-				interp_code_OPEN = start.charCodeAt(1);
-				interp_code_CLOSE = end.charCodeAt(0);
-				
-				interp_START = start[0];
-				interp_OPEN = start[1];
-				interp_CLOSE = end;
-			},
-			
-			ensureTemplateFunction: ensureTemplateFunction
+				return mix;
+			}
+			delete mix.parent;
+			delete mix.__single;
+			if (mix.nodes != null) {
+				parser_cleanObject(mix.nodes);
+			}
+			return mix;
 		};
 		
-		// = exports
+		parser_setInterpolationQuotes = function(start, end) {
+			if (!start || start.length !== 2) {
+				log_error('Interpolation Start must contain 2 Characters');
+				return;
+			}
+			if (!end || end.length !== 1) {
+				log_error('Interpolation End must be of 1 Character');
+				return;
+			}
+	
+			interp_code_START = start.charCodeAt(0);
+			interp_code_OPEN = start.charCodeAt(1);
+			interp_code_CLOSE = end.charCodeAt(0);
+			
+			interp_START = start[0];
+			interp_OPEN = start[1];
+			interp_CLOSE = end;
+		};
 		
-		parser_parse = Parser.parse;
-		parser_ensureTemplateFunction = Parser.ensureTemplateFunction;
-		parser_cleanObject = Parser.cleanObject;
-		parser_setInterpolationQuotes = Parser.setInterpolationQuotes;
-		parser_ObjectLexer = ObjectLexer;
 		parser_parseAttr = function(str, start, end){
 			var attr = {},
 				i = start,
@@ -5868,94 +5887,105 @@
 	}());
 	
 	// end:source /src/formatter/stringify.js
-	// source /src/build/builder.dom.js
+	// source /src/builder/exports.js
 	var builder_componentID = 0,
-		builder_build;
+		builder_build,
+		builder_Ctx;
 	
 	(function(custom_Attributes, custom_Tags, Component){
 		
 		// source ./util.js
-		function build_resumeDelegate(controller, model, ctx, container, children){
-			var anchor = container.appendChild(document.createComment(''));
-			
-			return function(){
-				return build_resumeController(controller, model, ctx, anchor, children);
-			};
-		}
-		function build_resumeController(ctr, model, ctx, anchor, children) {
-			
-			if (ctr.tagName != null && ctr.tagName !== ctr.compoName) {
-				ctr.nodes = {
-					tagName: ctr.tagName,
-					attr: ctr.attr,
-					nodes: ctr.nodes,
-					type: 1
+		var build_resumeDelegate;
+		
+		(function(){
+		
+			build_resumeDelegate = function (ctr, model, ctx, container, children){
+				var anchor = document.createComment('');
+				
+				container.appendChild(anchor);
+				return function(){
+					return _resume(ctr, model, ctx, anchor, children);
 				};
-			}
-			if (ctr.model != null) {
-				model = ctr.model;
-			}
+			};
 			
-			var nodes = ctr.nodes,
-				elements = [];
-			if (nodes != null) {
-		
-				var isarray = nodes instanceof Array,
-					length = isarray === true ? nodes.length : 1,
-					i = 0,
-					childNode = null,
-					fragment = document.createDocumentFragment();
-		
-				for (; i < length; i++) {
-					childNode = isarray === true ? nodes[i] : nodes;
-					
-					builder_build(childNode, model, ctx, fragment, ctr, elements);
+			// == private
+			
+			function _resume(ctr, model, ctx, anchorEl, children) {
+				
+				if (ctr.tagName != null && ctr.tagName !== ctr.compoName) {
+					ctr.nodes = {
+						tagName: ctr.tagName,
+						attr: ctr.attr,
+						nodes: ctr.nodes,
+						type: 1
+					};
+				}
+				if (ctr.model != null) {
+					model = ctr.model;
 				}
 				
-				anchor.parentNode.insertBefore(fragment, anchor);
-			}
+				var nodes = ctr.nodes,
+					elements = [];
+				if (nodes != null) {
 			
+					var isarray = nodes instanceof Array,
+						length = isarray === true ? nodes.length : 1,
+						i = 0,
+						childNode = null,
+						fragment = document.createDocumentFragment();
+			
+					for (; i < length; i++) {
+						childNode = isarray === true ? nodes[i] : nodes;
+						
+						builder_build(childNode, model, ctx, fragment, ctr, elements);
+					}
+					
+					anchorEl.parentNode.insertBefore(fragment, anchorEl);
+				}
 				
-			// use or override custom attr handlers
-			// in Compo.handlers.attr object
-			// but only on a component, not a tag ctr
-			if (ctr.tagName == null) {
-				var attrHandlers = ctr.handlers && ctr.handlers.attr,
-					attrFn,
-					key;
-				for (key in ctr.attr) {
 					
-					attrFn = null;
-					
-					if (attrHandlers && is_Function(attrHandlers[key])) {
-						attrFn = attrHandlers[key];
+				// use or override custom attr handlers
+				// in Compo.handlers.attr object
+				// but only on a component, not a tag ctr
+				if (ctr.tagName == null) {
+					var attrHandlers = ctr.handlers && ctr.handlers.attr,
+						attrFn,
+						key;
+					for (key in ctr.attr) {
+						
+						attrFn = null;
+						
+						if (attrHandlers && is_Function(attrHandlers[key])) {
+							attrFn = attrHandlers[key];
+						}
+						
+						if (attrFn == null && is_Function(custom_Attributes[key])) {
+							attrFn = custom_Attributes[key];
+						}
+						
+						if (attrFn != null) {
+							attrFn(anchorEl, ctr.attr[key], model, ctx, elements[0], ctr);
+						}
 					}
-					
-					if (attrFn == null && is_Function(custom_Attributes[key])) {
-						attrFn = custom_Attributes[key];
-					}
-					
-					if (attrFn != null) {
-						attrFn(anchor, ctr.attr[key], model, ctx, elements[0], ctr);
+				}
+				
+				if (is_Function(ctr.renderEnd)) {
+					ctr.renderEnd(elements, model, ctx, anchorEl.parentNode);
+				}
+				
+			
+				if (children != null && children !== elements){
+					var il = children.length,
+						jl = elements.length,
+						j  = -1;
+						
+					while(++j < jl){
+						children[il + j] = elements[j];
 					}
 				}
 			}
 			
-			if (is_Function(ctr.renderEnd)) {
-				ctr.renderEnd(elements, model, ctx, anchor.parentNode);
-			}
-			
-		
-			if (children != null && children !== elements){
-				var il = children.length,
-					jl = elements.length,
-					j  = -1;
-					
-				while(++j < jl){
-					children[il + j] = elements[j];
-				}
-			}
-		}
+		}());
 		// end:source ./util.js
 		// source ./util.controller.js
 		function controller_pushCompo(ctr, compo) {
@@ -5967,7 +5997,6 @@
 			compos.push(compo);
 		}
 		// end:source ./util.controller.js
-		
 		// source ./type.textNode.js
 		
 		var build_textNode = (function(){
@@ -6280,6 +6309,23 @@
 		}());
 		
 		// end:source ./type.component.js
+		// source ./ctx.js
+		(function(){
+			
+			builder_Ctx = class_create(class_Dfr, {
+				// Is true, if some of the components in a ctx is async
+				async: false,
+				// List of busy components
+				defers: null /*Array*/,
+				
+				// NodeJS
+				// Track components ID
+				_id: null,
+				// ModelBuilder for later serialization to HTML
+				_model: null,
+			});
+		}());
+		// end:source ./ctx.js
 		
 		builder_build = function(node, model, ctx, container, ctr, childs) {
 		
@@ -6450,7 +6496,7 @@
 		
 		
 	}(custom_Attributes, custom_Tags, Dom.Component));
-	// end:source /src/build/builder.dom.js
+	// end:source /src/builder/exports.js
 	
 	/*** Features ***/
 	// source /src/feature/run.js
@@ -7124,22 +7170,6 @@
 			Module.registerModule(path, node.nodes);
 		};
 		
-		var Resolver;
-		(function(){
-			Resolver = function (node, model, ctx, container, ctr) {
-				var name = node.tagName;
-				while(ctr != null) {
-					if (is_Function(ctr.getHandler)) {
-						var x = ctr.getHandler(name);
-						if (x != null) 
-							return x;
-					}
-					ctr = ctr.parent;
-				}
-				log_error('Imported component not found:', name);
-				return null;
-			};
-		}());
 		var Dependency = class_create({
 			constructor: function(data){
 				this.path = data.path;
@@ -7151,11 +7181,7 @@
 						if (compoName === '*') 
 							return;
 						
-						var current = mask.getHandler(compoName);
-						if (current && current !== Resolver) {
-							throw Error('Component was already registered before:' + compoName);
-						}
-						mask.registerHandler(compoName, Resolver);
+						customTag_registerResolver(compoName);
 					});
 				}
 			},
@@ -7703,52 +7729,49 @@
 	// end:source /src/feature/TreeWalker.js
 	
 	// source /src/mask.js
-	/**
-	 *  mask
-	 *
-	 **/
+	var Mask;
 	
-	var cache = {},
-		Mask = {
-	
+	(function(){
+		Mask = {	
 			/**
 			 *	mask.render(template[, model, ctx, container = DocumentFragment, controller]) -> container
 			 * - template (String | MaskDOM): Mask String or Mask DOM Json template to render from.
 			 * - model (Object): template values
 			 * - ctx (Object): can store any additional information, that custom handler may need,
-			 * this object stays untouched and is passed to all custom handlers
+			 * 		this object stays untouched and is passed to all custom handlers
 			 * - container (IAppendChild): container where template is rendered into
 			 * - controller (Object): instance of an controller that own this template
 			 *
 			 *	Create new Document Fragment from template or append rendered template to container
 			 **/
-			render: function (template, model, ctx, container, controller) {
+			render: function (mix, model, ctx, container, controller) {
 	
 				// if DEBUG
 				if (container != null && typeof container.appendChild !== 'function'){
 					log_error('.render(template[, model, ctx, container, controller]', 'Container should implement .appendChild method');
 				}
 				// endif
-	
-				if (typeof template === 'string') {
-					if (_Object_hasOwnProp.call(cache, template)){
+				
+				var template = mix;
+				if (typeof mix === 'string') {
+					if (_Object_hasOwnProp.call(__templates, mix)){
 						/* if Object doesnt contains property that check is faster
 						then "!=null" http://jsperf.com/not-in-vs-null/2 */
-						template = cache[template];
+						template = __templates[mix];
 					}else{
-						template = cache[template] = parser_parse(template);
+						template = __templates[mix] = parser_parse(mix);
 					}
 				}
 				if (ctx == null) 
-					ctx = {};
-				
+					ctx = new builder_Ctx;
+					
 				return builder_build(template, model, ctx, container, controller);
 			},
 			
 			renderAsync: function(template, model, ctx, container, ctr) {
-				if (ctx == null) {
-					ctx = {};
-				}
+				if (ctx == null) 
+					ctx = new builder_Ctx;
+				
 				var dom = mask.render(template, model, ctx, container, ctr),
 					dfr = new class_Dfr;
 				
@@ -7759,7 +7782,6 @@
 				} else {
 					dfr.resolve(dom);
 				}
-				
 				return dfr;
 			},
 	
@@ -7941,9 +7963,9 @@
 			 **/
 			clearCache: function(key){
 				if (typeof key === 'string'){
-					delete cache[key];
+					delete __templates[key];
 				}else{
-					cache = {};
+					__templates = {};
 				}
 			},
 	
@@ -7971,7 +7993,7 @@
 					return obj_getProperty(model, path);
 				},
 				
-				ensureTmplFn: Parser.ensureTemplateFunction
+				ensureTmplFn: parser_ensureTemplateFunction
 			},
 			Dom: Dom,
 			TreeWalker: mask_TreeWalker,
@@ -8021,7 +8043,7 @@
 			 * Old '#{}' was changed to '~[]', while template is already overloaded with #, { and } usage.
 			 *
 			 **/
-			setInterpolationQuotes: Parser.setInterpolationQuotes,
+			setInterpolationQuotes: parser_setInterpolationQuotes,
 			
 			setCompoIndex: function(index){
 				builder_componentID = index;
@@ -8049,17 +8071,16 @@
 						__cfg[key] = obj[key]
 					}
 				}
+			},
+			// For the consistence with the NodeJS
+			toHtml: function(dom) {
+				return $(dom).outerHtml();
 			}
 		};
-	
-	
-	/**	deprecated
-	 *	mask.renderDom(template[, model, container, ctx]) -> container
-	 *
-	 * Use [[mask.render]] instead
-	 * (to keep backwards compatiable)
-	 **/
-	Mask.renderDom = Mask.render;
+		
+		
+		var __templates = {};
+	}());
 	
 	// end:source /src/mask.js
 	
@@ -8167,9 +8188,10 @@
 			};
 			
 			selector_match = function(node, selector, type) {
+				if (node == null) 
+					return false;
 				
 				if (is_String(selector)) {
-					
 					if (type == null) 
 						type = Dom[node.compoName ? 'CONTROLLER' : 'SET'];
 					
@@ -8235,6 +8257,8 @@
 		(function(){
 			
 			find_findSingle = function(node, matcher) {
+				if (node == null) 
+					return null;
 				
 				if (is_Array(node)) {
 					var imax = node.length,
@@ -8406,11 +8430,13 @@
 				
 				Anchor.removeCompo(compo);
 			
-				var compos = compo.components,
-					i = compos == null ? 0 : compos.length;
-				while ( --i > -1 ) {
-					compo_dispose(compos[i]);
-				}
+				var compos = compo.components;
+				if (compos != null) {
+					var i = compos.length;
+					while ( --i > -1 ) {
+						compo_dispose(compos[i]);
+					}
+				}	
 			};
 			
 			compo_detachChild = function(childCompo){
@@ -10164,78 +10190,61 @@
 		// end:source /src/touch/Handler.js
 	
 		// source /src/compo/anchor.js
-		
 		/**
 		 *	Get component that owns an element
 		 **/
-		
-		var Anchor = (function(){
-		
-			var _cache = {};
-		
-			return {
+		var Anchor;
+		(function(){
+			Anchor =  {
 				create: function(compo){
-					if (compo.ID == null){
+					var id = compo.ID;
+					if (id == null){
 						log_warn('Component should have an ID');
 						return;
 					}
-		
-					_cache[compo.ID] = compo;
+					_cache[id] = compo;
 				},
-				resolveCompo: function(element){
-					if (element == null){
+				resolveCompo: function(el, silent){
+					if (el == null)
 						return null;
-					}
-		
-					var findID, currentID, compo;
+					
+					var ownerId, id, compo;
 					do {
-		
-						currentID = element.getAttribute('x-compo-id');
-		
-		
-						if (currentID) {
-		
-							if (findID == null) {
-								findID = currentID;
+						id = el.getAttribute('x-compo-id');
+						if (id != null) {
+							if (ownerId == null) {
+								ownerId = id;
 							}
-		
-							compo = _cache[currentID];
-		
+							compo = _cache[id];
 							if (compo != null) {
 								compo = Compo.find(compo, {
 									key: 'ID',
-									selector: findID,
+									selector: ownerId,
 									nextKey: 'components'
 								});
-		
-								if (compo != null) {
+								if (compo != null) 
 									return compo;
-								}
 							}
-		
 						}
-		
-						element = element.parentNode;
-		
-					}while(element && element.nodeType === 1);
-		
+						el = el.parentNode;
+					}while(el != null && el.nodeType === 1);
 		
 					// if DEBUG
-					findID && log_warn('No controller for ID', findID);
+					ownerId && silent !== true && log_warn('No controller for ID', ownerId);
 					// endif
 					return null;
 				},
 				removeCompo: function(compo){
-					if (compo.ID == null){
-						return;
-					}
-					delete _cache[compo.ID];
+					var id = compo.ID;
+					if (id != null) 
+						_cache[id] = void 0;
 				},
 				getByID: function(id){
 					return _cache[id];
 				}
 			};
 		
+			var _cache = {};
 		}());
 		
 		// end:source /src/compo/anchor.js
@@ -10265,34 +10274,7 @@
 					classProto.Construct = Ctor;
 					return Class(classProto);
 				},
-			
-				/* obsolete */
-				render: function(compo, model, ctx, container) {
-			
-					compo_ensureTemplate(compo);
-			
-					var elements = [];
-			
-					mask.render(
-						compo.tagName == null ? compo.nodes : compo,
-						model,
-						ctx,
-						container,
-						compo,
-						elements
-					);
-			
-					compo.$ = domLib(elements);
-			
-					if (compo.events != null) 
-						Events_.on(compo, compo.events);
-					
-					if (compo.compos != null) 
-						Children_.select(compo, compo.compos);
-					
-					return compo;
-				},
-			
+				
 				initialize: function(mix, model, ctx, container, parent) {
 					if (mix == null)
 						throw Error('Undefined is not a component');
@@ -10418,7 +10400,6 @@
 			
 				},
 			
-				//pipes: Pipes,
 				pipe: Pipes.pipe,
 				
 				resource: function(compo){
@@ -10436,7 +10417,9 @@
 				},
 				
 				plugin: function(source){
+					// if DEBUG
 					eval(source);
+					// endif
 				},
 				
 				Dom: {
@@ -10448,86 +10431,18 @@
 			// end:source ./Compo.static.js
 			// source ./async.js
 			(function(){
-				
-				function _on(ctx, type, callback) {
-					if (ctx[type] == null)
-						ctx[type] = [];
-					
-					ctx[type].push(callback);
-					
-					return ctx;
-				}
-				
-				function _call(ctx, type, _arguments) {
-					var cbs = ctx[type];
-					if (cbs == null) 
-						return;
-					
-					for (var i = 0, x, imax = cbs.length; i < imax; i++){
-						x = cbs[i];
-						if (x == null)
-							continue;
-						
-						cbs[i] = null;
-						
-						if (_arguments == null) {
-							x();
-							continue;
-						}
-						
-						x.apply(this, _arguments);
-					}
-				}
-				
-				
-				var DeferProto = {
-					done: function(callback){
-						return _on(this, '_cbs_done', callback);
-					},
-					fail: function(callback){
-						return _on(this, '_cbs_fail', callback);
-					},
-					always: function(callback){
-						return _on(this, '_cbs_always', callback);
-					},
-					resolve: function(){
-						this.async = false;
-						_call(this, '_cbs_done', arguments);
-						_call(this, '_cbs_always', arguments);
-					},
-					reject: function(){
-						this.async = false;
-						_call(this, '_cbs_fail', arguments);
-						_call(this, '_cbs_always');
-					},
-					_cbs_done: null,
-					_cbs_fail: null,
-					_cbs_always: null
-				};
-				
-				var CompoProto = {
-					async: true,
-					await: function(resume){
-						this.resume = resume;
-					}
-				};
-				
 				Compo.pause = function(compo, ctx){
-					if (ctx.async == null) {
+					if (ctx.defers == null) 
 						ctx.defers = [];
-						obj_extend(ctx, DeferProto);
-					}
 					
 					ctx.async = true;
 					ctx.defers.push(compo);
 					
 					obj_extend(compo, CompoProto);
-					
 					return function(){
 						Compo.resume(compo, ctx);
 					};
 				};
-				
 				Compo.resume = function(compo, ctx){
 					
 					// fn can be null when calling resume synced after pause
@@ -10554,6 +10469,12 @@
 						ctx.resolve();
 				};
 				
+				var CompoProto = {
+					async: true,
+					await: function(resume){
+						this.resume = resume;
+					}
+				};
 			}());
 			// end:source ./async.js
 		
@@ -11464,7 +11385,7 @@
 				if (this.length === 0)
 					return null;
 				
-				var compo = Anchor.resolveCompo(this[0]);
+				var compo = Anchor.resolveCompo(this[0], true);
 		
 				return selector == null
 					? compo
