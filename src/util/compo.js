@@ -80,6 +80,9 @@ var compo_dispose,
 			return;
 		}
 		var template = getTemplateProp_(compo);
+		if (template == null) {
+			return;
+		}
 		if (behaviour === 'merge') {
 			compo.nodes = mask_merge(template, compo.nodes, compo);
 			return;
