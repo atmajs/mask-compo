@@ -81,6 +81,35 @@ var DomLite;
 			return each(this, function(x){
 				x.parentNode.removeChild(x);
 			});
+		},
+		text: function(mix){
+			if (arguments.length === 0) {
+				return aggr('', this, function(txt, x){
+					return txt + x.textContent;
+				});
+			}
+			return each(this, function(x){
+				x.textContent = mix;
+			});
+		},
+		html: function(mix){
+			if (arguments.length === 0) {
+				return aggr('', this, function(txt, x){
+					return txt + x.innerHTML;
+				});
+			}
+			return each(this, function(x){
+				x.innerHTML = mix;
+			});
+		},
+		val: function(mix){
+			if (arguments.length === 0) {
+				return this.length === 0 ? null : this[0].value;
+			}
+			if (this.length !== 0) {
+				this[0].value = mix;
+			}
+			return this;
 		}
 	};
 	
@@ -135,6 +164,12 @@ var DomLite;
 			fn.call(ctx || arr, arr[i], i);
 		}
 		return ctx || arr;
+	}
+	function aggr(seed, arr, fn, ctx) {
+		each(arr, function(x, i){
+			seed = fn.call(ctx || arr, seed, arr[i], i);
+		});
+		return seed;
 	}
 	function indexOf(arr, fn, ctx){
 		if (arr == null) 
