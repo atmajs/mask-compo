@@ -1,5 +1,5 @@
 var compo_inherit;
-(function(mask_merge){
+(function(){
 	
 	compo_inherit = function(Proto, Extends){
 		var imax = Extends.length,
@@ -46,7 +46,7 @@ var compo_inherit;
 				sourceNodes = source.template || source.nodes;
 			target.template = targetNodes == null || sourceNodes == null
 				? (targetNodes || sourceNodes)
-				: (mask.merge(sourceNodes, targetNodes, target));
+				: (mask_merge(sourceNodes, targetNodes, target));
 			
 			if (target.nodes != null) {
 				target.nodes = target.template;
@@ -242,4 +242,4 @@ var compo_inherit;
 			return result;
 		};
 	}
-}(mask.merge));
+}());
