@@ -85,7 +85,10 @@
 		
 		if (signals !== '') {
 			var attr = el.getAttribute('data-signals');
-			el.setAttribute('data-signals', attr + signals);
+			if (attr != null) {
+				signals = attr + signals;
+			}
+			el.setAttribute('data-signals', signals);
 		}
 	}
 	
