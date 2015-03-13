@@ -132,6 +132,7 @@ function JSHint() {
 			
 			"Mask"
 			, "class_create"
+			, "class_Dfr"
 			, "mask_merge"
 			, "log_error"
 			, "log_warn"

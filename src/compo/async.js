@@ -1,10 +1,16 @@
 (function(){
 	Compo.pause = function(compo, ctx){
-		if (ctx.defers == null) 
-			ctx.defers = [];
-		
-		ctx.async = true;
-		ctx.defers.push(compo);
+		if (ctx != null) {
+			if (ctx.defers == null) {
+				// async components
+				ctx.defers = [];
+			}
+			if (ctx.resolve == null) {
+				obj_extend(ctx, class_Dfr.prototype);
+			}
+			ctx.async = true;
+			ctx.defers.push(compo);
+		}
 		
 		obj_extend(compo, CompoProto);
 		return function(){
@@ -12,12 +18,15 @@
 		};
 	};
 	Compo.resume = function(compo, ctx){
-		
-		// fn can be null when calling resume synced after pause
-		if (compo.resume) 
-			compo.resume();
-		
 		compo.async = false;
+
+		// fn can be null when calling resume synced after pause
+		if (compo.resume) {
+			compo.resume();
+		}
+		if (ctx == null) {
+			return;
+		}
 		
 		var busy = false,
 			dfrs = ctx.defers,
