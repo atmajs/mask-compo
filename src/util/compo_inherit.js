@@ -46,7 +46,7 @@ var compo_inherit;
 				sourceNodes = source.template || source.nodes;
 			target.template = targetNodes == null || sourceNodes == null
 				? (targetNodes || sourceNodes)
-				: (mask_merge(sourceNodes, targetNodes, target));
+				: (mask_merge(sourceNodes, targetNodes, target, {extending: true }));
 			
 			if (target.nodes != null) {
 				target.nodes = target.template;
