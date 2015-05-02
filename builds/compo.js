@@ -2,12 +2,9 @@
 	
 	var log_warn = console.warn.bind(console);
 	var log_error = console.error.bind(console);
-	var obj_extend = mask.obj.extend;
-	var class_create = mask.class.create;
+	var mask_merge = mask.merge;
 	
-	var is_Function = mask.is.Function;
-	var is_Array 	= mask.is.ArrayLike;
-	var is_String 	= mask.is.String;
+	// import /ref-utils/lib/utils.embed.js
 	
 	// import /src/scope-vars.js
 

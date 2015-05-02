@@ -1,5 +1,5 @@
 UTest({
-	'should parse number': function(done){
+	'should parse number' (done) {
 		var Foo = Compo({
 			meta: {
 				attributes: {
@@ -19,7 +19,7 @@ UTest({
 		mask.registerHandler(':foo',  Foo);
 		mask.render(':foo x-foo=5');
 	},
-	'should handle boolean and model extraction': function(){
+	'should handle boolean and model extraction' () {
 		var Foo = Compo({
 			meta: {
 				attributes: {
@@ -41,7 +41,7 @@ UTest({
 			myProp: 'myValue'
 		});
 	},
-	'should render errored compo': function(){
+	'should render errored compo' () {
 		var Foo = Compo({
 			meta: {
 				attributes: {
@@ -58,5 +58,30 @@ UTest({
 		var div = dom.querySelector('.-mask-compo-errored');
 		notEq_(div, null);
 		has_(div.textContent, 'RegExp');
+	},
+	
+	'should except object configuration' () {
+		var Foo = Compo({
+			meta: {
+				attributes: {
+					'value': {
+						type: 'number',
+						validate (val) {
+							return val < 0 ? 'Only positive numbers' : null
+						},
+						transform (val) {
+							return val * 1000;
+						}
+					}
+				}
+			}
+		});
+		
+		mask.registerHandler(':foo',  Foo);
+		
+		var app = Compo.initialize(':foo value=5');
+		
+		var foo = app.find(':foo');
+		eq_(foo.value, 5000);
 	}
 })

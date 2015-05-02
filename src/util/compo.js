@@ -219,6 +219,9 @@ var compo_dispose,
 			else if (typeof metaVal === 'object') {
 				fn = _ensureFns_Delegate.options(metaVal);
 				default_ = metaVal['default'];
+				if (default_ !== void 0) {
+					optional = true;
+				}
 			}
 			
 			if (fn == null) {
@@ -283,14 +286,31 @@ var compo_dispose,
 				return function(x){ return x; };
 			},
 			options: function(opts){
-				var type = opts.type || 'string',
-					def = opts.default || _defaults[type];
+				var type = opts.type,
+					def = opts.default || _defaults[type],
+					validate = opts.validate,
+					transform = opts.transform;
 				return function(x){
 					if (!x) return def;
-					var fn = _ensureFns[type];
-					if (fn != null) 
-						return fn.apply(this, arguments);
 					
+					if (type != null) {
+						var fn = _ensureFns[type];
+						if (fn != null) {
+							x = fn.apply(this, arguments);
+							if (x instanceof Error) {
+								return x;
+							}
+						}
+					}
+					if (validate) {
+						var error = validate.call(this, x);
+						if (error) {
+							return Error(error);
+						}
+					}
+					if (transform) {
+						x = transform.call(this, x);
+					}
 					return x;
 				};
 			}

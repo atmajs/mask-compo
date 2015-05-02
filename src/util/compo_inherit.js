@@ -8,8 +8,13 @@ var compo_inherit;
 			x;
 		while( --i > -1){
 			x = Extends[i];
-			if (typeof x === 'string') 
-				x = Mask.getHandler(x);
+			if (typeof x === 'string') {
+				x = mask.getHandler(x);
+				if (x != null && x.name === 'Resolver') {
+					log_error('Inheritance error: private component');
+					x = null;
+				}
+			}
 			if (x == null) {
 				log_error('Base component not defined', Extends[i]);
 				continue;

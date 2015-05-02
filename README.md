@@ -128,7 +128,7 @@ var B = mask.Compo(A, {
 	_(optional)_ Component renders its template only, but when `tagName` is defined, then it will also creates appropriete _wrapper_ element, and renders the template _(if any)_ into the element.
 	
 	```javascript
-		mask.registerHandler(':foo', mask.Compo({
+		mask.registerHandler('Foo', mask.Compo({
 			tagName: 'section',
 			template: 'span > "Hello"',
 			onRenderEnd: function(){
@@ -143,9 +143,9 @@ var B = mask.Compo(A, {
 	
 	- in-line the template of the component directly into the parents template
 	
-		```sass
+		```mask
 		h4 > 'Hello'
-		:myComponent {
+		MyComponent {
 			// here goes components template
 			span > 'My Component'
 			ul {
@@ -156,7 +156,7 @@ var B = mask.Compo(A, {
 		```
 	- via the `template` property. This approach is much better, as it leads to the separation of concerns. Each component loads and defines its own templates. Direct **inline** template was shown in the `tagName` sample, but to write some the templates in javascript files is not always a good idea. Better to preload the template with `IncludeJS` for example. **Note:** The Application can be built for production. All the templates are then embedded into single `html` file. Style and Javascript files are also combined into single files.
 	
-		```sass
+		```mask
 		// myComponent.mask
 		span > 'My Component'
 		/*..*/
@@ -167,7 +167,7 @@ var B = mask.Compo(A, {
 			.css('./myComponent.less')
 			.load('./myComponent.mask')
 			.done(function(resp){
-				mask.registerHandler(':myComponent', mask.Compo({
+				mask.registerHandler('MyComponent', mask.Compo({
 					template: resp.load.myComponent
 				});
 			})
@@ -185,13 +185,13 @@ var B = mask.Compo(A, {
 	
 	- via the `:template` component
 	
-		```sass
+		```mask
 		// somewhere before
 		:template #myComponentTmpl {
 			h4 > "Hello"
 		}
 		// ... later
-		:myComponent {
+		MyComponent {
 			:import #myComponentTmpl;
 		}
 		```
@@ -202,7 +202,7 @@ var B = mask.Compo(A, {
 			h4 > "Hello"
 		</script>
 		<script>
-			mask.registerHandler(':myComponent', mask.Compo({
+			mask.registerHandler('MyComponent', mask.Compo({
 				template: '#myComponent'
 			});
 		</script>
@@ -219,7 +219,7 @@ var B = mask.Compo(A, {
 	
 	- from the template itself, when `x-signal` attribute is defined for the element:
 	
-		```sass
+		```mask
 		div x-signal='eventName: signalName; otherEventName: otherSignalName;';
 		
 		// attribute aliases:
@@ -272,7 +272,7 @@ var B = mask.Compo(A, {
 			Compo.pipe('user').emit('logout');
 		}
 	}));
-	mask.registerHandler(':footerUserInfo', Compo({
+	mask.registerHandler('FooterUserInfo', Compo({
 		pipes: {
 			// pipe name
 			user: {
@@ -322,11 +322,11 @@ var B = mask.Compo(A, {
 	
 	Example:
 	```javascript
-	mask.registerHandler(':foo', mask.Compo({
-		template: 'input type=text; span.msg; :spinnerCompo;',
+	mask.registerHandler('Foo', mask.Compo({
+		template: 'input type=text; span.msg; SpinnerCompo;',
 		compos: {
 			input: '$: input',
-			spinner: 'compo: :spinnerCompo',
+			spinner: 'compo: SpinnerCompo',
 			messageEl: '.msg'
 		},
 		
@@ -342,11 +342,11 @@ var B = mask.Compo(A, {
 - **`attr : Object`** <a name='attr'>#</a>
 
 	Add additional attributes to the component. This object will also store the attributes defined from the template.
-	```sass
-	:foo name='fooName';
+	```mask
+	Foo name='fooName';
 	```
 	```javascript
-	mask.registerHandler(':foo', mask.Compo({
+	mask.registerHandler('Foo', mask.Compo({
 		tagName: 'input',
 		attr: {
 			id: 'MyID'
@@ -397,11 +397,11 @@ var B = mask.Compo(A, {
 	
 	- **`attributes`** <a name='meta-attributes'>#</a>
 	
-		There is a convention for the custom attributes: `x-attribute-name`. Attributes, which are declared here, are then bound directly to the instance in `camelCase` manner. When some attribute values are not valid, the component is not rendered, and instead the error message is rendered.
+		Attributes, which are declared here, are then bound directly to the instance in `camelCase` manner. When some attribute values are not valid, the component is not rendered, and instead the error message is rendered.
 		```javascript
-		// :foo x-foo='5' x-quux='some value';
+		// Foo x-foo='5' x-quux='some value';
 		
-		mask.registerHandler(':foo', mask.Compo({
+		mask.registerHandler('Foo', mask.Compo({
 			meta: {
 				attributes: {
 					// required custom attribute, value is parsed to number
@@ -410,13 +410,30 @@ var B = mask.Compo(A, {
 					'?x-baz': 'boolean',
 					
 					// required
-					'x-quux': function(value){
+					'x-quux': function (value) {
 						// perform some custom check
 						if (check(value) === false)
 							return Error('Attributes value is not valid');
 							
 						// optionally perform some object transformations/parsing
 						return transform(value);
+					},
+					
+					// via Object Configuration
+					'x-bax: {
+						// define type of the value
+						type: 'number',
+						// make attribute optional
+						default: 0,
+						// validate value, return string or Error if any
+						validate: function (val) {
+							// this is a current component instance
+							return 'Error message here'
+						},
+						// transform value to something else
+						transform: function (val) {
+							return val * 1000;
+						}
 					}
 				}
 			},
@@ -435,13 +452,13 @@ var B = mask.Compo(A, {
 		- `'replace'` - (_default_) Child nodes from the inlined mask markup (_if any_) will replace the `template` property
 		
 			```javascript
-				mask.registerHandler(':foo', mask.Compo({
+				mask.registerHandler('Foo', mask.Compo({
 					template: 'h4 > "Hello"'
 				});
-				mask.render(':foo')
+				mask.render('Foo')
 					// `h4 > "Hello"` template is rendered
 				
-				mask.render(':foo > h1 > "World"')
+				mask.render('Foo > h1 > "World"')
 					// `h1 > "World"` template is rendered
 			```
 			
@@ -449,13 +466,13 @@ var B = mask.Compo(A, {
 		
 			```javascript
 				// very basic sample, usually it would be much greater encapsulation
-				mask.registerHandler(':foo', mask.Compo({
+				mask.registerHandler('Foo', mask.Compo({
 					meta: {
 						template: 'merge'
 					},
 					template: 'h4 > @title;'
 				});
-				mask.render(':foo > @title > "Foo"')
+				mask.render('Foo > @title > "Foo"')
 					// `h4 > "Foo"` template is rendered
 			```
 		- `'join'` - `template` and `nodes` will be concatenated
@@ -481,7 +498,7 @@ var B = mask.Compo(A, {
 	Find the child component. Selector:
 	```javascript
 	// compo name
-	this.find(':spinner')
+	this.find('Spinner')
 	// id
 	this.find('#mySpinner');
 	// class
@@ -504,8 +521,8 @@ var B = mask.Compo(A, {
 	
 	Disables/Enables the signal - **all slots** in all controllers up in the tree will be also `enabled/disabled`
 	```javascript
-	// :foo > button x-signal='click: performAction'
-	mask.registerHandler(':foo', mask.Compo({
+	// Foo > button x-signal='click: performAction'
+	mask.registerHandler('Foo', mask.Compo({
 		slots: {
 			performAction: function(){
 				this.signalState('performAction', false);
@@ -547,7 +564,7 @@ var B = mask.Compo(A, {
 		Emits the signal in a pipe. 
 		
 		```javascript
-		mask.registerHandler(':some', Compo({
+		mask.registerHandler('Some', Compo({
 			pipes: {
 				'foo': {
 					// registers `bazSignal` signal in a `foo` pipe.
