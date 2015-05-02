@@ -397,7 +397,7 @@ var B = mask.Compo(A, {
 	
 	- **`attributes`** <a name='meta-attributes'>#</a>
 	
-		Attributes, which are declared here, are then bound directly to the instance in `camelCase` manner. When some attribute values are not valid, the component is not rendered, and instead the error message is rendered.
+		Attributes, which are declared here, are then bound directly to the instance in `camelCase` manner. When some attribute values are not valid, the component is not rendered, and instead the error message is rendered. For better consistance custom attributes should start with `x-` prefix, **though** it is not required, **but** if `x-` prefix missed, the it will be added for the property names.
 		```javascript
 		// Foo x-foo='5' x-quux='some value';
 		
@@ -419,15 +419,19 @@ var B = mask.Compo(A, {
 						return transform(value);
 					},
 					
+					// optional default values, the values are also converted to match the type.
+					'my-foo': 5,
+					''
+					
 					// via Object Configuration
 					'some-value': {
 						// define type of the value
 						type: 'number',
-						// make attribute optional
+						// make attribute optional, and provide default value
 						default: 0,
 						// validate value, return string or Error if any
 						validate: function (val) {
-							// this is a current component instance
+							// `this` is a current component instance
 							return 'Error message here'
 						},
 						// transform value to something else
