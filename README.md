@@ -420,7 +420,7 @@ var B = mask.Compo(A, {
 					},
 					
 					// via Object Configuration
-					'x-bax: {
+					'some-value': {
 						// define type of the value
 						type: 'number',
 						// make attribute optional
@@ -577,4 +577,5 @@ var B = mask.Compo(A, {
 		
 
 ----
-:copyright: The Atma.js Project - 2015 - MIT
+
+:copyright: `Atma.js Project` - 2015 - MIT
