@@ -42,7 +42,7 @@ UTest({
 		});
 	},
 	'should render errored compo' () {
-		var Foo = Compo({
+		mask.registerHandler(':foo', Compo({
 			meta: {
 				attributes: {
 					'x-foo': /^(one|two)$/
@@ -50,18 +50,18 @@ UTest({
 			},
 			onRenderStart: assert.avoid('onrenderstart was called'),
 			onRenderEnd: assert.avoid('onrenderend was called')
-		});
-		
-		mask.registerHandler(':foo',  Foo);
-		
+		}));
 		var dom = mask.render(':foo x-foo=true');
-		var div = dom.querySelector('.-mask-compo-errored');
-		notEq_(div, null);
-		has_(div.textContent, 'RegExp');
+		
+		return UTest.domtest(dom, `
+			find('.-mask-compo-errored') {
+				has text RegExp;
+			}
+		`);
 	},
 	
-	'should except object configuration' () {
-		var Foo = Compo({
+	'should accept object configuration' () {
+		mask.registerHandler('Foo',  Compo({
 			meta: {
 				attributes: {
 					'value': {
@@ -75,13 +75,32 @@ UTest({
 					}
 				}
 			}
-		});
+		}));
 		
-		mask.registerHandler(':foo',  Foo);
+		var app = Compo.initialize('Foo value=5');		
+		var foo = app.find('Foo');
+		eq_(foo.xValue, 5000);
+	},
+	'should accept direct default values' () {
+		mask.registerHandler('Foo', Compo({
+			meta: {
+				attributes: {
+					'some-string': 'a',
+					'some-number': 1,
+					'bool': false
+				}
+			}
+		}));
 		
-		var app = Compo.initialize(':foo value=5');
+		var Foo = Compo.initialize('Foo');
+		eq_(Foo.xSomeString, 'a');
+		eq_(Foo.xSomeNumber, 1);
+		eq_(Foo.xBool, false);
 		
-		var foo = app.find(':foo');
-		eq_(foo.value, 5000);
+		var app = Compo.initialize('Foo some-string=foo some-number=5 bool;');
+		var Foo = app.find('Foo');
+		eq_(Foo.xSomeString, 'foo');
+		eq_(Foo.xSomeNumber, 5);
+		eq_(Foo.xBool, true);
 	}
 })
