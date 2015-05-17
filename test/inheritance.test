@@ -87,6 +87,33 @@ UTest({
 		is_(b.attr.b, 'Function');
 		is_(b.attr.a, 'Function');
 	},
+	'should inherit model': {
+		'inherit properties' () {
+			var A = {
+				model: {
+					a: new Date(2017, 1, 1)
+				}
+			};
+			var B = Compo(A, {
+				model: {
+					b: new Date(2018, 1, 1)
+				}
+			});
+			var b = new B;
+			eq_(b.model.a.getFullYear(), 2017);
+			eq_(b.model.b.getFullYear(), 2018);
+		},
+		'use instance' () {
+			var A = {
+				model: new Date(2017, 1, 1)
+			};
+			var B = Compo(A, {});
+			var b = new B;
+			is_(b.model.getFullYear, 'Function');
+			eq_(b.model.getFullYear(), 2017);
+		},
+	},
+	
 	'should inherit component constructors': function(){
 		var A = Compo({
 			name: '_',

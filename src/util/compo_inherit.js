@@ -70,28 +70,26 @@ var compo_inherit;
 			type = typeof mix;
 			
 			if (target[key] == null) {
-				target[key] = 'object' === type
-					? clone_(mix)
-					: mix;
+				target[key] = mix;
 				continue;
 			}
 			if ('node' === name) {
-				// http://jsperf.com/indexof-vs-bunch-of-if
-				var isSealed = key === 'renderStart' ||
-						key === 'renderEnd' ||
-						key === 'emitIn' ||
-						key === 'emitOut' ||
-						key === 'components' ||
-						key === 'nodes' ||
-						key === 'template' ||
-						key === 'find' ||
-						key === 'closest' ||
-						key === 'on' ||
-						key === 'remove' ||
-						key === 'slotState' ||
-						key === 'signalState' ||
-						key === 'append' ||
-						key === 'appendTo'
+				// http://jsperf.com/indexof-vs-bunch-of-ifs
+				var isSealed = key === 'renderStart'
+						|| key === 'renderEnd'
+						|| key === 'emitIn'
+						|| key === 'emitOut'
+						|| key === 'components'
+						|| key === 'nodes'
+						|| key === 'template'
+						|| key === 'find'
+						|| key === 'closest'
+						|| key === 'on'
+						|| key === 'remove'
+						|| key === 'slotState'
+						|| key === 'signalState'
+						|| key === 'append'
+						|| key === 'appendTo'
 						;
 				if (isSealed === true) 
 					continue;
