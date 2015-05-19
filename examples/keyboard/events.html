@@ -12,7 +12,14 @@
 				h2 { tt > 'Press `a`' }
 				p  {
 					tt > 'Input 1'
-					input #i1;
+					input #i1 {
+						event press:enter (e) {
+							this.emitOut('pressedSignal', e)
+						}
+						event press:escape (e) {
+							this.emitOut('pressedSignal', e)
+						}
+					}
 				}
 				p {
 					'Target: ~[bind: current]'
@@ -20,17 +27,15 @@
 			}
 		</script>
 		<script>
+			
+			mask.Compo.Dom = Compo.Dom;
+			
 			mask.registerHandler('Foo', Compo({
 				model: {
 					current: '',
 				},
-				events: {
-					'enter: #i1': function(event){
-						this.model.current = event.target.tagName + '#' + event.target.id + ' : ' + Date.now();
-					}
-				},
 				slots: {
-					pressedSignal: function(event) {
+					pressedSignal: function(sender, event) {
 						this.model.current = event.target.tagName + '#' + event.target.id + ' : ' + Date.now();
 					}
 				}

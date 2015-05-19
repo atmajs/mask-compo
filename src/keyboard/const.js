@@ -16,6 +16,8 @@ CODES = {
 	"pause": 19,
 	"capslock": 20,
 	"esc": 27,
+	"escape": 27,
+	
 	"space": 32,
 	"pageup": 33,
 	"pagedown": 34,

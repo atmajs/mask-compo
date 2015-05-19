@@ -44,9 +44,9 @@ var IComb;
 			x = keys[i].trim();
 			code = CODES[x];
 			if (code === void 0) {
-				if (x.length !== 1) 
-					throw Error('Unexpected sequence. Use `+` sign to define the sequence:' + x)
-				
+				if (x.length !== 1)  {
+					throw Error('Unexpected sequence. Neither a predefined key, nor a char: ' + x);
+				}
 				code = x.toUpperCase().charCodeAt(0);
 			}
 			out[i] = code;
