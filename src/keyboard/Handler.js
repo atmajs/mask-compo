@@ -34,8 +34,9 @@ var KeyboardHandler;
 				event_bind(el, type, function (event) {
 					var code = event_getCode(event);
 					var r = comb.tryCall(event, null, code);
-					if (r === Key_MATCH_OK) 
+					if (r === Key_MATCH_OK) {
 						event.preventDefault();
+					}
 				});
 				return;
 			}
@@ -61,6 +62,7 @@ var KeyboardHandler;
 		attach: function(el, type, comb, fn, ctr){
 			if (filter_isKeyboardInput(el)) {
 				this.on(el, type, comb, fn);
+				return;
 			}
 			var x = ctr;
 			while(x && x.slots == null) {
