@@ -3,6 +3,9 @@
 	var log_warn = console.warn.bind(console);
 	var log_error = console.error.bind(console);
 	var mask_merge = mask.merge;
+	var reporter_createErrorNode = function(msg){
+		return mask.parse("div > '''" + msg + "'''");;
+	}
 	
 	// import /ref-utils/lib/utils.embed.js
 	
