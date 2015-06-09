@@ -143,8 +143,14 @@ var compo_dispose,
 	};
 	
 	compo_errored = function(compo, error){
-		compo.nodes = mask.parse('.-mask-compo-errored > "~[.]"');
-		compo.model = error.message || String(error);
+		var msg = '[%] Asynchronous action failed.'.replace(compo.compoName || compo.tagName);
+		if (error) {
+			var desc = error.message || error.statusText || String(error);
+			if (desc) {
+				msg += ' ' + desc;
+			}
+		}
+		compo.nodes = reporter_createErrorNode(msg);
 		compo.renderEnd = fn_doNothing;
 	};
 	

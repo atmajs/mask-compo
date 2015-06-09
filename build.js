@@ -129,7 +129,7 @@ function JSHint() {
 			"_Array_slice",
 			"_Array_splice",
 			"_Array_indexOf",
-			
+			"reporter_createErrorNode",
 			"Mask"
 			, "class_create"
 			, "class_Dfr"

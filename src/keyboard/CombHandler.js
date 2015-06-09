@@ -90,9 +90,6 @@ var CombHandler;
 					next = true;
 				}
 			}
-			if (next === false) {
-				//-this.keys.length = 0;
-			}
 		},
 		filter_: function(event, code){
 			return filter_skippedInput(event, code);

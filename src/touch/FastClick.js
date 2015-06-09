@@ -16,19 +16,18 @@ var FastClick;
 	};
 	
 	var threshold_TIME = 300,
-		threshold_DIST = 10;
+		threshold_DIST = 10,
+		timestamp_LastTouch = null;
 	
 	FastClick.prototype = {
 		handleEvent: function (event) {
-			switch (event.type) {
+			var type = event.type;
+			switch (type) {
 				case 'touchmove':
-					this.touchmove(event);
-					break;
 				case 'touchstart':
-					this.touchstart(event);
-					break;
 				case 'touchend':
-					this.touchend(event);
+					timestamp_LastTouch = event.timeStamp;
+					this[type](event);
 					break;
 				case 'touchcancel':
 					this.reset();
@@ -64,6 +63,12 @@ var FastClick;
 			this.reset();
 		},
 		click: function(event){
+			if (timestamp_LastTouch != null) {
+				var dt = timestamp_LastTouch - event.timeStamp;
+				if (dt < 500) {
+					return;
+				}
+			}
 			if (--this.dismiss > -1) 
 				return;
 			
