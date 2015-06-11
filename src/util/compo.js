@@ -143,7 +143,7 @@ var compo_dispose,
 	};
 	
 	compo_errored = function(compo, error){
-		var msg = '[%] Asynchronous action failed.'.replace('%', compo.compoName || compo.tagName);
+		var msg = '[%] Failed.'.replace('%', compo.compoName || compo.tagName);
 		if (error) {
 			var desc = error.message || error.statusText || String(error);
 			if (desc) {

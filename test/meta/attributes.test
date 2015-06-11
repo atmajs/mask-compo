@@ -52,7 +52,7 @@ UTest({
 			onRenderEnd: assert.avoid('onrenderend was called')
 		}));
 		var dom = mask.render(':foo x-foo=true');
-		
+		debugger;
 		return UTest.domtest(dom, `
 			find('.-mask-compo-errored') {
 				has text RegExp;

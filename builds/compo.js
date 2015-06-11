@@ -4,7 +4,7 @@
 	var log_error = console.error.bind(console);
 	var mask_merge = mask.merge;
 	var reporter_createErrorNode = function(msg){
-		return mask.parse("div > '''" + msg + "'''");;
+		return mask.parse(".-mask-compo-errored > '''" + msg + "'''");;
 	}
 	
 	// import /ref-utils/lib/utils.embed.js
