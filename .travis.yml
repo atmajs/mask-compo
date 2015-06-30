@@ -3,6 +3,7 @@ before_script:
   - bower install
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
+  - npm build
   - sleep 4
   - node_modules/.bin/atma server &
   - sleep 4
