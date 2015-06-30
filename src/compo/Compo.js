@@ -26,6 +26,7 @@ var Compo, CompoProto;
 		expression: null,
 		attr: null,
 		model: null,
+		scope: null,
 		
 		slots: null,
 		pipes: null,
@@ -86,18 +87,18 @@ var Compo, CompoProto;
 
 			this.$ = domLib(elements);
 
-			if (this.events != null)
+			if (this.events != null) {
 				Events_.on(this, this.events);
-			
-			if (this.compos != null) 
+			}
+			if (this.compos != null) {
 				Children_.select(this, this.compos);
-			
-			if (this.hotkeys != null) 
+			}
+			if (this.hotkeys != null) {
 				KeyboardHandler.hotkeys(this, this.hotkeys);
-			
-			
-			if (is_Function(this.onRenderEnd))
+			}
+			if (is_Function(this.onRenderEnd)) {
 				this.onRenderEnd(elements, model, ctx, container);
+			}
 		},
 		appendTo: function(mix) {
 			
@@ -233,6 +234,11 @@ var Compo, CompoProto;
 					: null
 			);
 			return this;
+		},
+		
+		$scope: function(path){
+			var accessor = '$scope.' + path;
+			return mask.Utils.Expression.eval(accessor, null, null, this);
 		}
 	};
 
