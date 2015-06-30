@@ -239,6 +239,9 @@ var Compo, CompoProto;
 		$scope: function(path){
 			var accessor = '$scope.' + path;
 			return mask.Utils.Expression.eval(accessor, null, null, this);
+		},
+		$eval: function(expr, model_, ctx_){
+			return mask.Utils.Expression.eval(expr, model_, ctx_, this);
 		}
 	};
 
