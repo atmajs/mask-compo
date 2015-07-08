@@ -50,17 +50,6 @@ var Compo, CompoProto;
 		onRenderEnd: null,
 		render: null,
 		renderStart: function(model, ctx, container){
-
-			if (arguments.length === 1
-				&& model != null
-				&& model instanceof Array === false
-				&& model[0] != null){
-				
-				var args = arguments[0];
-				model = args[0];
-				ctx = args[1];
-				container = args[2];
-			}
 				
 			if (compo_meta_executeAttributeHandler(this, model) === false) {
 				// errored
@@ -75,14 +64,7 @@ var Compo, CompoProto;
 			}
 		},
 		renderEnd: function(elements, model, ctx, container){
-			if (arguments.length === 1 && elements instanceof Array === false){
-				var args = arguments[0];
-				elements = args[0];
-				model = args[1];
-				ctx = args[2];
-				container = args[3];
-			}
-
+			
 			Anchor.create(this, elements);
 
 			this.$ = domLib(elements);
@@ -100,25 +82,8 @@ var Compo, CompoProto;
 				this.onRenderEnd(elements, model, ctx, container);
 			}
 		},
-		appendTo: function(mix) {
-			
-			var element = typeof mix === 'string'
-				? document.querySelector(mix)
-				: mix
-				;
-			
-			if (element == null) {
-				log_warn('Compo.appendTo: parent is undefined. Args:', arguments);
-				return this;
-			}
-
-			var els = this.$,
-				i = 0,
-				imax = els.length;
-			for (; i < imax; i++) {
-				element.appendChild(els[i]);
-			}
-
+		appendTo: function(el) {
+			this.$.appendTo(el);
 			this.emitIn('domInsert');
 			return this;
 		},
@@ -126,37 +91,27 @@ var Compo, CompoProto;
 			var parent;
 
 			if (this.$ == null) {
-				var dom = typeof template === 'string'
-					? mask.compile(template)
-					: template;
-
-				parent = selector
-					? find_findSingle(this, selector_parse(selector, Dom.CONTROLLER, 'down'))
-					: this;
-					
-				if (parent.nodes == null) {
-					this.nodes = dom;
-					return this;
+				var ast = is_String(template) ? mask.parse(template) : template;
+				var parent = this;				
+				if (selector) {
+					parent = find_findSingle(this, selector_parse(selector, Dom.CONTROLLER, 'down'));
+					if (parent == null) {
+						log_error('Compo::append: Container not found');
+						return this;
+					}
 				}
-
-				parent.nodes = [this.nodes, dom];
-
+				parent.nodes = [parent.nodes, ast];
 				return this;
 			}
 			
-			var fragment = mask.render(template, model, null, null, this);
-
+			var frag = mask.render(template, model, null, null, this);
 			parent = selector
 				? this.$.find(selector)
 				: this.$;
-				
 			
-			parent.append(fragment);
-			
-			
+			parent.append(frag);
 			// @todo do not emit to created compos before
 			this.emitIn('domInsert');
-			
 			return this;
 		},
 		find: function(selector){
@@ -241,8 +196,8 @@ var Compo, CompoProto;
 			return mask.Utils.Expression.eval(accessor, null, null, this);
 		},
 		$eval: function(expr, model_, ctx_){
-			return mask.Utils.Expression.eval(expr, model_, ctx_, this);
-		}
+			return mask.Utils.Expression.eval(expr, model_ || this.model, ctx_, this);
+		},
 	};
 
 	Compo.prototype = CompoProto;

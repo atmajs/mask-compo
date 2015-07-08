@@ -1,17 +1,36 @@
 UTest({
-	'click' () {
-		mask.registerHandler(':foo', {
+	'should emit the signal on click' () {
+		mask.registerHandler('Foo', {
 			slots: {
-				foo: assert.await()
+				'foo': assert.await()
 			}
 		});
 		
 		var div = mask.render(`
-			:foo > button x-click='foo';
+			Foo > button x-click='foo';
 		`);
 		
 		return UTest.domtest(div, `
 			find(button) > do click;
 		`);
+	},
+	'should manually fire the signal with arguments' () {
+		var spy = sinon.spy();
+		mask.registerHandler('Foo', Compo({
+			slots: {
+				'testy': spy
+			}
+		}));
+		
+		var compo = Compo.initialize('div > Foo');		
+		compo.emitIn('testy', 1, 'qux');
+		
+		var foo = compo.find('Foo');
+		notEq_(foo, null);
+		foo.remove();		
+		compo.emitIn('testy', 1, 'qux');
+
+		eq_(spy.callCount, 1);		
+		deepEq_(spy.args[0], [compo, 1, 'qux']);
 	}
-})
+});
