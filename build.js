@@ -120,6 +120,7 @@ function JSHint() {
 			"is_String",
 			"is_Function",
 			"is_Array",
+			"is_ArrayLike",
 			"fn_doNothing",
 			"fn_proxy",
 			"fn_apply",

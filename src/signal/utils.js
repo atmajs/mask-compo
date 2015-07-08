@@ -3,16 +3,17 @@ var _hasSlot,
 	
 (function(){
 	// @param sender - event if sent from DOM Event or CONTROLLER instance
-	_fire = function (ctr, slot, sender, args, direction) {
-		if (ctr == null) 
+	_fire = function (ctr, slot, sender, args_, direction) {
+		if (ctr == null) {
 			return false;
-		
+		}
 		var found = false,
+			args  = args_,
 			fn = ctr.slots != null && ctr.slots[slot];
 			
-		if (typeof fn === 'string') 
+		if (typeof fn === 'string') {
 			fn = ctr[fn];
-		
+		}
 		if (typeof fn === 'function') {
 			found = true;
 			
@@ -26,7 +27,7 @@ var _hasSlot,
 				if (result === false) {
 					return true;
 				}
-				if (result != null && typeof result === 'object' && result.length != null) {
+				if (is_ArrayLike(result)) {
 					args = result;
 				}
 			}
@@ -39,17 +40,14 @@ var _hasSlot,
 		if (direction === 1 && ctr.components != null) {
 			var compos = ctr.components,
 				imax = compos.length,
-				i = 0,
-				r;
+				i = 0;
 			for (; i < imax; i++) {
-				r = _fire(compos[i], slot, sender, args, direction);
-				
-				!found && (found = r);
+				found = _fire(compos[i], slot, sender, args, direction) || found;
 			}
 		}
 		
 		return found;
-	}; // _fire()
+	} // _fire()
 
 	_hasSlot = function (ctr, slot, direction, isActive) {
 		if (ctr == null) {
