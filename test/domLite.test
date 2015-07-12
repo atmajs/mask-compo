@@ -95,12 +95,32 @@ UTest({
 	'closest' () {
 		var dom = mask.render('section > p name=baz > a > em');
 		var $ = DomLite(dom).find('em');
-		
 		eq_($.length, 1);
 		
 		$ = $.closest('[name=baz]');
 		eq_($.length, 1);
 		eq_($[0].tagName, 'P');
+	},
+	'next' () {
+		var dom = mask.render('h1;h2 a;h3 b;');
+		var $ = DomLite(dom).filter('h1');
+		eq_($.length, 1);
+		eq_($[0].tagName, 'H1');
+		
+		'> next'
+		var section = $.next();
+		eq_(section.length, 1);
+		eq_(section[0].tagName, 'H2');
+		
+		'> next by selector'
+		var section = $.next('[a]');
+		eq_(section.length, 1);
+		eq_(section[0].tagName, 'H2');
+		
+		'> find next by selector'
+		var section = $.next('[b]');
+		eq_(section.length, 1);
+		eq_(section[0].tagName, 'H3');
 	},
 	'classHandler' () {
 		var dom = mask.render('.foo.bar');

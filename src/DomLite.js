@@ -77,6 +77,20 @@ var DomLite;
 			}
 			return dom;
 		},
+		next: function(selector){
+			var x = this[0],
+				dom = new DomLite;
+			while (x != null && x.nextElementSibling != null) {
+				x = x.nextElementSibling;
+				if (selector == null) {
+					return dom.add(x);
+				}
+				if (_is(x, selector)) {
+					return dom.add(x);
+				}
+			}
+			return dom;
+		},
 		remove: function(){
 			return each(this, function(x){
 				x.parentNode.removeChild(x);
@@ -110,8 +124,23 @@ var DomLite;
 				this[0].value = mix;
 			}
 			return this;
+		},
+		focus: function(){
+			return each(this, function(x){
+				x.focus && x.focus();
+			});
 		}
 	};
+	
+	(function(){
+		each(['show', 'hide'], function(method) {
+			Proto[method] = function(){
+				return each(this, function(x){
+					x.style.display = method === 'hide' ? 'none' : '';
+				});
+			};
+		});
+	}());
 	
 	(function(){
 		var Manip = {
