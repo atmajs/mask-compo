@@ -26,6 +26,15 @@ var selector_parse,
 				selector = sel_hasClassDelegate(selector.substring(1));
 				prop = 'attr';
 				break;
+			case '[':
+				var matches = /(\w+)\s*=([^\]]+)/.exec(selector);
+				if (matches == null) {
+					throw Error('Invalid attributes selector: ' + selector);
+				}
+				key = matches[1];
+				selector = matches[2].trim();
+				prop = 'attr';
+				break;
 			default:
 				key = type === Dom.SET ? 'tagName' : 'compoName';
 				break;
