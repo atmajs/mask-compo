@@ -6,10 +6,11 @@ var compo_create,
 		var argLength = arguments_.length,
 			Proto = arguments_[argLength - 1],
 			Ctor,
-			key;
+			key,
+			hasBase;
 		
 		if (argLength > 1) 
-			compo_inherit(Proto, _Array_slice.call(arguments_, 0, argLength - 1));
+			hasBase = compo_inherit(Proto, _Array_slice.call(arguments_, 0, argLength - 1));
 		
 		if (Proto == null)
 			Proto = {};
@@ -41,7 +42,7 @@ var compo_create,
 			: function CompoBase() {}
 			;
 		
-		Ctor = compo_createConstructor(Ctor, Proto);
+		Ctor = compo_createConstructor(Ctor, Proto, hasBase);
 
 		for(key in CompoProto){
 			if (Proto[key] == null)
@@ -53,7 +54,7 @@ var compo_create,
 		return Ctor;
 	};
 	
-	compo_createConstructor = function(Ctor, proto) {
+	compo_createConstructor = function(Ctor, proto, haveBaseAlready) {
 		var compos = proto.compos,
 			pipes = proto.pipes,
 			scope = proto.scope,
@@ -75,6 +76,10 @@ var compo_create,
 				var overriden = Ctor.call(this, node, model, ctx, container, ctr);
 				if (overriden != null) 
 					return overriden;
+			}
+			
+			if (haveBaseAlready === true) {
+				return;
 			}
 			
 			if (compos != null) {

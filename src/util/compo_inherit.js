@@ -1,11 +1,12 @@
 var compo_inherit;
 (function(){
+	var COMPO_CTOR_NAME = 'CompoBase';
 	
 	compo_inherit = function(Proto, Extends){
 		var imax = Extends.length,
 			i = imax,
 			ctors = [],
-			x;
+			x, hasBase;
 		while( --i > -1){
 			x = Extends[i];
 			if (typeof x === 'string') {
@@ -20,6 +21,7 @@ var compo_inherit;
 				continue;
 			}
 			if (typeof x === 'function') {
+				hasBase = hasBase || x.name === COMPO_CTOR_NAME;
 				ctors.push(x);
 				x = x.prototype;
 			}
@@ -40,6 +42,8 @@ var compo_inherit;
 		
 		if (meta.template == null) 
 			meta.template = 'merge';
+			
+		return hasBase;
 	};
 	
 	function inherit_(target, source, name){
@@ -233,6 +237,9 @@ var compo_inherit;
 	}
 	function joinFns_(fns) {
 		var imax = fns.length;
+		if (imax === 1) {
+			return fns[0];
+		}
 		return function(){
 			var i = imax, result;
 			while( --i > -1 ){
