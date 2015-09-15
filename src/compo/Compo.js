@@ -6,7 +6,7 @@ var Compo, CompoProto;
 			// used in Class({Base: Compo})
 			return void 0;
 		}
-		
+
 		return compo_create(arguments);
 	};
 
@@ -16,9 +16,11 @@ var Compo, CompoProto;
 	CompoProto = {
 		type: Dom.CONTROLLER,
 		__resource: null,
+		__frame: null,
+		__tweens: null,
 		
 		ID: null,
-		
+
 		tagName: null,
 		compoName: null,
 		nodes: null,
@@ -27,16 +29,16 @@ var Compo, CompoProto;
 		attr: null,
 		model: null,
 		scope: null,
-		
+
 		slots: null,
 		pipes: null,
-		
+
 		compos: null,
 		events: null,
 		hotkeys: null,
 		async: false,
 		await: null,
-		
+
 		meta: {
 			/* render modes, relevant for mask-node */
 			mode: null,
@@ -45,26 +47,46 @@ var Compo, CompoProto;
 			serializeNodes: null,
 			handleAttributes: null,
 		},
-		
+
+		getAttribute: function(key) {
+			var attr = this.meta.attributes;
+			if (attr == null || attr[key] === void 0) {
+				return this.attr[key];
+			}
+			var prop = compo_meta_toAttributeKey(key);
+			return this[prop];
+		},
+
+		setAttribute: function(key, val) {
+			var attr = this.meta.attributes;
+			var meta = attr == null ? void 0 : attr[key];
+			var prop = null;
+			if (meta !== void 0) {
+				prop = compo_meta_toAttributeKey(key);
+			}
+
+			ani_updateAttr(this, key, prop, val, meta);
+		},
+
 		onRenderStart: null,
 		onRenderEnd: null,
 		render: null,
 		renderStart: function(model, ctx, container){
-				
+
 			if (compo_meta_executeAttributeHandler(this, model) === false) {
 				// errored
 				return;
 			}
 			compo_ensureTemplate(this);
-			
+
 			if (is_Function(this.onRenderStart)){
 				var x = this.onRenderStart(model, ctx, container);
-				if (x !== void 0 && dfr_isBusy(x)) 
+				if (x !== void 0 && dfr_isBusy(x))
 					compo_prepairAsync(x, this, ctx);
 			}
 		},
 		renderEnd: function(elements, model, ctx, container){
-			
+
 			Anchor.create(this, elements);
 
 			this.$ = domLib(elements);
@@ -92,7 +114,7 @@ var Compo, CompoProto;
 
 			if (this.$ == null) {
 				var ast = is_String(template) ? mask.parse(template) : template;
-				var parent = this;				
+				var parent = this;
 				if (selector) {
 					parent = find_findSingle(this, selector_parse(selector, Dom.CONTROLLER, 'down'));
 					if (parent == null) {
@@ -103,12 +125,12 @@ var Compo, CompoProto;
 				parent.nodes = [parent.nodes, ast];
 				return this;
 			}
-			
+
 			var frag = mask.render(template, model, null, null, this);
 			parent = selector
 				? this.$.find(selector)
 				: this.$;
-			
+
 			parent.append(frag);
 			// @todo do not emit to created compos before
 			this.emitIn('domInsert');
@@ -136,9 +158,9 @@ var Compo, CompoProto;
 				return this;
 			}
 
-			if (this.$ != null) 
+			if (this.$ != null)
 				Events_.on(this, [x]);
-			
+
 			if (this.events == null) {
 				this.events = [x];
 			} else if (is_Array(this.events)) {
@@ -190,7 +212,7 @@ var Compo, CompoProto;
 			);
 			return this;
 		},
-		
+
 		$scope: function(path){
 			var accessor = '$scope.' + path;
 			return mask.Utils.Expression.eval(accessor, null, null, this);

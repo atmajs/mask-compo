@@ -6,46 +6,48 @@ var compo_dispose,
 	compo_removeElements,
 	compo_prepairAsync,
 	compo_errored,
-	
+
+	compo_meta_toAttributeKey,
 	compo_meta_prepairAttributeHandler,
 	compo_meta_executeAttributeHandler
 	;
 
 (function(){
-	
+
 	compo_dispose = function(compo) {
-		if (compo.dispose != null) 
+		if (compo.dispose != null) {
 			compo.dispose();
-		
+		}
+
 		Anchor.removeCompo(compo);
-	
+
 		var compos = compo.components;
 		if (compos != null) {
 			var i = compos.length;
 			while ( --i > -1 ) {
 				compo_dispose(compos[i]);
 			}
-		}	
+		}
 	};
-	
+
 	compo_detachChild = function(childCompo){
 		var parent = childCompo.parent;
-		if (parent == null) 
+		if (parent == null)
 			return;
-		
+
 		var arr = childCompo.$,
 			elements = parent.$ || parent.elements,
 			i;
-			
+
 		if (elements && arr) {
 			var jmax = arr.length,
 				el, j;
-			
+
 			i = elements.length;
 			while( --i > -1){
 				el = elements[i];
 				j = jmax;
-				
+
 				while(--j > -1){
 					if (el === arr[j]) {
 						elements.splice(i, 1);
@@ -54,10 +56,10 @@ var compo_dispose,
 				}
 			}
 		}
-		
+
 		var compos = parent.components;
 		if (compos != null) {
-			
+
 			i = compos.length;
 			while(--i > -1){
 				if (compos[i] === childCompo) {
@@ -65,7 +67,7 @@ var compo_dispose,
 					break;
 				}
 			}
-	
+
 			if (i === -1)
 				log_warn('<compo:remove> - i`m not in parents collection', childCompo);
 		}
@@ -94,36 +96,36 @@ var compo_dispose,
 		log_error('Invalid meta.nodes behaviour', behaviour);
 	};
 	compo_attachDisposer = function(compo, disposer) {
-	
+
 		if (compo.dispose == null) {
 			compo.dispose = disposer;
 			return;
 		}
-		
+
 		var prev = compo.dispose;
 		compo.dispose = function(){
 			disposer.call(this);
 			prev.call(this);
 		};
 	};
-	
+
 	compo_removeElements = function(compo) {
 		if (compo.$) {
 			compo.$.remove();
 			return;
 		}
-		
+
 		var els = compo.elements;
 		if (els) {
 			var i = -1,
 				imax = els.length;
 			while ( ++i < imax ) {
-				if (els[i].parentNode) 
+				if (els[i].parentNode)
 					els[i].parentNode.removeChild(els[i]);
 			}
 			return;
 		}
-		
+
 		var compos = compo.components;
 		if (compos) {
 			var i = -1,
@@ -141,7 +143,7 @@ var compo_dispose,
 			resume();
 		});
 	};
-	
+
 	compo_errored = function(compo, error){
 		var msg = '[%] Failed.'.replace('%', compo.compoName || compo.tagName);
 		if (error) {
@@ -153,10 +155,10 @@ var compo_dispose,
 		compo.nodes = reporter_createErrorNode(msg);
 		compo.renderEnd = fn_doNothing;
 	};
-	
+
 	// == Meta Attribute Handler
 	(function(){
-		
+
 		compo_meta_prepairAttributeHandler = function(Proto){
 			if (Proto.meta == null) {
 				Proto.meta = {
@@ -165,7 +167,7 @@ var compo_dispose,
 					mode: null
 				};
 			}
-			
+
 			var attr = Proto.meta.attributes,
 				fn = null;
 			if (attr) {
@@ -181,7 +183,8 @@ var compo_dispose,
 			var fn = compo.meta && compo.meta.handleAttributes;
 			return fn == null ? true : fn(compo, model);
 		};
-		
+		compo_meta_toAttributeKey = _getProperty;
+
 		function _handleAll_Delegate(hash){
 			return function(compo, model){
 				var attr = compo.attr,
@@ -190,10 +193,10 @@ var compo_dispose,
 					fn    = hash[key];
 					val   = attr[key];
 					error = fn(compo, val, model);
-					
+
 					if (error == null)
 						continue;
-					
+
 					_errored(compo, error, key, val)
 					return false;
 				}
@@ -206,7 +209,7 @@ var compo_dispose,
 				attrName = optional
 					? metaKey.substring(1)
 					: metaKey;
-			
+
 			var property = _getProperty(attrName),
 				fn = null,
 				type = typeof metaVal;
@@ -240,12 +243,12 @@ var compo_dispose,
 					optional = true;
 				}
 			}
-			
+
 			if (fn == null) {
 				log_error('Function expected for the attr. handler', metaKey);
 				return;
 			}
-			
+
 			Proto[property] = null;
 			Proto = null;
 			hash [attrName] = function(compo, attrVal, model){
@@ -258,16 +261,16 @@ var compo_dispose,
 					}
 					return null;
 				}
-				
+
 				var val = fn.call(compo, attrVal, compo, model, attrName);
-				if (val instanceof Error) 
+				if (val instanceof Error)
 					return val;
-				
+
 				compo[property] = val;
 				return null;
 			};
 		}
-		
+
 		function _toCamelCase_Replacer(full, char_){
 			return char_.toUpperCase();
 		}
@@ -293,7 +296,7 @@ var compo_dispose,
 				return num === num ? num : Error('Number');
 			},
 			'boolean': function(x, compo, model, attrName){
-				if (typeof x === 'boolean') 
+				if (typeof x === 'boolean')
 					return x;
 				if (x === attrName)  return true;
 				if (x === 'true'  || x === '1') return true;
@@ -317,7 +320,7 @@ var compo_dispose,
 					transform = opts.transform;
 				return function(x){
 					if (!x) return def;
-					
+
 					if (type != null) {
 						var fn = _ensureFns[type];
 						if (fn != null) {
@@ -350,14 +353,14 @@ var compo_dispose,
 		var template = compo.template;
 		if (template == null) {
 			template = compo.attr.template;
-			if (template == null) 
+			if (template == null)
 				return null;
-			
+
 			delete compo.attr.template;
 		}
-		if (typeof template === 'object') 
+		if (typeof template === 'object')
 			return template;
-		
+
 		if (is_String(template)) {
 			if (template.charCodeAt(0) === 35 && /^#[\w\d_-]+$/.test(template)) {
 				// #
