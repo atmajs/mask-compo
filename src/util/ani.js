@@ -28,10 +28,9 @@ var ani_requestFrame,
 
 
 	function _refresh(compo) {
-		if (is_Function(compo.onEnterFrame) === false) {
+		if (compo.onEnterFrame == null) {
 			return;
 		}
-
 
 		if (compo.__frame != null) {
 			ani_clearFrame(compo.__frame);
