@@ -25,7 +25,7 @@ UTest({
 		Foo.$.appendTo('body').eq_('text', '100');
 		Foo.setAttribute('foo', 200);
 		setTimeout(() => {
-			assert.gte_(Math.abs(150 - Foo.xFoo) | 0, 10);
+			assert.lte_(Math.abs(150 - Foo.xFoo) | 0, 10);
 
 			setTimeout(() => {
 				eq_(Foo.xFoo, 200);
@@ -60,7 +60,7 @@ UTest({
 			var stopped = lastVal;
 			setTimeout(() => {
 				eq_(stopped, lastVal);
-				assert.gte_(Math.abs(120 - Foo.xFoo) | 0, 10);
+				assert.lte_(Math.abs(120 - Foo.xFoo) | 0, 10);
 				done();
 			}, 200);
 		}, 50);
