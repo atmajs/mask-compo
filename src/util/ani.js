@@ -28,13 +28,14 @@ var ani_requestFrame,
 
 
 	function _refresh(compo) {
-		if (is_Function(compo.refresh) === false) {
+		if (is_Function(compo.onEnterFrame) === false) {
 			return;
 		}
-		if (compo.__frame == null) {
-			compo.refresh = compo.refresh.bind(this);
-		} else {
-			compo.__frame = ani_requestFrame(compo.refresh);
+
+
+		if (compo.__frame != null) {
+			ani_clearFrame(compo.__frame);
 		}
+		compo.__frame = ani_requestFrame(compo.onEnterFrame);
 	}
 }());

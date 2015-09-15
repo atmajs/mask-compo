@@ -58,7 +58,7 @@ Mask Component Library
 	- [dispose](#dispose)
 	- [setAttribute](#setAttribute)
 	- [getAttribute](#getAttribute)
-	- [refresh](#refresh)
+	- [onEnterFrame](#onEnterFrame)
 	- [meta](#meta)
 		- [attributes](#meta-attributes)
 		- [template](#meta-template)
@@ -405,9 +405,9 @@ var B = mask.Compo(A, {
 
 	Get property value _if defined in `meta.attributes` object_, or attribute value from `attr`.
 
-- **`refresh: function()** <a name='refresh'>#</a>
+- **`onEnterFrame: function()** <a name='onEnterFrame'>#</a>
 
-	Is called when attributes via `setAttribute` are changed. _`requestAnimationFrame` is used_
+	Is called onRenderEnd and each time when attributes are changed. _`requestAnimationFrame` is used_
 
 - **`meta : Object`** <a name='meta'>#</a>
 
@@ -603,7 +603,7 @@ var B = mask.Compo(A, {
 
 #### Tween
 
-Tweens attribute changes, similar to css transition. Define attributes, that should be animated and `refresh` callback is called on each step, on you can use `binding` to update the ui
+Tweens attribute changes, similar to css transition. Define attributes, that should be animated and `onEnterFrame` callback is called on each step, on you can use `binding` to update the ui
 
 - **Timing Functions**
 
@@ -649,7 +649,7 @@ mask.define('Foo', Compo({
 			easing: '200ms linear'
 		}
 	},
-	refresh: function(){
+	onEnterFrame: function(){
 		console.log(this.xWidth);
 	}
 }));

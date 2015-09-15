@@ -10,7 +10,7 @@ var Tween;
 		animating: null,
 		constructor: function (key, prop, start, end, easing) {
 			var parts = /(\d+m?s)?\s*([a-z]+[^\s]*)?/.exec(easing);
-			this.duration = _toMs(parts[1]);
+			this.duration = _toMs(parts[1], easing);
 			this.timing = _toTimingFn(parts[2]);
 			this.start = +start;
 			this.end = +end;
@@ -38,7 +38,11 @@ var Tween;
 	});
 
 	/*2ms;3s*/
-	function _toMs(str) {
+	function _toMs(str, easing) {
+		if (str == null) {
+			log_error('Easing: Invalid duration in ' + easing);
+			return 0;
+		}
 		var d = parseFloat(str);
 		if (str.indexOf('ms') > -1) {
 			return d;
@@ -52,7 +56,8 @@ var Tween;
 	function _toTimingFn(str) {
 		var fn = Fns[str];
 		if (is_Function(fn) === false) {
-			throw Error('Unsupported timing:' + str);
+			log_error('Unsupported timing:' + str);
+			return Fns.linear;
 		}
 		return fn;
 	}

@@ -39,8 +39,8 @@ var TweenManager = class_create({
 			}
 			busy = true;
 		}
-		if (this.parent.refresh) {
-			this.parent.refresh();
+		if (this.parent.onEnterFrame) {
+			this.parent.onEnterFrame();
 		}
 		if (busy) {
 			this.frame = ani_requestFrame(this.tick);

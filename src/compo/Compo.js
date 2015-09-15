@@ -18,7 +18,7 @@ var Compo, CompoProto;
 		__resource: null,
 		__frame: null,
 		__tweens: null,
-		
+
 		ID: null,
 
 		tagName: null,
@@ -70,6 +70,7 @@ var Compo, CompoProto;
 
 		onRenderStart: null,
 		onRenderEnd: null,
+		onEnterFrame: null,
 		render: null,
 		renderStart: function(model, ctx, container){
 
@@ -102,6 +103,10 @@ var Compo, CompoProto;
 			}
 			if (is_Function(this.onRenderEnd)) {
 				this.onRenderEnd(elements, model, ctx, container);
+			}
+			if (is_Function(this.onEnterFrame)) {
+				this.onEnterFrame = this.onEnterFrame.bind(this);
+				this.onEnterFrame();
 			}
 		},
 		appendTo: function(el) {

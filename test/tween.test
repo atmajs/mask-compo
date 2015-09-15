@@ -13,10 +13,7 @@ UTest({
 					}
 				}
 			},
-			onRenderEnd: function(){
-				this.refresh();
-			},
-			refresh: function(){
+			onEnterFrame: function(){
 				this.$.text(this.xFoo);
 			}
 		}));
@@ -48,10 +45,7 @@ UTest({
 					}
 				}
 			},
-			onRenderEnd: function(){
-				this.refresh();
-			},
-			refresh: function(){
+			onEnterFrame: function(){
 				lastVal = this.xFoo;
 			}
 		}));
