@@ -8,9 +8,9 @@ var Tween;
 		diff: null,
 		end: null,
 		animating: null,
-		constructor: function (key, prop, start, end, easing) {
-			var parts = /(\d+m?s)?\s*([a-z]+[^\s]*)?/.exec(easing);
-			this.duration = _toMs(parts[1], easing);
+		constructor: function (key, prop, start, end, transition) {
+			var parts = /(\d+m?s)\s*([\w\-]+)?/.exec(transition);
+			this.duration = _toMs(parts[1], transition);
 			this.timing = _toTimingFn(parts[2]);
 			this.start = +start;
 			this.end = +end;
@@ -54,9 +54,12 @@ var Tween;
 	}
 
 	function _toTimingFn(str) {
+		if (str == null) {
+			return Fns.linear;
+		}
 		var fn = Fns[str];
 		if (is_Function(fn) === false) {
-			log_error('Unsupported timing:' + str);
+			log_error('Unsupported timing:' + str + '. Available:' + Object.keys(Fns).join(','));
 			return Fns.linear;
 		}
 		return fn;

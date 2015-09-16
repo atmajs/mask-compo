@@ -7,13 +7,16 @@ var ani_requestFrame,
 	ani_clearFrame = global.cancelAnimationFrame;
 
 	ani_updateAttr = function(compo, key, prop, val, meta) {
-		var easing = is_Object(meta) ? meta.easing : null;
-		if (easing == null) {
+		var transition = compo.attr[key + '-transition'];
+		if (transition == null && is_Object(meta)) {
+			transition = meta.transition;
+		}
+		if (transition == null) {
 			compo.attr[key] = val;
 			if (prop != null) {
 				compo[prop] = val;
 			}
-			_refresh();
+			_refresh(compo);
 			return;
 		}
 		var tweens = compo.__tweens;
@@ -23,7 +26,7 @@ var ani_requestFrame,
 
 		var start = compo[prop];
 		var end = val;
-		tweens.start(key, prop, start, end, easing);
+		tweens.start(key, prop, start, end, transition);
 	};
 
 

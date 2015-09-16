@@ -457,7 +457,9 @@ var B = mask.Compo(A, {
 							return val * 1000;
 						},
 						// optionaly define the tweening rules
-						easing: '200ms easeInBounce'
+						// You can define, or redefine the rules also via attributes with the name,
+						// e.g: `some-value-transition`'
+						transition: '200ms easeInBounce'
 					}
 				}
 			},
@@ -601,9 +603,9 @@ var B = mask.Compo(A, {
 
 ### Animation
 
-#### Tween
+#### Transition
 
-Tweens attribute changes, similar to css transition. Define attributes, that should be animated and `onEnterFrame` callback is called on each step, on you can use `binding` to update the ui
+Attribute transitions are similar to css transition. Animation is performed via MaskJS bindings, additionally you can controll it manually in defined `onEnterFrame` callback.
 
 - **Timing Functions**
 
@@ -646,17 +648,14 @@ mask.define('Foo', Compo({
 	meta: {
 		attributes: {
 			width: 0,
-			easing: '200ms linear'
+			transition: '200ms linear'
 		}
-	},
-	onEnterFrame: function(){
-		console.log(this.xWidth);
 	}
 }));
 
 mask.render(`
 	input type=range min=0 max=250 > dualbind value=size;
-	Foo width='~[bind: size]';
+	Foo > h3 > '~[bind: $.xWidth]';
 `, { size: 123 });
 ```
 ----
