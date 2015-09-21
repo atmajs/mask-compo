@@ -179,20 +179,20 @@ var compo_dispose,
 			}
 			Proto.meta.handleAttributes = fn;
 		};
-		compo_meta_executeAttributeHandler = function(compo, model){
+		compo_meta_executeAttributeHandler = function(compo, model, container){
 			var fn = compo.meta && compo.meta.handleAttributes;
-			return fn == null ? true : fn(compo, model);
+			return fn == null ? true : fn(compo, model, container);
 		};
 		compo_meta_toAttributeKey = _getProperty;
 
 		function _handleAll_Delegate(hash){
-			return function(compo, model){
+			return function(compo, model, container){
 				var attr = compo.attr,
 					key, fn, val, error;
 				for(key in hash){
 					fn    = hash[key];
 					val   = attr[key];
-					error = fn(compo, val, model);
+					error = fn(compo, val, model, container);
 
 					if (error == null)
 						continue;
@@ -251,7 +251,7 @@ var compo_dispose,
 
 			Proto[property] = null;
 			Proto = null;
-			hash [attrName] = function(compo, attrVal, model){
+			hash [attrName] = function(compo, attrVal, model, container){
 				if (attrVal == null) {
 					if (optional === false) {
 						return Error('Expected');
@@ -262,7 +262,7 @@ var compo_dispose,
 					return null;
 				}
 
-				var val = fn.call(compo, attrVal, compo, model, attrName);
+				var val = fn.call(compo, attrVal, compo, model, attrName, container);
 				if (val instanceof Error)
 					return val;
 
@@ -318,7 +318,7 @@ var compo_dispose,
 					def = opts.default || _defaults[type],
 					validate = opts.validate,
 					transform = opts.transform;
-				return function(x){
+				return function(x, container){
 					if (!x) return def;
 
 					if (type != null) {
@@ -330,14 +330,14 @@ var compo_dispose,
 							}
 						}
 					}
-					if (validate) {
-						var error = validate.call(this, x);
+					if (validate != null) {
+						var error = validate.call(this, x, container);
 						if (error) {
 							return Error(error);
 						}
 					}
-					if (transform) {
-						x = transform.call(this, x);
+					if (transform != null) {
+						x = transform.call(this, x, container);
 					}
 					return x;
 				};

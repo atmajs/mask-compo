@@ -58,6 +58,7 @@ Mask Component Library
 	- [dispose](#dispose)
 	- [setAttribute](#setAttribute)
 	- [getAttribute](#getAttribute)
+	- [onAttributeSet](#onAttributeSet)
 	- [onEnterFrame](#onEnterFrame)
 	- [meta](#meta)
 		- [attributes](#meta-attributes)
@@ -405,6 +406,10 @@ var B = mask.Compo(A, {
 
 	Get property value _if defined in `meta.attributes` object_, or attribute value from `attr`.
 
+- **`onAttributeSet : function(key, val)`** <a name='onAttributeSet'>#</a>
+
+	Is called after the attribute is set. Target value is used, even when transition is used to tween the value.
+
 - **`onEnterFrame: function()** <a name='onEnterFrame'>#</a>
 
 	Is called onRenderEnd and each time when attributes are changed. _`requestAnimationFrame` is used_
@@ -443,7 +448,7 @@ var B = mask.Compo(A, {
 
 					// via Object Configuration
 					'some-value': {
-						// define type of the value
+						// define type of the value, if not specified, will try to guess the type from `default`
 						type: 'number',
 						// make attribute optional, and provide default value
 						default: 0,
@@ -453,7 +458,7 @@ var B = mask.Compo(A, {
 							return 'Error message here'
 						},
 						// transform value to something else
-						transform: function (val) {
+						transform: function (val, containerEl) {
 							return val * 1000;
 						},
 						// optionaly define the tweening rules

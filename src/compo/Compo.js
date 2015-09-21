@@ -66,7 +66,12 @@ var Compo, CompoProto;
 			}
 
 			ani_updateAttr(this, key, prop, val, meta);
+			if (this.onAttributeSet) {
+				this.onAttributeSet(key, val);
+			}
 		},
+
+		onAttributeSet: null,
 
 		onRenderStart: null,
 		onRenderEnd: null,
