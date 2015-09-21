@@ -8,11 +8,8 @@ var TweenManager = class_create({
 		compo_attachDisposer(compo, this.dispose.bind(this));
 	},
 	start: function(key, prop, start, end, easing){
-		var tween = this.tweens[key];
-		if (tween != null) {
-			tween.dispose();
-		}
-		tween = this.tweens[key] = new Tween(key, prop, start, end, easing);
+		// Tween is not disposable, as no resources are held. So if a tween already exists, it will be just overwritten.
+		this.tweens[key] = new Tween(key, prop, start, end, easing);
 		this.process();
 	},
 	process: function(){
