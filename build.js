@@ -23,16 +23,16 @@ module.exports = {
 		files: ['lib/compo.embed.js'],
 		jshint: JSHint()
 	},
-	
+
 	'watch': {
 		files: 'src/**',
 		config: '#[import]'
 	},
-	
-	'import.libs': {
+
+	'import_libs': {
 		action: 'copy',
 		files: {
-			'../mask/lib/mask.js' : '.import/mask.js'
+			'../mask/lib/mask.js' : 'bower_components/maskjs/lib/mask.js'
 		}
 	},
 
@@ -40,7 +40,7 @@ module.exports = {
 };
 
 function JSHint() {
-	
+
 	var options = {
 		"bitwise": false,
 		"camelcase": false,
@@ -126,7 +126,7 @@ function JSHint() {
 			"fn_apply",
 			"obj_create",
 			"obj_extend",
-			
+
 			"_Array_slice",
 			"_Array_splice",
 			"_Array_indexOf",

@@ -8,8 +8,7 @@ var compo_dispose,
 	compo_errored,
 
 	compo_meta_toAttributeKey,
-	compo_meta_prepairAttributeHandler,
-	compo_meta_executeAttributeHandler
+	compo_meta_prepairAttributesHandler
 	;
 
 (function(){
@@ -153,46 +152,47 @@ var compo_dispose,
 			}
 		}
 		compo.nodes = reporter_createErrorNode(msg);
-		compo.renderEnd = fn_doNothing;
+		compo.renderEnd = compo.render = compo.renderStart = null;
 	};
 
 	// == Meta Attribute Handler
 	(function(){
 
-		compo_meta_prepairAttributeHandler = function(Proto){
-			if (Proto.meta == null) {
-				Proto.meta = {
+		compo_meta_prepairAttributesHandler = function(Proto){
+			var meta = Proto.meta;
+			if (meta == null) {
+				meta = Proto.meta = {
 					attributes: null,
 					cache: null,
-					mode: null
+					mode: null,
+					readAttributes: null,
 				};
 			}
 
-			var attr = Proto.meta.attributes,
-				fn = null;
-			if (attr) {
-				var hash = {};
-				for(var key in attr) {
-					_handleProperty_Delegate(Proto, key, attr[key], hash);
-				}
-				fn = _handleAll_Delegate(hash);
+			var attributes = meta.attributes;
+			if (attributes == null) {
+				meta.readAttributes = null;
+				return;
 			}
-			Proto.meta.handleAttributes = fn;
+
+			var hash = {},
+				key, val;
+			for(key in attributes) {
+				val = attributes[key];
+				_attr_setProperty_Delegate(Proto, key, val, /*out*/ hash);
+			}
+			meta.readAttributes = _attr_setProperties_Delegate(hash);
 		};
-		compo_meta_executeAttributeHandler = function(compo, model, container){
-			var fn = compo.meta && compo.meta.handleAttributes;
-			return fn == null ? true : fn(compo, model, container);
-		};
+
 		compo_meta_toAttributeKey = _getProperty;
 
-		function _handleAll_Delegate(hash){
-			return function(compo, model, container){
-				var attr = compo.attr,
-					key, fn, val, error;
+		function _attr_setProperties_Delegate(hash){
+			return function(compo, attr, model, container){
+				var key, fn, val, error;
 				for(key in hash){
 					fn    = hash[key];
 					val   = attr[key];
-					error = fn(compo, val, model, container);
+					error = fn(compo, key, val, model, container);
 
 					if (error == null)
 						continue;
@@ -203,7 +203,7 @@ var compo_dispose,
 				return true;
 			};
 		}
-		function _handleProperty_Delegate(Proto, metaKey, metaVal, hash) {
+		function _attr_setProperty_Delegate(Proto, metaKey, metaVal, /*out*/hash) {
 			var optional = metaKey.charCodeAt(0) === 63, // ?
 				default_ = null,
 				attrName = optional
@@ -251,7 +251,7 @@ var compo_dispose,
 
 			Proto[property] = null;
 			Proto = null;
-			hash [attrName] = function(compo, attrVal, model, container){
+			hash [attrName] = function(compo, attrName, attrVal, model, container){
 				if (attrVal == null) {
 					if (optional === false) {
 						return Error('Expected');
@@ -262,7 +262,7 @@ var compo_dispose,
 					return null;
 				}
 
-				var val = fn.call(compo, attrVal, compo, model, attrName, container);
+				var val = fn.call(compo, attrVal, model, container, attrName);
 				if (val instanceof Error)
 					return val;
 
@@ -318,7 +318,7 @@ var compo_dispose,
 					def = opts.default || _defaults[type],
 					validate = opts.validate,
 					transform = opts.transform;
-				return function(x, container){
+				return function(x, model, container, attrName){
 					if (!x) return def;
 
 					if (type != null) {
@@ -331,13 +331,13 @@ var compo_dispose,
 						}
 					}
 					if (validate != null) {
-						var error = validate.call(this, x, container);
+						var error = validate.call(this, x, model, container);
 						if (error) {
 							return Error(error);
 						}
 					}
 					if (transform != null) {
-						x = transform.call(this, x, container);
+						x = transform.call(this, x, model, container);
 					}
 					return x;
 				};

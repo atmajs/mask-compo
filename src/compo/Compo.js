@@ -79,10 +79,6 @@ var Compo, CompoProto;
 		render: null,
 		renderStart: function(model, ctx, container){
 
-			if (compo_meta_executeAttributeHandler(this, model) === false) {
-				// errored
-				return;
-			}
 			compo_ensureTemplate(this);
 
 			if (is_Function(this.onRenderStart)){

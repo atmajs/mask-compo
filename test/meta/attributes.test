@@ -42,7 +42,8 @@ UTest({
 		});
 	},
 	'should render errored compo' () {
-		mask.registerHandler(':foo', Compo({
+		mask.registerHandler('Foo', Compo({
+			tagName: 'section',
 			meta: {
 				attributes: {
 					'x-foo': /^(one|two)$/
@@ -51,15 +52,14 @@ UTest({
 			onRenderStart: assert.avoid('onrenderstart was called'),
 			onRenderEnd: assert.avoid('onrenderend was called')
 		}));
-		var dom = mask.render(':foo x-foo=true');
-		debugger;
+		var dom = mask.render('Foo x-foo=baz');
 		return UTest.domtest(dom, `
 			find('.-mask-compo-errored') {
 				has text RegExp;
 			}
 		`);
 	},
-	
+
 	'should accept object configuration' () {
 		mask.registerHandler('Foo',  Compo({
 			meta: {
@@ -76,10 +76,18 @@ UTest({
 				}
 			}
 		}));
-		
-		var app = Compo.initialize('Foo value=5');		
+
+		var app = Compo.initialize('Foo value=5');
 		var foo = app.find('Foo');
 		eq_(foo.xValue, 5000);
+
+		// Errored
+		var dom = mask.render('Foo value=-20');
+		return UTest.domtest(dom, `
+			find('.-mask-compo-errored') {
+				has text ('Only positive numbers');
+			}
+		`);
 	},
 	'should accept direct default values' () {
 		mask.registerHandler('Foo', Compo({
@@ -91,16 +99,41 @@ UTest({
 				}
 			}
 		}));
-		
+
 		var Foo = Compo.initialize('Foo');
 		eq_(Foo.xSomeString, 'a');
 		eq_(Foo.xSomeNumber, 1);
 		eq_(Foo.xBool, false);
-		
+
 		var app = Compo.initialize('Foo some-string=foo some-number=5 bool;');
 		var Foo = app.find('Foo');
 		eq_(Foo.xSomeString, 'foo');
 		eq_(Foo.xSomeNumber, 5);
 		eq_(Foo.xBool, true);
+	},
+	'should iterpolate attributes': {
+		'interpolate self' () {
+			mask.define('Foo', Compo({
+				tagName: 'div',
+				meta: {
+					attributes: {
+						width: 20
+					}
+				},
+				attr: {
+					style: 'width: ~[$.xWidth + 1]px'
+				}
+			}));
+
+			var dom = mask.render('Foo.one; Foo.two width=12;');
+			return UTest.domtest(dom, `
+				find('.one') {
+					attr style ('width: 21px');
+				}
+				find('.two') {
+					attr style ('width: 13px');
+				}
+			`);
+		}
 	}
 })
