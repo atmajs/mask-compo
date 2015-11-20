@@ -352,7 +352,11 @@ var compo_dispose,
 	function getTemplateProp_(compo){
 		var template = compo.template;
 		if (template == null) {
-			template = compo.attr.template;
+			var attr = compo.attr;
+			if (attr == null)
+				return null;
+			
+			template = attr.template;
 			if (template == null)
 				return null;
 
