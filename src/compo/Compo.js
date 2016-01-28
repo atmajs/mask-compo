@@ -38,6 +38,7 @@ var Compo, CompoProto;
 		hotkeys: null,
 		async: false,
 		await: null,
+		resume: null,
 
 		meta: {
 			/* render modes, relevant for mask-node */
