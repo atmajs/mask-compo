@@ -113,7 +113,7 @@
 
 			var imax = arr.length,
 				i = -1;
-			while(++i) {
+			while(++i < imax) {
 				awaitDeep(arr[i], awaiter);
 			}
 		}

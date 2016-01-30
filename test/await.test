@@ -6,10 +6,22 @@ UTest({
 					setTimeout(resolve, 100);
 				});
 			}
-		}))
-		
+		}));
 
 		var foo = Compo.initialize('Foo');
+		var start = Date.now();
+		Compo.await(foo).then(() => {
+			var diff = Date.now() - start;
+			assert.gte_(diff, 100);
+			done();
+		});
+	},
+	'should await deep' (done) {
+		mask.define('FooWrapper', Compo({
+			template: 'Foo'
+		}));
+		
+		var foo = Compo.initialize('FooWrapper');
 		var start = Date.now();
 		Compo.await(foo).then(() => {
 			var diff = Date.now() - start;
