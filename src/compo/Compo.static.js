@@ -85,7 +85,7 @@ obj_extend(Compo, {
 			return Anchor.resolveCompo(el, true);
 		},
 		getModel: function (el) {
-			var compo = Compo.getCompo(el);
+			var compo = Anchor.resolveCompo(el, true);
 			if (compo == null) return null;
 			var model = compo.model;
 			while (model == null && compo.parent != null) {
