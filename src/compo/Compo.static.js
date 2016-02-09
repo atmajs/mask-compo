@@ -2,19 +2,19 @@ obj_extend(Compo, {
 	create: function(){
 		return compo_create(arguments);
 	},
-	
+
 	createClass: function(){
-		
+
 		var Ctor = compo_create(arguments),
 			classProto = Ctor.prototype;
 		classProto.Construct = Ctor;
 		return Class(classProto);
 	},
-	
+
 	initialize: function(mix, model, ctx, container, parent) {
 		if (mix == null)
 			throw Error('Undefined is not a component');
-		
+
 		if (container == null){
 			if (ctx && ctx.nodeType != null){
 				container = ctx;
@@ -36,7 +36,7 @@ obj_extend(Compo, {
 				var compo = mask.getHandler(mix);
 				if (compo == null)
 					throw Error('Component not found: ' + mix);
-				
+
 				createNode(compo);
 			} else {
 				createNode(Compo({
@@ -47,14 +47,14 @@ obj_extend(Compo, {
 		else if (typeof mix === 'function') {
 			createNode(mix);
 		}
-		
+
 		if (parent == null && container != null) {
 			parent = Anchor.resolveCompo(container);
 		}
 		if (parent == null){
 			parent = new Compo();
 		}
-		
+
 		var dom = mask.render(node, model, ctx, null, parent),
 			instance = parent.components[parent.components.length - 1];
 
@@ -62,11 +62,11 @@ obj_extend(Compo, {
 			container.appendChild(dom);
 			Compo.signal.emitIn(instance, 'domInsert');
 		}
-		
+
 		return instance;
 	},
 
-	
+
 	find: function(compo, selector){
 		return find_findSingle(compo, selector_parse(selector, Dom.CONTROLLER, 'down'));
 	},
@@ -75,17 +75,32 @@ obj_extend(Compo, {
 	},
 
 	dispose: compo_dispose,
-	
+
 	ensureTemplate: compo_ensureTemplate,
-	
+
 	attachDisposer: compo_attachDisposer,
 
+	element: {
+		getCompo: function (el) {
+			return Anchor.resolveCompo(el, true);
+		},
+		getModel: function (el) {
+			var compo = Compo.getCompo(el);
+			if (compo == null) return null;
+			var model = compo.model;
+			while (model == null && compo.parent != null) {
+				compo = compo.parent;
+				model = compo.model;
+			}
+			return model;
+		},
+	},
 	config: {
 		selectors: {
 			'$': function(compo, selector) {
 				var r = domLib_find(compo.$, selector)
 				// if DEBUG
-				if (r.length === 0) 
+				if (r.length === 0)
 					log_warn('<compo-selector> - element not found -', selector, compo);
 				// endif
 				return r;
@@ -93,7 +108,7 @@ obj_extend(Compo, {
 			'compo': function(compo, selector) {
 				var r = Compo.find(compo, selector);
 				// if DEBUG
-				if (r == null) 
+				if (r == null)
 					log_warn('<compo-selector> - component not found -', selector, compo);
 				// endif
 				return r;
@@ -107,9 +122,9 @@ obj_extend(Compo, {
 		 *	}
 		 */
 		setDOMLibrary: function(lib) {
-			if (domLib === lib) 
+			if (domLib === lib)
 				return;
-			
+
 			domLib = lib;
 			domLib_initialize();
 		},
@@ -117,7 +132,7 @@ obj_extend(Compo, {
 		getDOMLibrary: function(){
 			return domLib;
 		},
-		
+
 		eventDecorator: function(mix){
 			if (typeof mix === 'function') {
 				EventDecorator = mix;
@@ -137,29 +152,28 @@ obj_extend(Compo, {
 	},
 
 	pipe: Pipes.pipe,
-	
+
 	resource: function(compo){
 		var owner = compo;
-		
+
 		while (owner != null) {
-			
-			if (owner.resource) 
+
+			if (owner.resource)
 				return owner.resource;
-			
+
 			owner = owner.parent;
 		}
-		
+
 		return include.instance();
 	},
-	
+
 	plugin: function(source){
 		// if DEBUG
 		eval(source);
 		// endif
 	},
-	
+
 	Dom: {
 		addEventListener: dom_addEventListener
 	}
 });
-
