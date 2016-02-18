@@ -144,19 +144,13 @@ var Compo, CompoProto;
 			return this;
 		},
 		find: function(selector){
-			return find_findSingle(
-				this, selector_parse(selector, Dom.CONTROLLER, 'down')
-			);
+			return Compo.find(this, selector);
 		},
 		findAll: function(selector){
-			return find_findAll(
-				this, selector_parse(selector, Dom.CONTROLLER, 'down')
-			);
+			return Compo.find(this, selector);
 		},
 		closest: function(selector){
-			return find_findSingle(
-				this, selector_parse(selector, Dom.CONTROLLER, 'up')
-			);
+			return Compo.closest(this, selector);
 		},
 		on: function() {
 			var x = _Array_slice.call(arguments);

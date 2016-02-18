@@ -70,8 +70,14 @@ obj_extend(Compo, {
 	find: function(compo, selector){
 		return find_findSingle(compo, selector_parse(selector, Dom.CONTROLLER, 'down'));
 	},
+	findAll: function(compo, selector) {
+		return find_findAll(compo, selector_parse(selector, Dom.CONTROLLER, 'down'));
+	},
 	closest: function(compo, selector){
 		return find_findSingle(compo, selector_parse(selector, Dom.CONTROLLER, 'up'));
+	},
+	children: function(compo, selector){
+		return find_findChildren(compo, selector_parse(selector, Dom.CONTROLLER));
 	},
 
 	dispose: compo_dispose,
