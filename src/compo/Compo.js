@@ -75,15 +75,26 @@ var Compo, CompoProto;
 		onAttributeSet: null,
 
 		onRenderStart: null,
+		onRenderStartClient: null,
 		onRenderEnd: null,
+		onRenderEndServer: null,
 		onEnterFrame: null,
 		render: null,
 		renderStart: function(model, ctx, container){
 
 			compo_ensureTemplate(this);
 
-			if (is_Function(this.onRenderStart)){
-				var x = this.onRenderStart(model, ctx, container);
+			var fn = this.onRenderStart;
+			if (is_Function(fn)){
+				var x = fn(model, ctx, container);
+				if (x !== void 0 && dfr_isBusy(x))
+					compo_prepairAsync(x, this, ctx);
+			}
+		},
+		renderStartClient: function(model, ctx, container){
+			var fn = this.onRenderStartClient;
+			if (is_Function(fn)){
+				var x = fn(model, ctx, container);
 				if (x !== void 0 && dfr_isBusy(x))
 					compo_prepairAsync(x, this, ctx);
 			}
