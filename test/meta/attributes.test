@@ -89,6 +89,24 @@ UTest({
 			}
 		`);
 	},
+	'should accept default as a factory function' () {
+		mask.define('Foo',  Compo({
+			meta: {
+				attributes: {
+					'value': {
+						type: 'number',
+						default (model, container, attr) {
+							return attr['name']
+						}
+					}
+				}
+			}
+		}));
+
+		var app = Compo.initialize('Foo name="baz"');
+		var foo = app.find('Foo');
+		eq_(foo.xValue, 'baz');
+	},
 	'should accept direct default values' () {
 		mask.registerHandler('Foo', Compo({
 			meta: {

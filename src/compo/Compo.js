@@ -46,7 +46,7 @@ var Compo, CompoProto;
 			modelMode: null,
 			attributes: null,
 			serializeNodes: null,
-			handleAttributes: null,
+			readAttributes: null,
 		},
 
 		getAttribute: function(key) {

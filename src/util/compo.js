@@ -192,7 +192,7 @@ var compo_dispose,
 				for(key in hash){
 					fn    = hash[key];
 					val   = attr[key];
-					error = fn(compo, key, val, model, container);
+					error = fn(compo, key, val, model, container, attr);
 
 					if (error == null)
 						continue;
@@ -249,12 +249,17 @@ var compo_dispose,
 				return;
 			}
 
+			var factory_ = is_Function(default_) ? default_ : null;
 			Proto[property] = null;
 			Proto = null;
-			hash [attrName] = function(compo, attrName, attrVal, model, container){
+			hash [attrName] = function(compo, attrName, attrVal, model, container, attr){
 				if (attrVal == null) {
 					if (optional === false) {
 						return Error('Expected');
+					}
+					if (factory_ != null) {
+						compo[property] = factory_.call(compo, model, container, attr);
+						return null;
 					}
 					if (default_ != null) {
 						compo[property] = default_;
@@ -355,7 +360,7 @@ var compo_dispose,
 			var attr = compo.attr;
 			if (attr == null)
 				return null;
-			
+
 			template = attr.template;
 			if (template == null)
 				return null;
