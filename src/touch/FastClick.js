@@ -9,16 +9,16 @@ var FastClick;
 		this.tStart = 0;
 		this.tEnd = 0;
 		this.dismiss = 0;
-		
+
 		event_bind(el, 'touchstart', this);
 		event_bind(el, 'touchend', this);
 		event_bind(el, 'click', this);
 	};
-	
+
 	var threshold_TIME = 300,
 		threshold_DIST = 10,
 		timestamp_LastTouch = null;
-	
+
 	FastClick.prototype = {
 		handleEvent: function (event) {
 			var type = event.type;
@@ -37,12 +37,12 @@ var FastClick;
 					break;
 			}
 		},
-		
+
 		touchstart: function(event){
 			event_bind(document.body, 'touchmove', this);
-			
+
 			var e = event.touches[0];
-			
+
 			this.state  = 1;
 			this.tStart = event.timeStamp;
 			this.startX = e.clientX;
@@ -56,7 +56,7 @@ var FastClick;
 					this.call(event);
 					return;
 				}
-				
+
 				event_trigger(this.el, 'taphold');
 				return;
 			}
@@ -69,26 +69,27 @@ var FastClick;
 					return;
 				}
 			}
-			if (--this.dismiss > -1) 
+			if (--this.dismiss > -1){
 				return;
-			
-			var dt = event.timeStamp - this.tEnd;
-			if (dt < 400) 
-				return;
-			
+			}
+			if (this.tEnd !== 0) {
+				var dt = event.timeStamp - this.tEnd;
+				if (dt < 400)
+					return;
+			}
 			this.dismiss = 0;
 			this.call(event);
 		},
 		touchmove: function(event) {
 			var e = event.touches[0];
-			
+
 			var dx = e.clientX - this.startX;
 			if (dx < 0) dx *= -1;
 			if (dx > threshold_DIST) {
 				this.reset();
 				return;
 			}
-			
+
 			var dy = e.clientY - this.startY;
 			if (dy < 0) dy *= -1;
 			if (dy > threshold_DIST) {
@@ -96,7 +97,7 @@ var FastClick;
 				return;
 			}
 		},
-		
+
 		reset: function(){
 			this.state = 0;
 			event_unbind(document.body, 'touchmove', this);
@@ -106,5 +107,5 @@ var FastClick;
 			this.fn(event);
 		}
 	};
-	
+
 }());
