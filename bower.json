@@ -1,5 +1,6 @@
 {
-  "name": "-",
+  "name": "mask-compo",
+  "private": true,
   "version": "0.0.0",
   "homepage": "https://github.com/atmajs/mask-compo",
   "authors": [
