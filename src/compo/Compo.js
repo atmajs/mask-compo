@@ -154,7 +154,7 @@ var Compo, CompoProto;
 			return Compo.find(this, selector);
 		},
 		findAll: function(selector){
-			return Compo.find(this, selector);
+			return Compo.findAll(this, selector);
 		},
 		closest: function(selector){
 			return Compo.closest(this, selector);
