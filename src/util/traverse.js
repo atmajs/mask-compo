@@ -1,6 +1,7 @@
 var find_findSingle,
 	find_findAll,
-	find_findChildren;
+	find_findChildren,
+	find_findChild;
 (function(){
 
 	find_findSingle = function(node, matcher) {
@@ -38,16 +39,33 @@ var find_findSingle,
 		}
 		if (is_Array(arr)) {
 			var imax = arr.length,
+				i = -1,
+				out = [];
+			while (++i < imax) {
+				if (selector_match(arr[i], matcher)){
+					out.push(arr[i]);
+				}
+			}
+			return out;
+		}
+	};
+	find_findChild = function(node, matcher) {
+		if (node == null)
+			return null;
+		var arr = node[matcher.nextKey];
+		if (arr == null) {
+			return null;
+		}
+		if (is_Array(arr)) {
+			var imax = arr.length,
 				i = -1;
 			while (++i < imax) {
-				var x = find_findSingle(node[i], matcher);
-				if (x != null)
-					return x;
+				if (selector_match(arr[i], matcher))
+					return arr[i];
 			}
 			return null;
 		}
 	};
-
 	find_findAll = function(node, matcher, out) {
 		if (out == null)
 			out = [];

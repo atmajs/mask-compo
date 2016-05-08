@@ -79,6 +79,9 @@ obj_extend(Compo, {
 	children: function(compo, selector){
 		return find_findChildren(compo, selector_parse(selector, Dom.CONTROLLER));
 	},
+	child: function(compo, selector){
+		return find_findChild(compo, selector_parse(selector, Dom.CONTROLLER));
+	},
 
 	dispose: compo_dispose,
 
