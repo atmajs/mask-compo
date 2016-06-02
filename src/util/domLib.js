@@ -13,16 +13,18 @@ var domLib_find,
 	};
 	
 	domLib_on = function($set, type, selector, fn) {
-	
-		if (selector == null) 
+		if (selector == null) {
 			return $set.on(type, fn);
-		
-		$set
+		}
+		if (KeyboardHandler.supports(type, selector)) {
+			return $set.each(function(i, el){
+				KeyboardHandler.on(el, type, selector, fn);
+			});
+		}
+		return $set
 			.on(type, selector, fn)
 			.filter(selector)
 			.on(type, fn);
-			
-		return $set;
 	};
 	
 }());
