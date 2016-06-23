@@ -26,6 +26,9 @@ var CombHandler;
 				return;
 			}
 			if (this.filter_(event, code)) {
+				if (type === 'keyup' && this.keys.length > 0) {
+					this.remove_(code);
+				}
 				return;
 			}
 			if (type === 'keydown') {
