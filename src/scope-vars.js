@@ -3,6 +3,7 @@ var Dom = mask.Dom,
 	_mask_ensureTmplFnOrig = mask.Utils.ensureTmplFn,
 	_mask_ensureTmplFn,
 	_resolve_External,
+	expression_eval = mask.Utils.Expression.eval,
 	domLib,
 	Class	
 	;

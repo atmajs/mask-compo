@@ -7,49 +7,42 @@
 	obj_extend(Compo, {
 		signal: {
 			toggle: _toggle_all,
-
 			// to parent
-			emitOut: function(controller, slot, sender, args) {
-				var captured = _fire(controller, slot, sender, args, -1);
-				
+			emitOut: function(ctr, slot, sender, args) {
+				var captured = _fire(ctr, slot, sender, args, -1);				
 				// if DEBUG
-				!captured && log_warn('Signal %c%s','font-weight:bold;', slot, 'was not captured');
+				!captured && log_warn('Signal', slot, 'was not captured');
 				// endif
-				
 			},
 			// to children
-			emitIn: function(controller, slot, sender, args) {
-				_fire(controller, slot, sender, args, 1);
+			emitIn: function(ctr, slot, sender, args) {
+				_fire(ctr, slot, sender, args, 1);
 			},
-
-			enable: function(controller, slot) {
-				_toggle_all(controller, slot, true);
-			},
-			
-			disable: function(controller, slot) {
-				_toggle_all(controller, slot, false);
+			enable: function(ctr, slot) {
+				_toggle_all(ctr, slot, true);
+			},			
+			disable: function(ctr, slot) {
+				_toggle_all(ctr, slot, false);
 			}
 		},
 		slot: {
 			toggle: _toggle_single,
-			enable: function(controller, slot) {
-				_toggle_single(controller, slot, true);
+			enable: function(ctr, slot) {
+				_toggle_single(ctr, slot, true);
 			},
-			disable: function(controller, slot) {
-				_toggle_single(controller, slot, false);
+			disable: function(ctr, slot) {
+				_toggle_single(ctr, slot, false);
 			},
-			invoke: function(controller, slot, event, args) {
-				var slots = controller.slots;
+			invoke: function(ctr, slot, event, args) {
+				var slots = ctr.slots;
 				if (slots == null || typeof slots[slot] !== 'function') {
-					log_error('Slot not found', slot, controller);
+					log_error('Slot not found', slot, ctr);
 					return null;
 				}
-
 				if (args == null) {
-					return slots[slot].call(controller, event);
+					return slots[slot].call(ctr, event);
 				}
-
-				return slots[slot].apply(controller, [event].concat(args));
+				return slots[slot].apply(ctr, [event].concat(args));
 			},
 
 		}

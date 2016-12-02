@@ -1,9 +1,7 @@
 var slots_mix,
-	slot_inherit
-	;
+	slot_inherit;
 
 (function(){
-		
 	slots_mix = function(target, source) {
 		for (var key in source) {
 			
@@ -15,16 +13,12 @@ var slots_mix,
 			target[key] = slot_inherit(handler, source[key]);
 		}
 	};
-	
-	
 	slot_inherit = function(handler, base) {
-		// is called then in controllers context
+		// is called in controllers context
 		return function(){
 			
-			this.super = base;
-			
+			this.super = base;			
 			return fn_apply(handler, this, arguments);
 		};
-	};	
-	
+	};
 }());

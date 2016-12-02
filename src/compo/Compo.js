@@ -23,6 +23,7 @@ var Compo, CompoProto;
 
 		tagName: null,
 		compoName: null,
+		node: null,
 		nodes: null,
 		components: null,
 		expression: null,
@@ -71,9 +72,7 @@ var Compo, CompoProto;
 				this.onAttributeSet(key, val);
 			}
 		},
-
 		onAttributeSet: null,
-
 		onRenderStart: null,
 		onRenderStartClient: null,
 		onRenderEnd: null,
@@ -186,47 +185,37 @@ var Compo, CompoProto;
 			this.$ = null;
 			return this;
 		},
-
 		slotState: function(slotName, isActive){
 			Compo.slot.toggle(this, slotName, isActive);
 			return this;
 		},
-
 		signalState: function(signalName, isActive){
 			Compo.signal.toggle(this, signalName, isActive);
 			return this;
 		},
-
-		emitOut: function(signalName /* args */){
+		emitOut: function(signalName, a1, a2, a3, a4){
 			Compo.signal.emitOut(
 				this,
 				signalName,
 				this,
-				arguments.length > 1
-					? _Array_slice.call(arguments, 1)
-					: null
+				a1, a2, a3, a4
 			);
 			return this;
 		},
-
-		emitIn: function(signalName /* args */){
+		emitIn: function(signalName, a1, a2, a3, a4){
 			Compo.signal.emitIn(
 				this,
 				signalName,
 				this,
-				arguments.length > 1
-					? _Array_slice.call(arguments, 1)
-					: null
+				a1, a2, a3, a4
 			);
 			return this;
 		},
-
 		$scope: function(path){
-			var accessor = '$scope.' + path;
-			return mask.Utils.Expression.eval(accessor, null, null, this);
+			return expression_eval('$scope.' + path, null, null, this);
 		},
-		$eval: function(expr, model_, ctx_){
-			return mask.Utils.Expression.eval(expr, model_ || this.model, ctx_, this);
+		$eval: function(expr, model, ctx){
+			return expression_eval(expr, model || this.model, ctx, this);
 		},
 	};
 

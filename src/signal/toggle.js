@@ -15,7 +15,6 @@ var _toggle_all,
 
 			previous = parent;
 		}
-
 		__toggle_slotStateWithChilds(ctr, slot, isActive);
 		__toggle_elementsState(previous, slot, isActive);
 	};
@@ -61,7 +60,6 @@ var _toggle_all,
 			log_warn('Controller has no elements to toggle state');
 			return;
 		}
-
 		domLib() 
 			.add(ctr.$.filter('[data-signals]')) 
 			.add(ctr.$.find('[data-signals]')) 
