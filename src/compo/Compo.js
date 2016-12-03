@@ -198,7 +198,7 @@ var Compo, CompoProto;
 				this,
 				signalName,
 				this,
-				a1, a2, a3, a4
+				[a1, a2, a3, a4]
 			);
 			return this;
 		},
@@ -207,7 +207,7 @@ var Compo, CompoProto;
 				this,
 				signalName,
 				this,
-				a1, a2, a3, a4
+				[a1, a2, a3, a4]
 			);
 			return this;
 		},

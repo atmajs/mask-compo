@@ -134,7 +134,7 @@ UTest({
 		eq_(c.name, '_-A-B-C');
 	},
 	'inherit templates': {
-		'merge `template` properties': function(){
+		'!merge `template` properties': function(){
 			var A = Compo({
 				template: 'section > span > @body'
 			});
@@ -143,7 +143,8 @@ UTest({
 			});
 			mask.registerHandler('b', B);
 			
-			return UTest.domtest(mask.render('b'), `
+			var dom = mask.render('b');
+			return UTest.domtest(dom, `
 				filter (section) > find ('span > em') {
 					text B;
 				}

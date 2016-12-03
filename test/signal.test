@@ -16,7 +16,7 @@ UTest({
 	},
 	'should manually fire the signal with arguments' () {
 		var spy = sinon.spy();
-		mask.registerHandler('Foo', Compo({
+		mask.define('Foo', Compo({
 			slots: {
 				'testy': spy
 			}
@@ -27,10 +27,12 @@ UTest({
 		
 		var foo = compo.find('Foo');
 		notEq_(foo, null);
-		foo.remove();		
-		compo.emitIn('testy', 1, 'qux');
+		foo.remove();
 
-		eq_(spy.callCount, 1);		
-		deepEq_(spy.args[0], [compo, 1, 'qux']);
+		compo.emitIn('testy', 3, 'baz', 's');
+
+		eq_(spy.callCount, 1);
+		// To avoid arguments leaking we just call the callback with multiple args
+		deepEq_(spy.args[0].slice(0, 3), [compo, 1, 'qux']);
 	}
 });

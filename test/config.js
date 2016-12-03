@@ -3,7 +3,7 @@ module.exports = {
         browser: {
             exec: 'dom',
             env: [
-              '/bower_components/maskjs/lib/mask.js',
+              '/node_modules/maskjs/lib/mask.js',
               '/lib/compo.js'
             ],
             $config: {
