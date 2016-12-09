@@ -40,8 +40,8 @@ var _hasSlot,
 		if (direction === 1 && ctr.components != null) {
 			var compos = ctr.components,
 				imax = compos.length,
-				i = 0;
-			for (; i < imax; i++) {
+				i = -1;
+			while (++i < imax) {
 				found = _fire(compos[i], slot, sender, args, direction) || found;
 			}
 		}

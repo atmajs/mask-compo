@@ -22,67 +22,19 @@
 		mask.registerAttrHandler('x-' + name, 'client', function(node, attrValue, model, ctx, el, ctr){
 			_attachListener(el, ctr, attrValue, asEvent);
 		});
-	}
-	
+	}	
 	function _attachListener(el, ctr, definition, asEvent) {
-		var arr = definition.split(';'),
+		var hasMany = definition.indexOf(';') !== -1,
 			signals = '',
-			imax = arr.length,
-			i = -1,
-			x;
-		
-		var i_colon,
-			i_param,
-			event,
-			mix,
-			param,
-			name,
-			fn;
-			
-		while ( ++i < imax ) {
-			x = arr[i].trim();
-			if (x === '') 
-				continue;
-			
-			mix = param = name = null;
-			
-			i_colon = x.indexOf(':');
-			if (i_colon !== -1) {
-				mix = x.substring(0, i_colon);
-				i_param = mix.indexOf('(');
-				if (i_param !== -1) {
-					param = mix.substring(i_param + 1, mix.lastIndexOf(')'));
-					mix = mix.substring(0, i_param);
-					
-					// if DEBUG
-					param === '' && log_error('Not valid signal parameter');
-					// endif
-				}
-				x = x.substring(i_colon + 1).trim();
+			arr = hasMany ? definition.split(';') : null,
+			i = hasMany ? arr.length : 1;
+
+		while( --i !== -1) {
+			var signal = _handleDefinition(el, ctr, arr == null ? definition : arr[i], asEvent);
+			if (signal != null) {
+				signals += ',' + signal + ',';
 			}
-			
-			name = x;
-			fn = _createListener(ctr, name);
-			
-			if (asEvent == null) {
-				event = mix;
-			} else {
-				event = asEvent;
-				param = mix;
-			}
-			
-			if (!event) {
-				log_error('Signal: Eventname is not set', arr[i]);
-			}
-			if (!fn) {
-				log_warn('Slot not found:', name);
-				continue;
-			}
-			
-			signals += ',' + name + ',';
-			dom_addEventListener(el, event, fn, param, ctr);
 		}
-		
 		if (signals !== '') {
 			var attr = el.getAttribute('data-signals');
 			if (attr != null) {
@@ -91,16 +43,47 @@
 			el.setAttribute('data-signals', signals);
 		}
 	}
-	
-	function _createListener (ctr, slot) {
+	function _handleDefinition (el, ctr, definition, asEvent) {
+		var match = rgx.exec(definition);
+		if (match == null) {
+			log_error('Signal definition is not resolved', definition, 'The pattern is: (source((sourceArg))?:)?signal((expression))?');
+			return null;
+		}
+		var source = match[2] || asEvent, 
+			sourceArg = match[4], 
+			signal = match[5], 
+			signalExpr = match[7];
+
+		var fn = _createListener(ctr, signal, signalExpr);
+
+		if (!source) {
+			log_error('Signal: Eventname is not set', definition);
+			return null;
+		}
+		if (!fn) {
+			log_warn('Slot not found:', signal);
+			return null;
+		}
+
+		dom_addEventListener(el, source, fn, sourceArg, ctr);
+		return signal;
+	}
+	function _createListener (ctr, slot, expr) {
 		if (_hasSlot(ctr, slot, -1) === false) {
 			return null;
 		}
 		return function(event) {
-			var args = arguments.length > 1
-				? _Array_slice.call(arguments, 1)
-				: null;
+			var args;
+			if (arguments.length > 1) {
+				args = _Array_slice.call(arguments, 1); 
+			}
+			if (expr != null) {
+				var arr = expression_evalStatements(expr, ctr.model, null, ctr);
+				args = args == null ? arr : args.concat(arr);
+			}
 			_fire(ctr, slot, event, args, -1);
 		};
 	}
+
+	var rgx = /^\s*((\w+)(\s*\(\s*(\w+)\s*\))?\s*:)?\s*(\w+)(\s*\(([^)]+)\)\s*)?\s*$/;
 }());

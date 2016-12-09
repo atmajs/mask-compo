@@ -4,6 +4,7 @@ var Dom = mask.Dom,
 	_mask_ensureTmplFn,
 	_resolve_External,
 	expression_eval = mask.Utils.Expression.eval,
+	expression_evalStatements = mask.Utils.Expression.evalStatements,
 	domLib,
 	Class	
 	;
@@ -38,8 +39,7 @@ var Dom = mask.Dom,
 
 
 // if DEBUG
-if (global.document != null && domLib == null) {
-	
-	log_warn('DomLite is used. You can set jQuery-Zepto-Kimbo via `Compo.config.setDOMLibrary($)`');
+if (global.document != null && domLib == null) {	
+	log_warn('DomLite is used. You can set jQuery-Zepto-Kimbo via `mask.Compo.config.setDOMLibrary($)`');
 }
 // endif
