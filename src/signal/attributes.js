@@ -36,11 +36,12 @@
 			}
 		}
 		if (signals !== '') {
-			var attr = el.getAttribute('data-signals');
+			var KEY = 'data-signals';
+			var attr = el.getAttribute(KEY);
 			if (attr != null) {
 				signals = attr + signals;
 			}
-			el.setAttribute('data-signals', signals);
+			el.setAttribute(KEY, signals);
 		}
 	}
 	function _handleDefinition (el, ctr, definition, asEvent) {
