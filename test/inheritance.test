@@ -243,5 +243,17 @@ UTest({
 		var compo = Compo.initialize('bar');
 		Compo.pipe('app').emit('test');
 		deepEq_(compo.test, [1, 2]);
+	},
+	'should inherit es6 classes or babel transformations' () {
+		class Foo {
+			constructor () {
+				this.test = 'me';
+			}
+		}
+		var Bar = Compo(Foo, { get () { return this.test }});
+		mask.define('Bar', Bar);
+		var compo = Compo.initialize('Bar');
+
+		eq_(compo.get(), 'me');
 	}
 })

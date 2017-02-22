@@ -62,21 +62,18 @@ var compo_inherit;
 			}
 		}
 		
-		var mix, type, fnAutoCall, hasFnOverrides = false;
+		var hasFnOverrides = false;
 		for(var key in source){
-			mix = source[key];
-			if (mix == null || key === 'constructor')
+			if (key === 'constructor' || ('node' === name && (key === 'template' || key === 'nodes'))) {
 				continue;
-			
-			if ('node' === name && (key === 'template' || key === 'nodes')) 
-				continue;
-			
-			type = typeof mix;
-			
+			}
+
+			var mix = source[key];
 			if (target[key] == null) {
 				target[key] = mix;
 				continue;
 			}
+			
 			if ('node' === name) {
 				// http://jsperf.com/indexof-vs-bunch-of-ifs
 				var isSealed = key === 'renderStart'
@@ -102,8 +99,9 @@ var compo_inherit;
 				inherit_(target[key], mix, 'pipe');
 				continue;
 			}
-			if ('function' === type) {
-				fnAutoCall = false;
+			var type = typeof mix;
+			if (type === 'function') {
+				var fnAutoCall = false;
 				if ('slots' === name || 'events' === name || 'pipe' === name)
 					fnAutoCall = true;
 				else if ('node' === name && ('onRenderStart' === key || 'onRenderEnd' === key)) 
@@ -113,7 +111,7 @@ var compo_inherit;
 				hasFnOverrides = true;
 				continue;
 			}
-			if ('object' !== type) {
+			if (type !== 'object') {
 				continue;
 			}
 			
@@ -129,8 +127,9 @@ var compo_inherit;
 		}
 		
 		if (hasFnOverrides === true) {
-			if (target.super != null) 
+			if (target.super != null) {
 				log_error('`super` property is reserved. Dismissed. Current prototype', target);
+			}
 			target.super = null;
 		}
 	}
@@ -235,11 +234,9 @@ var compo_inherit;
 			return x;
 		};
 	}
-	function joinFns_(fns) {
-		var imax = fns.length;
-		if (imax === 1) {
-			return fns[0];
-		}
+	function joinFns_(fns_) {
+		var fns = ensureCallable_(fns_),
+			imax = fns.length;
 		return function(){
 			var i = imax, result;
 			while( --i > -1 ){
@@ -252,4 +249,27 @@ var compo_inherit;
 			return result;
 		};
 	}
+	function ensureCallable_ (fns) {
+		var out = [],
+			i = fns.length;
+		while(--i > -1) out[i] = ensureCallableSingle_(fns[i]);
+		return out;
+	}
+	var ensureCallableSingle_ = function (fn) {
+		return fn;
+	};
+	if (is_Function(Object.getOwnPropertyDescriptor) && is_Function(Object.assign)) {
+		ensureCallableSingle_ = function (fn) {
+			var desc = Object.getOwnPropertyDescriptor(fn, 'prototype');
+			if (desc.writable) {
+				return fn;
+			}
+			return function () {
+				var args = _Array_slice.call(arguments);
+				var x = new (fn.bind.apply(fn, [null].concat(args)));
+				Object.assign(this, x);
+			}
+		};
+	};
+
 }());
