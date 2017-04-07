@@ -89,6 +89,24 @@ obj_extend(Compo, {
 
 	attachDisposer: compo_attachDisposer,
 
+	attach: function (compo, name, fn) {
+		var current = obj_getProperty(compo, name);		
+		if (is_Function(current)) {
+			var wrapper = function(){
+				var args = _Array_slice.call(arguments);
+				fn.apply(compo, args);
+				current.apply(compo, args);
+			};
+			obj_setProperty(compo, name, wrapper);
+			return;
+		}
+		if (current == null) {
+			obj_setProperty(compo, name, fn);
+			return;
+		}
+		throw Error('Cann`t attach ' + name + ' to not a Function');
+	},
+
 	element: {
 		getCompo: function (el) {
 			return Anchor.resolveCompo(el, true);

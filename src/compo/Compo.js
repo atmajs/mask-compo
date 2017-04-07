@@ -217,6 +217,9 @@ var Compo, CompoProto;
 		$eval: function(expr, model, ctx){
 			return expression_eval(expr, model || this.model, ctx, this);
 		},
+		attach: function (name, fn) {
+			Compo.attach(this, name, fn);
+		}
 	};
 
 	Compo.prototype = CompoProto;
