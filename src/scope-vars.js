@@ -1,5 +1,5 @@
 var Dom = mask.Dom,
-
+	Di = mask.Di,
 	_mask_ensureTmplFnOrig = mask.Utils.ensureTmplFn,
 	_mask_ensureTmplFn,
 	_resolve_External,
@@ -33,7 +33,7 @@ var Dom = mask.Dom,
 		}
 		return null;
 	}
-	domLib = resolve('jQuery', 'Zepto', '$');
+	mask.$ = domLib = resolve('jQuery', 'Zepto', '$');
 	Class = resolve('Class');
 }());
 

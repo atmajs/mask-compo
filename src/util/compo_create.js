@@ -36,6 +36,7 @@ var compo_create,
 		}
 
 		compo_meta_prepairAttributesHandler(Proto);
+		compo_meta_prepairArgumentsHandler(Proto);
 
 		Ctor = Proto.hasOwnProperty('constructor')
 			? Proto.constructor

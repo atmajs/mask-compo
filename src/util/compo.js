@@ -8,7 +8,8 @@ var compo_dispose,
 	compo_errored,
 
 	compo_meta_toAttributeKey,
-	compo_meta_prepairAttributesHandler
+	compo_meta_prepairAttributesHandler,
+	compo_meta_prepairArgumentsHandler
 	;
 
 (function(){
@@ -163,26 +164,14 @@ var compo_dispose,
 	(function(){
 
 		compo_meta_prepairAttributesHandler = function(Proto){
-			var meta = Proto.meta;
-			if (meta == null) {
-				meta = Proto.meta = {
-					attributes: null,
-					cache: null,
-					mode: null,
-					readAttributes: null,
-				};
-			}
-
+			var meta = getMetaProp_(Proto);			
 			var attributes = meta.attributes;
 			if (attributes == null) {
-				meta.readAttributes = null;
 				return;
 			}
-
-			var hash = {},
-				key, val;
-			for(key in attributes) {
-				val = attributes[key];
+			var hash = {};
+			for(var key in attributes) {
+				var val = attributes[key];
 				_attr_setProperty_Delegate(Proto, key, val, /*out*/ hash);
 			}
 			meta.readAttributes = _attr_setProperties_Delegate(hash);
@@ -358,6 +347,67 @@ var compo_dispose,
 			number: 0
 		};
 	}());
+
+	// == Meta Attribute Handler
+	(function(){
+
+		compo_meta_prepairArgumentsHandler = function(Proto){
+			var meta = getMetaProp_(Proto);
+			var args = meta.arguments;
+			if (args != null) {
+				var i = args.length;
+				while(--i > -1) {
+					if (typeof args[i] === 'string') {
+						args[i] = { name: args[i], type: null };
+					}
+				}
+				meta.readArguments = _modelArgsBinding_Delegate(args);
+			}
+		};
+
+		function _modelArgsBinding_Delegate (args) {
+			return function(expr, model, ctx, ctr){
+				return _modelArgsBinding(args, expr, model, ctx, ctr);				
+			};
+		}
+		function _modelArgsBinding (args, expr, model, ctx, ctr) {
+			var arr = null;
+			if (expr == null) {
+				var i = args.length;
+				arr = new Array(i);
+				while(--i > -1) {
+					arr[i] = expression_eval(arr[i].name, model, ctx, ctr);
+				}
+			} else {
+				arr = expression_evalStatements(expr, model, ctx, ctr);
+			}
+			var out = {},
+				arrMax = arr.length,
+				argsMax = args.length,
+				i = -1;
+			while ( ++i < arrMax && i < argsMax ){
+				var val = arr[i]
+				if (val == null) {
+					var type = args[i].type;
+					if (type != null) {
+						var Type = type;
+						if (typeof type === 'string') {
+							Type = expression_eval(type, model, ctx, ctr);
+							if (Type == null) {
+								error_withCompo(type + ' was not resolved', ctr);
+							} else {
+								val = Di.resolve(Type);
+							}
+						}
+					}
+				}
+				out[args[i].name] = val;
+			}
+			return out;
+		}
+
+	}());
+
 	function getTemplateProp_(compo){
 		var template = compo.template;
 		if (template == null) {
@@ -388,5 +438,13 @@ var compo_dispose,
 		}
 		log_warn('Invalid template', typeof template);
 		return null;
+	}
+
+	function getMetaProp_(Proto) {
+		var meta = Proto.meta;
+		if (meta == null) {
+			meta = Proto.meta = obj_create(Compo.prototype.meta);
+		}
+		return meta;
 	}
 }());

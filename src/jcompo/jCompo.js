@@ -5,6 +5,8 @@ function domLib_initialize(){
 	if (domLib == null || domLib.fn == null)
 		return;
 	
+	mask.$ = domLib;
+	
 	domLib.fn.compo = function(selector){
 		if (this.length === 0)
 			return null;
