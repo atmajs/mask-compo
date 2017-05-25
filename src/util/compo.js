@@ -376,7 +376,7 @@ var compo_dispose,
 				var i = args.length;
 				arr = new Array(i);
 				while(--i > -1) {
-					arr[i] = expression_eval(arr[i].name, model, ctx, ctr);
+					arr[i] = expression_eval(args[i].name, model, ctx, ctr);
 				}
 			} else {
 				arr = expression_evalStatements(expr, model, ctx, ctr);
