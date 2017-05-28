@@ -1,5 +1,5 @@
-
-var Compo = exports.Compo = Mask.Compo = (function(mask){
+var Compo;
+var CompoLib = (function(mask){
 	// import /src/scope-vars.js
 
 	// import /src/util/exports.js
@@ -27,6 +27,8 @@ var Compo = exports.Compo = Mask.Compo = (function(mask){
 	// import /src/handler/slot.js
 
 
-	return Compo;
-
+	return { Compo: Compo, Component: Component }
 }(Mask));
+
+Mask.Compo = Compo = exports.Compo = CompoLib.Compo;
+Mask.Component = CompoLib.Component;

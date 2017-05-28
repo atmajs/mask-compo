@@ -1,4 +1,4 @@
-var Compo, CompoProto;
+var Compo, CompoProto, Component;
 (function() {
 
 	Compo = function () {
@@ -10,11 +10,34 @@ var Compo, CompoProto;
 		return compo_create(arguments);
 	};
 
+	Component = function () {
+		if (this.__constructed !== true) {
+			this.__constructed = true;
+			compo_prepairProperties(this);
+		}
+		if (this.compos != null) {
+			this.compos = obj_create(this.compos);
+		}
+		if (this.pipes != null) {
+			Pipes.addController(this);
+		}
+		if (this.attr != null) {
+			this.attr = obj_create(this.attr);
+		}
+		if (this.scope != null) {
+			this.scope = obj_create(this.scope);
+		}
+	};
+	Compo.create = Component.create = function () {
+		return compo_create(arguments);
+	};
+
 	// import ./Compo.static.js
 	// import ./async.js
 
 	CompoProto = {
 		type: Dom.CONTROLLER,
+		__constructed: false,
 		__resource: null,
 		__frame: null,
 		__tweens: null,
@@ -226,4 +249,5 @@ var Compo, CompoProto;
 	};
 
 	Compo.prototype = CompoProto;
+	Component.prototype = CompoProto;
 }());

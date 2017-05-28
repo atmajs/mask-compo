@@ -126,12 +126,14 @@ function JSHint() {
 			"fn_apply",
 			"obj_create",
 			"obj_extend",
-
+			"obj_setProperty",
+			"obj_getProperty",
 			"_Array_slice",
 			"_Array_splice",
 			"_Array_indexOf",
 			"reporter_createErrorNode",
 			"Mask"
+			, "error_withCompo"
 			, "class_create"
 			, "class_Dfr"
 			, "mask_merge"
