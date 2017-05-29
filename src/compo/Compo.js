@@ -245,6 +245,14 @@ var Compo, CompoProto, Component;
 		},
 		attach: function (name, fn) {
 			Compo.attach(this, name, fn);
+		},
+		serializeState: function () {
+			if (this.scope) {
+				return { scope: this.scope };
+			}			
+		},
+		deserializeState: function (bundle) {
+			this.scope = bundle && bundle.scope || this.scope;
 		}
 	};
 
