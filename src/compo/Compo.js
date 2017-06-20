@@ -252,7 +252,9 @@ var Compo, CompoProto, Component;
 			}			
 		},
 		deserializeState: function (bundle) {
-			this.scope = bundle && bundle.scope || this.scope;
+			if (bundle != null && bundle.scope != null) {
+				this.scope = obj_extend(this.scope, bundle.scope);
+			}
 		}
 	};
 
