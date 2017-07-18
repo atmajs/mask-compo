@@ -63,37 +63,41 @@ var compo_inherit;
 		}
 		
 		var hasFnOverrides = false;
-		for(var key in source){
+		outer: for(var key in source){
 			if (key === 'constructor' || ('node' === name && (key === 'template' || key === 'nodes'))) {
 				continue;
 			}
-
 			var mix = source[key];
 			if (target[key] == null) {
 				target[key] = mix;
 				continue;
-			}
-			
+			}			
 			if ('node' === name) {
-				// http://jsperf.com/indexof-vs-bunch-of-ifs
-				var isSealed = key === 'renderStart'
-						|| key === 'renderEnd'
-						|| key === 'emitIn'
-						|| key === 'emitOut'
-						|| key === 'components'
-						|| key === 'nodes'
-						|| key === 'template'
-						|| key === 'find'
-						|| key === 'closest'
-						|| key === 'on'
-						|| key === 'remove'
-						|| key === 'slotState'
-						|| key === 'signalState'
-						|| key === 'append'
-						|| key === 'appendTo'
-						;
-				if (isSealed === true) 
-					continue;
+				switch (key) {
+					case 'renderStart':
+					case 'renderEnd':
+					case 'emitIn':
+					case 'emitOut':
+					case 'components':
+					case 'nodes':
+					case 'template':
+					case 'find':
+					case 'closest':
+					case 'on':
+					case 'remove':
+					case 'slotState':
+					case 'signalState':
+					case 'append':
+					case 'appendTo':
+						// is sealed
+						continue outer;
+					case 'serializeState':
+					case 'deserializeState':
+						if (source[key] !== CompoProto[key]) {
+							target[key] = source[key];
+						}
+						continue outer;
+				}				
 			}
 			if ('pipes' === name) {
 				inherit_(target[key], mix, 'pipe');
