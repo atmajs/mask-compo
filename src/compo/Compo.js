@@ -204,6 +204,7 @@ var Compo, CompoProto, Component;
 			return this;
 		},
 		remove: function() {
+			compo_cleanElements(this);
 			compo_removeElements(this);
 			compo_detachChild(this);
 			compo_dispose(this);

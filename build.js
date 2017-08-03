@@ -132,6 +132,8 @@ function JSHint() {
 			"_Array_splice",
 			"_Array_indexOf",
 			"reporter_createErrorNode",
+			"coll_remove",
+			"coll_indexOf",
 			"Mask"
 			, "error_withCompo"
 			, "class_create"
