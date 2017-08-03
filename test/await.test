@@ -29,7 +29,7 @@ UTest({
 			done();
 		});
 	},
-	'!parent should get the elements from the direct child': {
+	'parent should get the elements from the direct child': {
 
 		'sync' () {
 			mask.define('FooParent', Compo({

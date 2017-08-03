@@ -131,19 +131,21 @@ UTest({
 	},
 	'should iterpolate attributes': {
 		'interpolate self' () {
-			mask.define('Foo', Compo({
-				tagName: 'div',
+			mask.define('FooWrapper', Compo({
 				meta: {
 					attributes: {
 						width: 20
 					}
-				},
-				attr: {
-					style: 'width: ~[$.xWidth + 1]px'
 				}
 			}));
+			mask.define('Foo', Compo({
+				tagName: 'div'
+			}));
 
-			var dom = mask.render('Foo.one; Foo.two width=12;');
+			var dom = mask.render(`
+				FooWrapper > Foo.one style="width: ~[this.xWidth + 1]px"; 
+				FooWrapper width=12 > Foo.two style="width: ~[this.xWidth + 1]px";
+			`);
 			return UTest.domtest(dom, `
 				find('.one') {
 					attr style ('width: 21px');

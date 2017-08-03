@@ -173,7 +173,7 @@ UTest({
 			}));
 			
 			return UTest.domtest(mask.render(`
-				bar > @body > span > '~[:$c.name]'
+				bar > @body > span > '~[this.name]'
 			`), `
 				find('section') {
 					html ('<span>Baz</span>');
