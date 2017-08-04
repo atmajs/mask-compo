@@ -12,15 +12,15 @@
 			ctx.defers.push(compo);
 			ctx.defer();
 		}
-
 		obj_extend(compo, CompoProto);
+		var slots = Slots.wrap(compo);
 		return function(){
 			Compo.resume(compo, ctx);
+			Slots.unwrap(compo, slots);
 		};
 	};
 	Compo.resume = function(compo, ctx){
 		compo.async = false;
-
 		// fn can be null when calling resume synced after pause
 		if (compo.resume) {
 			compo.resume();
@@ -46,11 +46,10 @@
 		if (busy === false)
 			ctx.resolve();
 	};
-
 	Compo.await = function (compo) {
 		return (new Awaiter).await(compo);
-	}
-
+	};
+	/** private */
 	var CompoProto = {
 		async: true,
 		resume: null,
@@ -74,7 +73,6 @@
 			};
 		}
 	};
-
 	var Awaiter;
 	(function(){
 		Awaiter = class_create(class_Dfr, {
@@ -118,4 +116,33 @@
 			}
 		}
 	}());
+	var Slots = {
+		/* for now wrap only `domInsert` */
+		wrap: function(compo) {
+			var domInsertFn = compo.slots && compo.slots.domInsert;
+			if (domInsertFn == null) {
+				return null;
+			}
+			var slots = {
+				/* [ Original Fn, Arguments if called] */
+				domInsert: [ domInsertFn, null]
+			};
+			compo.slots.domInsert = function(){
+				slots.domInsert[1] = _Array_slice.call(arguments);
+			};
+			return slots;
+		},
+		unwrap: function (compo, slots) {
+			if (slots == null) {
+				return;
+			}
+			for(var key in slots) {
+				var data = slots[key];
+				compo.slots[key] = data[0];
+				if (data[1] != null) {
+					Compo.signal.emitIn(compo, key, data[1]);
+				}
+			}
+		}
+	}
 }());
