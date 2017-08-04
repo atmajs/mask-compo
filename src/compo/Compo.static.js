@@ -107,6 +107,61 @@ obj_extend(Compo, {
 		throw Error('Cann`t attach ' + name + ' to not a Function');
 	},
 
+	gc: {
+		using: function (compo, x) {
+			if (x.dispose == null) {
+				console.warn('Expects `disposable` instance');
+				return x;
+			}
+			Compo.attach(compo, 'dispose', function(){
+				x && x.dispose();
+				x = null;
+			});
+		},
+		on: function (compo, emitter, /* ...args */) {
+			var args = _Array_slice.call(arguments, 2);
+			var fn = emitter.on || emitter.addListener || emitter.addEventListener || emitter.bind;
+			var fin = emitter.off || emitter.removeListener || emitter.removeEventListener || emitter.unbind;
+			if (fn == null || fin === null) {
+				console.warn('Expects `emitter` instance with any of the methods: on, addListener, addEventListener, bind');
+				return;
+			}
+			fn.apply(emitter, args);
+			Compo.attach(compo, 'dispose', function(){
+				emitter && fin.apply(emitter, args);
+				emitter = null;
+			});
+		},
+		subscribe: function(compo, observable /* ...args */){
+			var args = _Array_slice.call(arguments, 2);
+			if (observable.subscribe == null) {
+				console.warn('Expects `IObservable` instance with subscribe/unsubscribe methods');
+				return;
+			}
+			var result = observable.apply(observable, args);
+			if (observable.unsubscribe == null && (result == null || result.dispose == null)) {
+				throw Error('Invalid subscription: don`t know how to unsubscribe');
+				return;
+			}
+			Compo.attach(compo, 'dispose', function(){
+				if (observable == null) {
+					return;
+				}
+				if (result && result.dispose) {
+					result.dispose();
+					result = null;
+					observable = null;
+					return;
+				}
+				if (observable.unsubscribe) {
+					observable.unsubscribe(args[0]);
+					observable = null;					
+					result = null;
+				}				
+			});
+		}
+	},
+
 	element: {
 		getCompo: function (el) {
 			return Anchor.resolveCompo(el, true);
