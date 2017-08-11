@@ -147,6 +147,7 @@ var compo_dispose,
 		}
 		function onError(error) {
 			compo_errored(compo, error);
+			error_withCompo(error, compo);
 			resume();
 		}
 	};
