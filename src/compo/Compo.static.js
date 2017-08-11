@@ -118,7 +118,7 @@ obj_extend(Compo, {
 				x = null;
 			});
 		},
-		on: function (compo, emitter, /* ...args */) {
+		on: function (compo, emitter /* ...args */) {
 			var args = _Array_slice.call(arguments, 2);
 			var fn = emitter.on || emitter.addListener || emitter.addEventListener || emitter.bind;
 			var fin = emitter.off || emitter.removeListener || emitter.removeEventListener || emitter.unbind;
@@ -141,7 +141,6 @@ obj_extend(Compo, {
 			var result = observable.apply(observable, args);
 			if (observable.unsubscribe == null && (result == null || result.dispose == null)) {
 				throw Error('Invalid subscription: don`t know how to unsubscribe');
-				return;
 			}
 			Compo.attach(compo, 'dispose', function(){
 				if (observable == null) {
