@@ -142,9 +142,6 @@ var compo_dispose,
 	compo_prepairAsync = function(dfr, compo, ctx){
 		var resume = Compo.pause(compo, ctx)
 		var x = dfr.then(resume, onError);
-		if (x.catch != null) {
-			x.catch(onError);
-		}
 		function onError(error) {
 			compo_errored(compo, error);
 			error_withCompo(error, compo);
