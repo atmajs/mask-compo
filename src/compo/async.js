@@ -15,8 +15,10 @@
 		obj_extend(compo, CompoProto);
 		var slots = Slots.wrap(compo);
 		return function(){
+			// Restore only signals in case smth. will be emitted during resume
+			Slots.unwrap(compo, slots, true, false);
 			Compo.resume(compo, ctx);
-			Slots.unwrap(compo, slots);
+			Slots.unwrap(compo, slots, false, true);
 		};
 	};
 	Compo.resume = function(compo, ctx){
@@ -132,14 +134,16 @@
 			};
 			return slots;
 		},
-		unwrap: function (compo, slots) {
+		unwrap: function (compo, slots, shouldRestore, shouldEmit) {
 			if (slots == null) {
 				return;
 			}
 			for(var key in slots) {
 				var data = slots[key];
-				compo.slots[key] = data[0];
-				if (data[1] != null) {
+				if (shouldRestore) {
+					compo.slots[key] = data[0];
+				}
+				if (shouldEmit && data[1] != null) {
 					Compo.signal.emitIn(compo, key, data[1]);
 				}
 			}
