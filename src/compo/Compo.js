@@ -69,10 +69,12 @@ var Compo, CompoProto, Component;
 			mode: null,
 			modelMode: null,
 			attributes: null,
+			properties: null,
 			arguments: null,
 			template: null,
 			serializeNodes: null,
 			readAttributes: null,
+			readProperties: null,
 			readArguments: null
 		},
 

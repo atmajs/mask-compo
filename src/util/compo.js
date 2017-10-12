@@ -10,6 +10,7 @@ var compo_dispose,
 
 	compo_meta_toAttributeKey,
 	compo_meta_prepairAttributesHandler,
+	compo_meta_prepairPropertiesHandler,
 	compo_meta_prepairArgumentsHandler
 
 	;
@@ -161,7 +162,7 @@ var compo_dispose,
 		compo.renderEnd = compo.render = compo.renderStart = null;
 	};
 
-	// == Meta Attribute Handler
+	// == Meta Attribute and Property Handler
 	(function(){
 
 		compo_meta_prepairAttributesHandler = function(Proto){
@@ -173,38 +174,49 @@ var compo_dispose,
 			var hash = {};
 			for(var key in attributes) {
 				var val = attributes[key];
-				_attr_setProperty_Delegate(Proto, key, val, /*out*/ hash);
+				_attr_setProperty_Delegate(Proto, key, val, true, /*out*/ hash);
 			}
 			meta.readAttributes = _attr_setProperties_Delegate(hash);
+		};
+		compo_meta_prepairPropertiesHandler = function(Proto){
+			var meta = getMetaProp_(Proto);			
+			var props = meta.properties;
+			if (props == null) {
+				return;
+			}
+			var hash = {};
+			for(var key in props) {
+				var val = props[key];
+				_attr_setProperty_Delegate(Proto, key, val, false, /*out*/ hash);
+			}
+			meta.readProperties = _attr_setProperties_Delegate(hash);
 		};
 
 		compo_meta_toAttributeKey = _getProperty;
 
 		function _attr_setProperties_Delegate(hash){
 			return function(compo, attr, model, container){
-				var key, fn, val, error;
-				for(key in hash){
-					fn    = hash[key];
-					val   = attr[key];
-					error = fn(compo, key, val, model, container, attr);
-
-					if (error == null)
+				for(var key in hash){
+					var fn    = hash[key];
+					var val   = attr[key];
+					var error = fn(compo, key, val, model, container, attr);
+					if (error == null) {
 						continue;
-
+					}
 					_errored(compo, error, key, val)
 					return false;
 				}
 				return true;
 			};
 		}
-		function _attr_setProperty_Delegate(Proto, metaKey, metaVal, /*out*/hash) {
+		function _attr_setProperty_Delegate(Proto, metaKey, metaVal, isAttr, /*out*/hash) {
 			var optional = metaKey.charCodeAt(0) === 63, // ?
 				default_ = null,
 				attrName = optional
 					? metaKey.substring(1)
 					: metaKey;
 
-			var property = _getProperty(attrName),
+			var property = isAttr ? _getProperty(attrName) : attrName,
 				fn = null,
 				type = typeof metaVal;
 			if ('string' === type) {
