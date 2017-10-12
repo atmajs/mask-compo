@@ -10,7 +10,6 @@ var compo_dispose,
 
 	compo_meta_toAttributeKey,
 	compo_meta_prepairAttributesHandler,
-	compo_meta_prepairPropertiesHandler,
 	compo_meta_prepairArgumentsHandler
 
 	;
@@ -165,35 +164,28 @@ var compo_dispose,
 	// == Meta Attribute and Property Handler
 	(function(){
 
-		compo_meta_prepairAttributesHandler = function(Proto){
+		compo_meta_toAttributeKey = _getProperty;		
+		compo_meta_prepairAttributesHandler = function(Proto, type /* attributes | properties */){
 			var meta = getMetaProp_(Proto);			
-			var attributes = meta.attributes;
-			if (attributes == null) {
-				return;
+			var attr = meta.attributes;
+			if (attr != null) {
+				var hash = _createHash(Proto, attr, true);
+				meta.readAttributes = _attr_setProperties_Delegate(hash);	
 			}
-			var hash = {};
-			for(var key in attributes) {
-				var val = attributes[key];
-				_attr_setProperty_Delegate(Proto, key, val, true, /*out*/ hash);
-			}
-			meta.readAttributes = _attr_setProperties_Delegate(hash);
-		};
-		compo_meta_prepairPropertiesHandler = function(Proto){
-			var meta = getMetaProp_(Proto);			
 			var props = meta.properties;
-			if (props == null) {
-				return;
+			if (props != null) {
+				var hash = _createHash(Proto, attr, false);
+				meta.readProperties = _attr_setProperties_Delegate(hash);	
 			}
-			var hash = {};
-			for(var key in props) {
-				var val = props[key];
-				_attr_setProperty_Delegate(Proto, key, val, false, /*out*/ hash);
-			}
-			meta.readProperties = _attr_setProperties_Delegate(hash);
 		};
-
-		compo_meta_toAttributeKey = _getProperty;
-
+		function _createHash (Proto, metaObj, isAttr) {
+			var hash = {};
+			for(var key in metaObj) {
+				var val = metaObj[key];
+				_attr_setProperty_Delegate(Proto, key, val, isAttr, /*out*/ hash);
+			}
+			return hash;
+		}
 		function _attr_setProperties_Delegate(hash){
 			return function(compo, attr, model, container){
 				for(var key in hash){

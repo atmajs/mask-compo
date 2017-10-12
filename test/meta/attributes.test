@@ -24,8 +24,8 @@ UTest({
 			meta: {
 				attributes: {
 					'x-foo': 'boolean',
-					'x-model-value': function(name){
-						return this.model[name];
+					'x-model-value': function(attrVal, model){
+						return model[attrVal];
 					}
 				}
 			},

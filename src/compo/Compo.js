@@ -93,8 +93,13 @@ var Compo, CompoProto, Component;
 			var prop = null;
 			if (meta !== void 0) {
 				prop = compo_meta_toAttributeKey(key);
+			} else {
+				var props = this.meta.properties;
+				meta = props == null ? void 0 : props[key];
+				if (meta !== void 0) {
+					prop = key;
+				}
 			}
-
 			ani_updateAttr(this, key, prop, val, meta);
 			if (this.onAttributeSet) {
 				this.onAttributeSet(key, val);

@@ -53,7 +53,6 @@ var compo_create,
 			}
 		}
 		compo_meta_prepairAttributesHandler(Proto);
-		compo_meta_prepairPropertiesHandler(Proto);
 		compo_meta_prepairArgumentsHandler(Proto);
 	};
 
