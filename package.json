@@ -25,7 +25,8 @@
   },
   "scripts": {
     "test": "atma test",
-    "build": "atma"
+    "build": "atma",
+    "watch": "atma run watch"
   },
   "keywords": [],
   "engines": {

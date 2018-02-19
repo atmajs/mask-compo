@@ -5,6 +5,7 @@ var Dom = mask.Dom,
 	_resolve_External,
 	expression_eval = mask.Utils.Expression.eval,
 	expression_evalStatements = mask.Utils.Expression.evalStatements,
+	expression_varRefs = mask.Utils.Expression.varRefs,
 	domLib,
 	Class	
 	;

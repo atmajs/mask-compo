@@ -3,6 +3,7 @@
 	// import ./utils.js
 	// import ./toggle.js
 	// import ./attributes.js
+	// import ./compound.js
 	
 	obj_extend(Compo, {
 		signal: {
@@ -44,7 +45,7 @@
 				}
 				return slots[slot].apply(ctr, [event].concat(args));
 			},
-
+			attach: _compound
 		}
 
 	});

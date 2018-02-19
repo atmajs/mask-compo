@@ -68,5 +68,63 @@ UTest({
 		eq_(spy.callCount, 1);
 		// To avoid arguments leaking we just call the callback with multiple args
 		deepEq_(spy.args[0].slice(0, 3), [compo, 1, 'qux']);
+	},
+
+	'compound slot': {
+		'should call method on 2 signals' () {
+			var spy = sinon.spy();
+			var compo = {
+				slots: {}
+			};
+
+			Compo.slot.attach(compo, 'foo && bar', spy);
+
+			is_(compo.slots.foo, 'Function');
+			is_(compo.slots.bar, 'Function');
+
+			Compo.signal.emitIn(compo, 'foo');
+			eq_(spy.callCount, 0);
+
+			Compo.signal.emitIn(compo, 'foo');
+			eq_(spy.callCount, 0);
+
+			Compo.signal.emitIn(compo, 'bar');
+			eq_(spy.callCount, 1);
+
+			Compo.signal.emitIn(compo, 'foo');
+			eq_(spy.callCount, 2);
+		},
+		'should call method on 2 signals with a negotiation' () {
+			var spy = sinon.spy();
+			var compo = {
+				slots: {}
+			};
+
+			var worker = Compo.slot.attach(compo, 'foo ^ qux && bar', spy);
+
+			is_(compo.slots.foo, 'Function');
+			is_(compo.slots.bar, 'Function');
+			is_(compo.slots.qux, 'Function');
+
+			Compo.signal.emitIn(compo, 'bar');
+			eq_(spy.callCount, 0);
+
+			Compo.signal.emitIn(compo, 'qux');
+			eq_(spy.callCount, 0);
+
+			Compo.signal.emitIn(compo, 'foo');
+			eq_(spy.callCount, 1);
+
+			
+			Compo.signal.emitIn(compo, 'qux');
+			eq_(spy.callCount, 1);
+			
+			Compo.signal.emitIn(compo, 'bar');
+			eq_(spy.callCount, 1);
+			
+
+			Compo.signal.emitIn(compo, 'foo');
+			eq_(spy.callCount, 2);
+		}
 	}
 });
