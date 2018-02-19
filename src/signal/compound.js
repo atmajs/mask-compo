@@ -6,12 +6,12 @@ var _compound;
         if (slots == null) {
             slots = ctr.slots = {};
         }
-        var worker = new SlotExpression(slotExpression, cb);
-        for (var i = 0; i < worker.slots.length; i++) {
-            var name = worker.slots[i].name;
-            Compo.attach(ctr, 'slots.' + name, worker.signalDelegate(name));
+        var handler = new SlotExpression(slotExpression, cb);
+        for (var i = 0; i < handler.slots.length; i++) {
+            var name = handler.slots[i].name;
+            Compo.attach(ctr, 'slots.' + name, handler.signalDelegate(name));
         }  
-        return worker;     
+        return handler;     
     };
     
     var SlotExpression = class_create({
@@ -69,8 +69,5 @@ var _compound;
             }
             return null;
         }
-    });
-    
-    var rgx = /(\-+)\s*([\w\d_]+)/g;
-
+    });    
 }());
