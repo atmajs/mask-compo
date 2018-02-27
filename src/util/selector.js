@@ -74,7 +74,7 @@ var selector_parse,
 			return selector.selector(obj[selector.key]);
 		
 		// regexp
-		if (selector.selector.test != null) 
+		if (typeof selector.selector !== 'string' && selector.selector.test != null) 
 			return selector.selector.test(obj[selector.key]);
 		
 		// string | int
