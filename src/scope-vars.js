@@ -26,11 +26,11 @@ var Dom = mask.Dom,
 		_exports = exports || {};
 	
 	function resolve() {
-		var i = arguments.length, val;
-		while( --i > -1 ) {
-			val = _resolve_External(arguments[i]);
-			if (val != null) 
+		for (var i = 0; i < arguments.length; i++) {
+			var val = _resolve_External(arguments[i]);
+			if (val != null) {
 				return val;
+			}
 		}
 		return null;
 	}
