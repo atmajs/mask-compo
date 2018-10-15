@@ -7,11 +7,14 @@ var DomLite;
 	if (document == null) 
 		return;
 	
-	Compo.DomLite = DomLite = function(els){
-		if (this instanceof DomLite === false) 
-			return new DomLite(els);
-		
-		return this.add(els)
+	Compo.DomLite = DomLite = function(mix){
+		if (this instanceof DomLite === false) {
+			return new DomLite(mix);
+		}
+		if (typeof mix === 'string') {
+			mix = document.querySelectorAll(mix);
+		}
+		return this.add(mix)
 	};
 	
 	if (domLib == null) 
@@ -129,6 +132,9 @@ var DomLite;
 			return each(this, function(x){
 				x.focus && x.focus();
 			});
+		},
+		get: function (i) {
+			return this[i];
 		}
 	};
 	

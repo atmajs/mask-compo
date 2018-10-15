@@ -1,7 +1,7 @@
 {
   "name": "compo",
   "description": "Mask Component MVC Library",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "contributors": [],
   "main": "./lib/compo.js",
   "author": "Alex Kit <alex.kit@atmajs.com>",
